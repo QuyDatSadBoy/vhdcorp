@@ -1,0 +1,66 @@
+# ============================================================
+# OS & Editor
+# ============================================================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/settings.json
+
+# ============================================================
+# Environment & Secrets
+# ============================================================
+.env
+.env.*
+!.env.example
+
+# ============================================================
+# Logs (both be/logs/ and fe/logs/)
+# ============================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ============================================================
+# BE — NestJS
+# ============================================================
+
+# Build output (tsconfig.json → outDir: ./dist)
+be/dist/
+
+# TypeScript incremental build info
+be/*.tsbuildinfo
+
+# Dependencies
+be/node_modules/
+
+# Prisma generated client (generator output → prisma/generated/client)
+be/prisma/generated/
+
+# ============================================================
+# FE — Next.js
+# ============================================================
+
+# Build output
+fe/.next/
+fe/out/
+
+# Dependencies
+fe/node_modules/
+
+# Vercel deploy config
+fe/.vercel/
+
+# Next.js cache
+fe/.swc/
+
+# ============================================================
+# Test & Coverage
+# ============================================================
+coverage/
+be/coverage/
+fe/coverage/
