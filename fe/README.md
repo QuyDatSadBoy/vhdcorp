@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VHD Corp — Frontend
 
-## Getting Started
+Next.js 16 App Router · React 19 · Tailwind CSS v4 · shadcn/ui · TypeScript
 
-First, run the development server:
+> **Package manager: `yarn`** — KHÔNG dùng npm, pnpm, hay bun.
+
+## Khởi động
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local   # điền NEXT_PUBLIC_API_URL=http://localhost:8333
+yarn install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Chạy
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Lệnh | Mô tả |
+| --- | --- |
+| `yarn dev` | Dev server tại <http://localhost:3000> |
+| `yarn dev:log` | Dev + ghi log → `logs/app.log` |
+| `yarn build` | Build production |
+| `yarn start` | Chạy production build |
+| `yarn lint` | Lint toàn bộ source |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Xem log để debug
 
-## Learn More
+```bash
+tail -f logs/app.log
 
-To learn more about Next.js, take a look at the following resources:
+# Lọc lỗi
+grep -i "error" logs/app.log
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Cấu trúc thư mục
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```text
+app/
+├── (client)/    # Client routes: /, /products, /posts, /about, /contact
+├── (auth)/      # /login, /register, /auth/callback
+├── account/     # /account/* — protected, cần đăng nhập
+└── admin/       # /admin/* — protected, cần role admin/staff
 
-## Deploy on Vercel
+components/
+├── client/      # Header, Footer, Card, ...
+├── admin/       # Sidebar, DataTable, ...
+├── builder/     # Visual Page Builder
+└── ui/          # shadcn/ui primitives — chỉ thêm mới, không sửa
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+services/        # {domain}.service.ts — TanStack Query hooks + axios
+store/           # {name}.store.ts — Zustand
+hooks/           # use-{name}.ts — custom hooks
+lib/             # axios.ts, utils.ts, cloudinary.ts
+types/           # {domain}.ts — TypeScript interfaces
+messages/        # vi.json, en.json — next-intl strings
+public/          # static assets (icons/, images/)
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Env quan trọng
+
+| Biến | Mô tả |
+| --- | --- |
+| `NEXT_PUBLIC_API_URL` | URL backend, vd: `http://localhost:8333` |
+| `NEXT_PUBLIC_APP_URL` | URL frontend, vd: `http://localhost:3000` |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
+| `NEXT_PUBLIC_GA_ID` | Google Analytics (tùy chọn) |
+
+Xem mẫu đầy đủ tại `.env.example`.

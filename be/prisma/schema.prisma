@@ -1,8 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// VHD Corp Database Schema
+// Spec: docs/DATABASE.md — 9 models, 5 enums, soft delete on User/Product/Post
 
 generator client {
   provider      = "prisma-client-js"
@@ -14,19 +11,218 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id       Int     @id @default(autoincrement())
-  type     String  @default("local")
-  account  String  @unique
-  email    String? @unique
-  username String  @default("")
-  name     String  @default("")
-  avatar   String  @default("")
-  role     Int     @default(0)
+// ─── Enums ─────────────────────────────────────────────────────────────────
+
+enum Role {
+  CUSTOMER
+  STAFF
+  ADMIN
 }
 
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+}
 
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+}
 
-// npx prisma migrate dev --name init
-// npx prisma migrate reset
-// npx prisma migrate deploy
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ConfigStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// ─── User ──────────────────────────────────────────────────────────────────
+
+model User {
+  id               Int       @id @default(autoincrement())
+  email            String    @unique
+  password         String?
+  name             String    @default("")
+  role             Role      @default(CUSTOMER)
+  avatar           String?
+  googleId         String?   @unique
+  refreshTokenHash String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  reviews Review[]
+  posts   Post[]
+
+  @@index([deletedAt])
+  @@map("users")
+}
+
+// ─── Category (cây đa cấp) ─────────────────────────────────────────────────
+
+model Category {
+  id        Int        @id @default(autoincrement())
+  slug      String     @unique
+  name      String
+  image     String?
+  parentId  Int?
+  parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryTree")
+  order     Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  products Product[]
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+// ─── Product ───────────────────────────────────────────────────────────────
+
+model Product {
+  id          Int           @id @default(autoincrement())
+  slug        String        @unique
+  name        String
+  description String        @db.Text
+  price       Decimal       @db.Decimal(12, 2)
+  stock       Int           @default(0)
+  images      String[]
+  categoryId  Int
+  category    Category      @relation(fields: [categoryId], references: [id])
+  metaTitle   String?
+  metaDesc    String?
+  ogImage     String?
+  status      ProductStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  reviews Review[]
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([createdAt])
+  @@map("products")
+}
+
+// ─── Post (Tiptap rich text) ───────────────────────────────────────────────
+
+model Post {
+  id          Int        @id @default(autoincrement())
+  slug        String     @unique
+  title       String
+  content     String     @db.Text
+  excerpt     String?    @db.Text
+  coverImage  String?
+  status      PostStatus @default(DRAFT)
+  publishedAt DateTime?
+  metaTitle   String?
+  metaDesc    String?
+  ogImage     String?
+  tags        String[]
+  authorId    Int
+  author      User       @relation(fields: [authorId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+
+  @@index([status])
+  @@index([publishedAt])
+  @@index([deletedAt])
+  @@index([authorId])
+  @@map("posts")
+}
+
+// ─── Review ────────────────────────────────────────────────────────────────
+
+model Review {
+  id        Int          @id @default(autoincrement())
+  productId Int
+  product   Product      @relation(fields: [productId], references: [id])
+  userId    Int
+  user      User         @relation(fields: [userId], references: [id])
+  rating    Int
+  content   String       @db.Text
+  status    ReviewStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([productId, userId])
+  @@index([status])
+  @@index([productId])
+  @@map("reviews")
+}
+
+// ─── Banner ────────────────────────────────────────────────────────────────
+
+model Banner {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  link      String?
+  alt       String?
+  position  String
+  active    Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([position, active])
+  @@map("banners")
+}
+
+// ─── Media (Cloudinary metadata) ───────────────────────────────────────────
+
+model Media {
+  id         Int      @id @default(autoincrement())
+  url        String
+  publicId   String   @unique
+  folder     String
+  format     String
+  width      Int?
+  height     Int?
+  bytes      Int?
+  tags       String[]
+  uploadedBy Int
+  createdAt  DateTime @default(now())
+
+  @@index([folder])
+  @@map("media")
+}
+
+// ─── SiteConfig (JSONB toàn bộ giao diện) ──────────────────────────────────
+
+model SiteConfig {
+  id        Int          @id @default(autoincrement())
+  key       String       @unique @default("main")
+  value     Json
+  version   Int          @default(1)
+  status    ConfigStatus @default(DRAFT)
+  updatedBy Int
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  history SiteConfigHistory[]
+
+  @@index([key, status])
+  @@map("site_configs")
+}
+
+model SiteConfigHistory {
+  id        Int        @id @default(autoincrement())
+  configId  Int
+  config    SiteConfig @relation(fields: [configId], references: [id])
+  snapshot  Json
+  version   Int
+  savedBy   Int
+  createdAt DateTime   @default(now())
+
+  @@index([configId])
+  @@map("site_config_histories")
+}
