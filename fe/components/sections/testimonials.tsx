@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Quote, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import type { TestimonialsSection as Section } from "@/types/site-config";
 import { Reveal } from "@/components/animations/reveal";
+import { AuroraBg } from "@/components/animations/aurora-bg";
 
 export default function Testimonials({ section }: { section: Section }) {
   const p = section.props;
@@ -42,15 +43,12 @@ export default function Testimonials({ section }: { section: Section }) {
 
   return (
     <section ref={sectionRef} className="relative overflow-hidden">
-      {/* Soft brand gradient background */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-20 [background:radial-gradient(60%_55%_at_50%_30%,color-mix(in_srgb,var(--vhd-color-highlight)_12%,transparent)_0%,transparent_70%),radial-gradient(50%_50%_at_50%_100%,color-mix(in_srgb,var(--vhd-color-primary)_8%,transparent)_0%,transparent_75%)]"
-      />
+      {/* Aurora background — premium depth */}
+      <AuroraBg className="-z-20" intensity="subtle" />
       {/* Decorative giant quote shape behind */}
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-12 -z-10 -translate-x-1/2 select-none font-heading text-[14rem] font-black leading-none text-(--vhd-color-primary)/[0.04] md:text-[20rem]"
+        className="pointer-events-none absolute left-1/2 top-12 -z-10 -translate-x-1/2 select-none font-heading text-[14rem] font-black leading-none text-(--vhd-color-primary)/4 md:text-[20rem]"
       >
         &ldquo;
       </div>
@@ -58,9 +56,7 @@ export default function Testimonials({ section }: { section: Section }) {
       <div className="container mx-auto px-4">
         <Reveal className="mx-auto mb-10 max-w-3xl text-center">
           <p className="type-eyebrow text-brand-accent">Khách hàng nói gì</p>
-          <h2 className="mt-3 type-display-md text-foreground">
-            Đối tác Việt Nam tin tưởng VHD Corp
-          </h2>
+          <h2 className="mt-3 type-display-md text-foreground">Đối tác Việt Nam tin tưởng VHD Corp</h2>
           <p className="mt-3 type-lead text-foreground/65">
             Hàng trăm doanh nghiệp đã chọn VHD làm đối tác cung ứng dài hạn — chất lượng đo bằng sự gắn bó.
           </p>
@@ -85,8 +81,8 @@ export default function Testimonials({ section }: { section: Section }) {
                 </div>
               </button>
 
-              {/* Main featured testimonial card */}
-              <div className="relative overflow-hidden rounded-3xl border border-foreground/10 bg-card p-7 shadow-[0_18px_60px_-30px_rgba(15,35,86,0.45)] md:p-10">
+              {/* Main featured testimonial card — glass-premium */}
+              <div className="relative overflow-hidden rounded-3xl border border-foreground/10 glass-premium grain-overlay p-7 shadow-[0_32px_80px_-24px_color-mix(in_srgb,var(--vhd-color-primary)_40%,transparent)] md:p-10">
                 {/* Brand accent bar on top */}
                 <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-brand-accent via-brand-primary to-brand-highlight" />
 

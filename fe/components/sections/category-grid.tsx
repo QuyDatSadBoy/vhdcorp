@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef, type MouseEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
@@ -37,69 +37,96 @@ export default function CategoryGrid({ section }: { section: Section }) {
   }, [p.paddingTop, p.paddingBottom]);
 
   const all = data ?? [];
-  const cats = p.categoryIds && p.categoryIds.length > 0
-    ? all.filter((c) => new Set(p.categoryIds).has(c.id))
-    : all.filter((c) => !c.parentId);
+  const cats =
+    p.categoryIds && p.categoryIds.length > 0
+      ? all.filter((c) => new Set(p.categoryIds).has(c.id))
+      : all.filter((c) => !c.parentId);
   if (cats.length === 0) return null;
   const cols = Math.min(p.columns ?? 4, 6);
 
   return (
-    <section
-      ref={sectionRef}
-      className="container mx-auto px-4"
-    >
+    <section ref={sectionRef} className="container mx-auto px-4">
       <Reveal className="mb-10 max-w-2xl">
         <p className="type-eyebrow text-brand-accent">Danh mục</p>
         <h2 className="mt-3 type-display-md text-foreground">{p.heading ?? "Khám phá theo danh mục"}</h2>
         <div className="mt-4 h-1 w-12 rounded-full bg-brand-highlight" />
         <p className="mt-4 text-foreground/65">
-          Toàn bộ kho hàng VHD được phân nhóm theo nhu cầu công nghiệp, dân dụng và đặc sản làng nghề — chọn nhóm sản phẩm bạn quan tâm để khám phá nhanh nhất.
+          Toàn bộ kho hàng VHD được phân nhóm theo nhu cầu công nghiệp, dân dụng và đặc sản làng nghề — chọn nhóm sản
+          phẩm bạn quan tâm để khám phá nhanh nhất.
         </p>
       </Reveal>
 
-      <Stagger
-        className={`grid gap-4 grid-cols-2 md:grid-cols-${Math.min(cols, 4)} lg:grid-cols-${cols}`}
-      >
-        {cats.map((c, idx) => (
-          <StaggerItem key={c.id} variants={fadeUpItem}>
-            <Link
-              href={`/categories/${c.slug}`}
-              className="group relative block aspect-4/5 overflow-hidden rounded-2xl bg-brand-primary"
-            >
-              {c.image ? (
-                <Image
-                  src={c.image}
-                  alt={c.name}
-                  fill
-                  sizes="(max-width:768px) 50vw, 25vw"
-                  className="object-cover opacity-85 transition-all duration-700 group-hover:scale-105 group-hover:opacity-100"
-                />
-              ) : (
-                <div
-                  aria-hidden
-                  className="absolute inset-0"
-                  style={{ background: CATEGORY_GRADIENTS[idx % CATEGORY_GRADIENTS.length] }}
-                />
-              )}
-              {/* Arrow badge on hover */}
-              <span
-                aria-hidden
-                className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-white/95 text-brand-primary opacity-0 transition-all duration-300 group-hover:opacity-100"
+      <Stagger className={`grid gap-4 grid-cols-2 md:grid-cols-${Math.min(cols, 4)} lg:grid-cols-${cols}`}>
+        {cats.map((c, idx) => {
+          const tileRef = { current: null as HTMLAnchorElement | null };
+
+          function onMouseMove(e: MouseEvent<HTMLAnchorElement>) {
+            const el = tileRef.current;
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const nx = (x / rect.width - 0.5) * 8;
+            const ny = (y / rect.height - 0.5) * -8;
+            el.style.setProperty("--spotlight-x", `${x}px`);
+            el.style.setProperty("--spotlight-y", `${y}px`);
+            el.style.setProperty("--spotlight-opacity", "0.7");
+            el.style.transform = `perspective(800px) rotateX(${ny.toFixed(2)}deg) rotateY(${nx.toFixed(2)}deg) scale(1.02)`;
+          }
+
+          function onMouseLeave() {
+            const el = tileRef.current;
+            if (!el) return;
+            el.style.setProperty("--spotlight-opacity", "0");
+            el.style.transform = "perspective(800px) rotateX(0deg) rotateY(0deg) scale(1)";
+          }
+
+          return (
+            <StaggerItem key={c.id} variants={fadeUpItem}>
+              <Link
+                ref={(el) => {
+                  tileRef.current = el;
+                }}
+                href={`/categories/${c.slug}`}
+                onMouseMove={onMouseMove}
+                onMouseLeave={onMouseLeave}
+                className="spotlight-card group relative block aspect-4/5 overflow-hidden rounded-2xl bg-brand-primary transition-[transform,box-shadow] duration-300 will-change-transform hover:shadow-[0_24px_60px_-16px_color-mix(in_srgb,var(--vhd-color-primary)_55%,transparent)]"
               >
-                <ArrowUpRight className="h-4 w-4" />
-              </span>
-              <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/25 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-5">
-                <h3 className="text-lg font-bold text-white drop-shadow">{c.name}</h3>
-                {c.description ? (
-                  <p className="mt-1 line-clamp-2 text-sm text-white/80">{c.description}</p>
+                {c.image ? (
+                  <Image
+                    src={c.image}
+                    alt={c.name}
+                    fill
+                    sizes="(max-width:768px) 50vw, 25vw"
+                    className="object-cover opacity-85 transition-all duration-700 group-hover:scale-105 group-hover:opacity-100"
+                  />
                 ) : (
-                  <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-white/70">Khám phá ngay →</p>
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 [background:var(--cat-bg)]"
+                    style={{ "--cat-bg": CATEGORY_GRADIENTS[idx % CATEGORY_GRADIENTS.length] } as React.CSSProperties}
+                  />
                 )}
-              </div>
-            </Link>
-          </StaggerItem>
-        ))}
+                {/* Arrow badge on hover */}
+                <span
+                  aria-hidden
+                  className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-white/95 text-brand-primary opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:scale-110"
+                >
+                  <ArrowUpRight className="h-4 w-4" />
+                </span>
+                <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/25 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-5 transition-transform duration-300 group-hover:-translate-y-1">
+                  <h3 className="text-lg font-bold text-white drop-shadow">{c.name}</h3>
+                  {c.description ? (
+                    <p className="mt-1 line-clamp-2 text-sm text-white/80">{c.description}</p>
+                  ) : (
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-white/70">Khám phá ngay →</p>
+                  )}
+                </div>
+              </Link>
+            </StaggerItem>
+          );
+        })}
       </Stagger>
     </section>
   );

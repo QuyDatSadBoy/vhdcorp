@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useInView, motion } from "framer-motion";
 import { Reveal } from "@/components/animations/reveal";
+import { TextReveal } from "@/components/animations/text-reveal";
 import type { StatsCounterSection as Section } from "@/types/site-config";
 
 function Counter({ value, unit }: { value: number; unit?: string }) {
@@ -44,10 +45,10 @@ function Counter({ value, unit }: { value: number; unit?: string }) {
 function useSparklineData(seed: number, count = 12) {
   return useMemo(() => {
     const out: number[] = [];
-    let v = 30 + (seed * 7) % 30;
+    let v = 30 + ((seed * 7) % 30);
     for (let i = 0; i < count; i += 1) {
       const drift = ((seed * (i + 3)) % 13) - 5;
-      v = Math.max(8, Math.min(98, v + drift + (i * 1.6)));
+      v = Math.max(8, Math.min(98, v + drift + i * 1.6));
       out.push(v);
     }
     return out;
@@ -64,19 +65,11 @@ function Sparkline({ seed, idx }: { seed: number; idx: number }) {
     const y = 100 - v;
     return [x, y] as const;
   });
-  const pathD = points
-    .map(([x, y], i) => (i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`))
-    .join(" ");
+  const pathD = points.map(([x, y], i) => (i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`)).join(" ");
   const fillD = `${pathD} L 100 100 L 0 100 Z`;
 
   return (
-    <svg
-      ref={ref}
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-      aria-hidden
-      className="mt-5 h-14 w-full opacity-90"
-    >
+    <svg ref={ref} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden className="mt-5 h-14 w-full opacity-90">
       <defs>
         <linearGradient id={`sg${idx}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#F5A623" stopOpacity="0.45" />
@@ -133,7 +126,7 @@ export default function StatsCounter({ section }: { section: Section }) {
   if (stats.length === 0) return null;
 
   return (
-    <section ref={sectionRef} className="relative isolate overflow-hidden text-white">
+    <section ref={sectionRef} className="relative isolate overflow-hidden scan-lines text-white">
       {/* Solid brand-primary base */}
       <div aria-hidden className="absolute inset-0 -z-30 bg-brand-primary" />
       {/* Soft accent radial */}
@@ -144,15 +137,17 @@ export default function StatsCounter({ section }: { section: Section }) {
       {/* Grid pattern */}
       <div
         aria-hidden
-        className="absolute inset-0 -z-10 opacity-10 [background-image:linear-gradient(rgba(255,255,255,0.4)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.4)_1px,transparent_1px)] [background-size:48px_48px]"
+        className="absolute inset-0 -z-10 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.4)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.4)_1px,transparent_1px)] bg-size-[48px_48px]"
       />
+      {/* U6 — Noise texture depth */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-5 bg-noise-texture opacity-[0.04]" />
 
       <div className="container mx-auto px-4">
         <Reveal className="mb-12 max-w-2xl">
           <p className="type-eyebrow text-white/60">Con số biết nói</p>
-          <h2 className="mt-3 type-display-md text-white">
+          <TextReveal as="h2" className="mt-3 type-display-md text-white">
             {p.heading ?? "Tin cậy bởi hàng trăm đối tác Việt"}
-          </h2>
+          </TextReveal>
           <div className="mt-4 h-1 w-12 rounded-full bg-brand-highlight" />
         </Reveal>
 

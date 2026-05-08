@@ -4,20 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import {
-  ArrowRight,
-  ChevronDown,
-  Play,
-  ShieldCheck,
-  Truck,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, ChevronDown, Play, ShieldCheck, Truck, Sparkles } from "lucide-react";
 import type { HeroSection as HeroSectionType } from "@/types/site-config";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useSiteConfigStore } from "@/store/site-config.store";
 import { cn } from "@/lib/utils";
 import { HeroDomainArt } from "@/components/animations/hero-domain-art";
+import { MagneticButton } from "@/components/animations/magnetic-button";
+import { AuroraBg } from "@/components/animations/aurora-bg";
+import { CursorGlow } from "@/components/animations/cursor-glow";
+import { ParticlesCSS } from "@/components/animations/particles-css";
 
 function AnimatedHeading({ text, className }: { text: string; className?: string }) {
   // Tách từ theo whitespace, hỗ trợ cú pháp *từ* để admin highlight (cho phép có dấu câu kèm sau).
@@ -38,7 +35,7 @@ function AnimatedHeading({ text, className }: { text: string; className?: string
             transition={{ duration: 0.7, delay: 0.15 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
             className="inline-block mr-[0.22em]"
           >
-            <span className={cn(isMarked && "word-highlight rounded-sm")}>{word}</span>
+            <span className={cn(isMarked && "text-shimmer-brand rounded-sm")}>{word}</span>
             {suffix}
           </motion.span>
         );
@@ -50,7 +47,7 @@ function AnimatedHeading({ text, className }: { text: string; className?: string
 export default function HeroSection({ section }: { section: HeroSectionType }) {
   const p = section.props;
   const align = p.align ?? "left";
-  const minH = p.minHeight ?? 720;
+  const minH = p.minHeight ?? 100; // U1: default min 100vh-like (sẽ dùng min-h-screen)
   const config = useSiteConfigStore((s) => s.config);
   const brand = config?.brand;
   const prefersReduce = useReducedMotion();
@@ -72,6 +69,8 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
   const artY = useTransform(scrollYProgress, [0, 1], [0, prefersReduce ? 0 : -80]);
   const artScale = useTransform(scrollYProgress, [0, 1], [1, prefersReduce ? 1 : 1.05]);
   const heroFade = useTransform(scrollYProgress, [0, 0.85], [1, 0.6]);
+  // E7 — parallax cho grid pattern
+  const gridY = useTransform(scrollYProgress, [0, 1], [0, prefersReduce ? 0 : -40]);
 
   useEffect(() => {
     if (sectionRef.current) sectionRef.current.style.minHeight = `${minH}px`;
@@ -104,7 +103,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
   ];
 
   return (
-    <section ref={sectionRef} className="relative isolate overflow-hidden bg-background">
+    <section ref={sectionRef} className="relative isolate overflow-hidden bg-background min-h-screen">
       {/* User-provided background image (optional) */}
       {p.bgImage && (
         <>
@@ -115,29 +114,23 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
 
       {!p.bgImage && (
         <>
-          {/* Animated brand-coded soft mesh */}
-          <motion.div
-            aria-hidden
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.92 }}
-            transition={{ duration: 1.2 }}
-            className="pointer-events-none absolute inset-0 -z-30 [background:radial-gradient(60%_55%_at_85%_20%,color-mix(in_srgb,var(--vhd-color-accent)_22%,transparent)_0%,transparent_70%),radial-gradient(45%_45%_at_15%_80%,color-mix(in_srgb,var(--vhd-color-highlight)_18%,transparent)_0%,transparent_70%),radial-gradient(40%_30%_at_50%_5%,color-mix(in_srgb,var(--vhd-color-primary)_10%,transparent)_0%,transparent_60%)]"
-          />
+          {/* Aurora conic gradient background — thay thế blob mesh, premium hơn */}
+          <AuroraBg className="-z-30" intensity="vivid" />
 
-          {/* Floating brand orbs (very subtle) */}
+          {/* E9 — Cursor glow */}
+          <CursorGlow className="-z-25" />
+
+          {/* U6 — CSS Particles */}
+          <ParticlesCSS className="-z-15 opacity-40" />
+
+          {/* Grain noise overlay — depth & premium feel */}
+          <div aria-hidden className="pointer-events-none absolute inset-0 -z-5 grain-overlay" />
+
+          {/* Subtle grid with parallax */}
           <motion.div
             aria-hidden
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.4, x: [0, 20, 0], y: [0, -10, 0] }}
-            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-            className="pointer-events-none absolute -left-40 top-1/3 -z-20 h-105 w-105 rounded-full bg-(--vhd-color-accent)/15 blur-3xl"
-          />
-          <motion.div
-            aria-hidden
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.35, x: [0, -16, 0], y: [0, 14, 0] }}
-            transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-            className="pointer-events-none absolute -right-32 -bottom-20 -z-20 h-120 w-120 rounded-full bg-(--vhd-color-highlight)/14 blur-3xl"
+            style={{ y: gridY }}
+            className="pointer-events-none absolute inset-0 -z-10 opacity-[0.04] bg-[linear-gradient(var(--vhd-color-primary)_1px,transparent_1px),linear-gradient(90deg,var(--vhd-color-primary)_1px,transparent_1px)] bg-size-[48px_48px]"
           />
 
           {/* Domain illustration: ống nhựa + cao su + miến (parallax on scroll) */}
@@ -147,12 +140,6 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
           >
             <HeroDomainArt className="absolute inset-0" />
           </motion.div>
-
-          {/* Subtle grid */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 -z-10 opacity-[0.05] [background-image:linear-gradient(var(--vhd-color-primary)_1px,transparent_1px),linear-gradient(90deg,var(--vhd-color-primary)_1px,transparent_1px)] [background-size:48px_48px]"
-          />
         </>
       )}
 
@@ -162,7 +149,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
         className={cn(
           "container relative z-10 mx-auto flex flex-col gap-7 px-4",
           align === "center" && "items-center text-center",
-          align === "right" && "items-end text-right",
+          align === "right" && "items-end text-right"
         )}
       >
         {/* Eyebrow brand chip */}
@@ -183,7 +170,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
               priority
             />
           ) : (
-            <span className="grid h-5 w-5 place-items-center rounded-sm bg-(--vhd-color-primary) text-[10px] font-bold text-white">
+            <span className="grid h-5 w-5 place-items-center rounded-sm bg-brand-primary text-[10px] font-bold text-white">
               V
             </span>
           )}
@@ -203,7 +190,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
           text={heading}
           className={cn(
             "type-display-xl max-w-[18ch] font-heading",
-            p.bgImage ? "text-white" : "text-brand-primary dark:text-foreground",
+            p.bgImage ? "text-white" : "text-brand-primary dark:text-foreground"
           )}
         />
 
@@ -213,10 +200,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.55 }}
-            className={cn(
-              "type-lead max-w-[58ch]",
-              p.bgImage ? "text-white/85" : "text-foreground/70",
-            )}
+            className={cn("type-lead max-w-[58ch]", p.bgImage ? "text-white/85" : "text-foreground/70")}
           >
             {subheading}
           </motion.p>
@@ -230,26 +214,31 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
             transition={{ duration: 0.55, delay: 0.7 }}
             className="flex flex-wrap items-center gap-4"
           >
-            <Button
-              asChild
-              size="lg"
-              className="group h-12 rounded-full bg-(--vhd-color-primary) px-7 text-base font-semibold text-white shadow-[0_10px_30px_-10px_color-mix(in_srgb,var(--vhd-color-primary)_60%,transparent)] hover:bg-(--vhd-color-primary)/95"
-            >
-              <Link href={p.ctaLink}>
-                <span className="flex items-center gap-2">
-                  {p.ctaText}
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </span>
-              </Link>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="h-12 rounded-full border-(--vhd-color-primary)/30 bg-transparent px-7 text-base font-semibold text-brand-primary hover:bg-(--vhd-color-primary)/8 dark:text-foreground"
-            >
-              <Link href="/contact">Liên hệ tư vấn</Link>
-            </Button>
+            {/* E2 — Magnetic CTA buttons */}
+            <MagneticButton strength={0.3}>
+              <Button
+                asChild
+                size="lg"
+                className="group h-12 rounded-full bg-brand-primary px-7 text-base font-semibold text-white shadow-[0_10px_30px_-10px_color-mix(in_srgb,var(--vhd-color-primary)_60%,transparent)] hover:bg-(--vhd-color-primary)/95 animate-cta-glow"
+              >
+                <Link href={p.ctaLink}>
+                  <span className="flex items-center gap-2">
+                    {p.ctaText}
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </span>
+                </Link>
+              </Button>
+            </MagneticButton>
+            <MagneticButton strength={0.2}>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="h-12 rounded-full border-(--vhd-color-primary)/30 bg-transparent px-7 text-base font-semibold text-brand-primary hover:bg-(--vhd-color-primary)/8 dark:text-foreground"
+              >
+                <Link href="/contact">Liên hệ tư vấn</Link>
+              </Button>
+            </MagneticButton>
           </motion.div>
         )}
 
@@ -331,10 +320,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
         transition={{ delay: 1.2 }}
         className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-foreground/40"
       >
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-        >
+        <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}>
           <ChevronDown className="h-5 w-5" />
         </motion.div>
       </motion.div>

@@ -10,22 +10,38 @@ import type { FeaturedProductsSection as Section } from "@/types/site-config";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageFallback } from "@/components/client/image-fallback";
 
-/** Card với 3D tilt nhẹ trên hover (desktop). */
-function TiltCard({ children, href }: { children: React.ReactNode; href: string }) {
+/**
+ * SpotlightCard — Shopify-style card với:
+ * - 3D perspective tilt theo cursor
+ * - Radial spotlight glow theo vị trí cursor (CSS custom properties)
+ * - Shimmer border animation khi hover
+ */
+function SpotlightCard({ children, href }: { children: React.ReactNode; href: string }) {
   const cardRef = useRef<HTMLAnchorElement>(null);
 
   function onMouseMove(e: MouseEvent<HTMLAnchorElement>) {
     const el = cardRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    el.style.transform = `perspective(900px) rotateX(${(-y * 5).toFixed(2)}deg) rotateY(${(x * 6).toFixed(2)}deg) translateY(-4px)`;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const nx = (x / rect.width - 0.5) * 12;
+    const ny = (y / rect.height - 0.5) * -12;
+
+    // Spotlight position
+    el.style.setProperty("--spotlight-x", `${x}px`);
+    el.style.setProperty("--spotlight-y", `${y}px`);
+    el.style.setProperty("--spotlight-opacity", "1");
+
+    // 3D tilt
+    el.style.transform = `perspective(1000px) rotateX(${ny.toFixed(2)}deg) rotateY(${nx.toFixed(2)}deg) translateY(-6px) scale(1.01)`;
   }
+
   function onMouseLeave() {
     const el = cardRef.current;
     if (!el) return;
-    el.style.transform = "perspective(900px) rotateX(0deg) rotateY(0deg) translateY(0)";
+    el.style.setProperty("--spotlight-opacity", "0");
+    el.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0) scale(1)";
   }
 
   return (
@@ -34,7 +50,7 @@ function TiltCard({ children, href }: { children: React.ReactNode; href: string 
       href={href}
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
-      className="group relative block overflow-hidden rounded-2xl border border-foreground/8 bg-card transition-[box-shadow,border-color,transform] duration-300 will-change-transform hover:border-(--vhd-color-primary)/40 hover:shadow-[0_24px_60px_-24px_color-mix(in_srgb,var(--vhd-color-primary)_45%,transparent)]"
+      className="spotlight-card shimmer-border group relative block overflow-hidden rounded-2xl border border-foreground/8 bg-card transition-[box-shadow,border-color,transform] duration-300 will-change-transform hover:border-(--vhd-color-primary)/35 hover:shadow-[0_32px_80px_-24px_color-mix(in_srgb,var(--vhd-color-primary)_50%,transparent)]"
     >
       {children}
     </Link>
@@ -84,7 +100,7 @@ export default function FeaturedProducts({ section }: { section: Section }) {
         <Stagger className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
           {products.map((prod) => (
             <StaggerItem key={prod.id} variants={fadeUpItem}>
-              <TiltCard href={`/products/${prod.slug}`}>
+              <SpotlightCard href={`/products/${prod.slug}`}>
                 <div className="relative aspect-square overflow-hidden bg-muted">
                   {prod.images?.[0] ? (
                     <Image
@@ -97,21 +113,21 @@ export default function FeaturedProducts({ section }: { section: Section }) {
                   ) : (
                     <ImageFallback variant="product" />
                   )}
-                  {/* Yellow corner ribbon for products with stock */}
+                  {/* Stock badge */}
                   {prod.stock && prod.stock > 0 ? (
                     <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-brand-primary shadow">
                       Còn hàng
                     </span>
                   ) : null}
-                  {/* Overlay on hover */}
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 bg-linear-to-t from-brand-primary/85 via-brand-primary/40 to-transparent p-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                  {/* Hover overlay */}
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 bg-linear-to-t from-brand-primary/90 via-brand-primary/50 to-transparent p-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-brand-primary">
                       Xem chi tiết
                       <ArrowRight className="h-3 w-3" />
                     </span>
                   </div>
                 </div>
-                <div className="space-y-1.5 p-4">
+                <div className="relative z-10 space-y-1.5 p-4">
                   {prod.category?.name ? (
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground/45">
                       {prod.category.name}
@@ -122,11 +138,12 @@ export default function FeaturedProducts({ section }: { section: Section }) {
                   </h3>
                   {prod.price !== undefined && prod.price !== null && Number(prod.price) > 0 && (
                     <p className="pt-1 text-base font-extrabold text-brand-primary">
-                      {Number(prod.price).toLocaleString("vi-VN")} <span className="text-xs font-bold text-foreground/55">₫</span>
+                      {Number(prod.price).toLocaleString("vi-VN")}{" "}
+                      <span className="text-xs font-bold text-foreground/55">₫</span>
                     </p>
                   )}
                 </div>
-              </TiltCard>
+              </SpotlightCard>
             </StaggerItem>
           ))}
         </Stagger>
