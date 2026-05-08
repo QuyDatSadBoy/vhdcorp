@@ -14,5 +14,17 @@
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",
     "prettier": "^3.3.3"
+  },
+  "lint-staged": {
+    "fe/**/*.{ts,tsx}": [
+      "yarn --cwd fe lint --fix",
+      "prettier --write"
+    ],
+    "be/**/*.ts": [
+      "prettier --write"
+    ],
+    "**/*.{json,md,css}": [
+      "prettier --write"
+    ]
   }
 }
