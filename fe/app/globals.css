@@ -518,14 +518,7 @@ html.lenis body {
   }
 }
 
-/* ============================================================
-   CUSTOM CURSOR — hide default on pointer devices
-   ============================================================ */
-@media (pointer: fine) {
-  * {
-    cursor: none !important;
-  }
-}
+/* Custom cursor disabled — dùng cursor mặc định của browser */
 
 /* ============================================================
    SPOTLIGHT CARD — cursor-tracking radial glow on cards
