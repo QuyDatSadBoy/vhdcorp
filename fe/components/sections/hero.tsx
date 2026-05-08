@@ -103,7 +103,12 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
   ];
 
   return (
-    <section ref={sectionRef} className="relative isolate overflow-hidden bg-background min-h-screen">
+    // -mt-16 md:-mt-20: kéo hero lên sau sticky header trong suốt (h-16/h-20)
+    // để dark background lấp đầy phần header trong suốt, không để trắng lộ ra
+    <section ref={sectionRef} className="relative isolate overflow-hidden min-h-screen -mt-16 md:-mt-20">
+      {/* ====== BASE DARK BACKGROUND — aurora sẽ glow lên trên nền tối này ====== */}
+      <div aria-hidden className="absolute inset-0 -z-40 bg-[#050c1a]" />
+
       {/* User-provided background image (optional) */}
       {p.bgImage && (
         <>
@@ -114,23 +119,26 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
 
       {!p.bgImage && (
         <>
-          {/* Aurora conic gradient background — thay thế blob mesh, premium hơn */}
+          {/* Aurora conic gradient background — vivid trên nền tối */}
           <AuroraBg className="-z-30" intensity="vivid" />
 
           {/* E9 — Cursor glow */}
           <CursorGlow className="-z-25" />
 
           {/* U6 — CSS Particles */}
-          <ParticlesCSS className="-z-15 opacity-40" />
+          <ParticlesCSS className="-z-15 opacity-60" />
 
-          {/* Grain noise overlay — depth & premium feel */}
-          <div aria-hidden className="pointer-events-none absolute inset-0 -z-5 grain-overlay" />
+          {/* Grain noise — depth & premium feel */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-5 opacity-[0.06] bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22300%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.75%22%20numOctaves%3D%224%22%20stitchTiles%3D%22stitch%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22300%22%20height%3D%22300%22%20filter%3D%22url(%23n)%22%20opacity%3D%221%22%2F%3E%3C%2Fsvg%3E')] mix-blend-overlay"
+          />
 
-          {/* Subtle grid with parallax */}
+          {/* Subtle grid with parallax — white on dark */}
           <motion.div
             aria-hidden
             style={{ y: gridY }}
-            className="pointer-events-none absolute inset-0 -z-10 opacity-[0.04] bg-[linear-gradient(var(--vhd-color-primary)_1px,transparent_1px),linear-gradient(90deg,var(--vhd-color-primary)_1px,transparent_1px)] bg-size-[48px_48px]"
+            className="pointer-events-none absolute inset-0 -z-10 opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.8)_1px,transparent_1px)] bg-size-[60px_60px]"
           />
 
           {/* Domain illustration: ống nhựa + cao su + miến (parallax on scroll) */}
@@ -158,7 +166,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 rounded-full border border-(--vhd-color-primary)/15 bg-white/70 px-4 py-1.5 shadow-sm backdrop-blur dark:bg-white/5"
+          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/6 px-4 py-1.5 shadow-lg backdrop-blur-md"
         >
           {brand?.logo?.url ? (
             <Image
@@ -174,25 +182,19 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
               V
             </span>
           )}
-          <span className="text-xs font-semibold tracking-wide text-foreground/80">
-            <span className="font-bold text-brand-primary dark:text-foreground">VHD Corp</span>
-            <span className="mx-1 text-foreground/30">·</span>
-            <span className="font-bold uppercase tracking-[0.12em] text-brand-primary/85 dark:text-foreground/70">
+          <span className="text-xs font-semibold tracking-wide text-white/80">
+            <span className="font-bold text-white">VHD Corp</span>
+            <span className="mx-1 text-white/25">·</span>
+            <span className="font-semibold uppercase tracking-[0.12em] text-white/55">
               {brand?.tagline ?? "KẾT NỐI GIÁ TRỊ - HỢP TÁC VỮNG BỀN"}
             </span>
           </span>
-          <span className="ml-1 inline-flex h-4 items-center rounded-full bg-(--vhd-color-highlight)/20 px-1.5 text-[10px] font-bold text-brand-highlight">
+          <span className="ml-1 inline-flex h-4 items-center rounded-full bg-(--vhd-color-highlight)/25 px-1.5 text-[10px] font-bold text-brand-highlight">
             B2B
           </span>
         </motion.div>
 
-        <AnimatedHeading
-          text={heading}
-          className={cn(
-            "type-display-xl max-w-[18ch] font-heading",
-            p.bgImage ? "text-white" : "text-brand-primary dark:text-foreground"
-          )}
-        />
+        <AnimatedHeading text={heading} className="type-display-xl max-w-[18ch] font-heading text-white" />
 
         {subheading && (
           <motion.p
@@ -200,7 +202,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.55 }}
-            className={cn("type-lead max-w-[58ch]", p.bgImage ? "text-white/85" : "text-foreground/70")}
+            className="type-lead max-w-[58ch] text-white/70"
           >
             {subheading}
           </motion.p>
@@ -234,7 +236,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
                 asChild
                 size="lg"
                 variant="outline"
-                className="h-12 rounded-full border-(--vhd-color-primary)/30 bg-transparent px-7 text-base font-semibold text-brand-primary hover:bg-(--vhd-color-primary)/8 dark:text-foreground"
+                className="h-12 rounded-full border-white/25 bg-transparent px-7 text-base font-semibold text-white hover:bg-white/10"
               >
                 <Link href="/contact">Liên hệ tư vấn</Link>
               </Button>
@@ -255,18 +257,18 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
             return (
               <li
                 key={it.label}
-                className="group/trust relative flex items-center gap-3 overflow-hidden rounded-xl border border-foreground/8 bg-white/55 p-3 shadow-sm backdrop-blur transition-all hover:border-(--vhd-color-primary)/20 hover:bg-white/70 dark:bg-white/5"
+                className="group/trust relative flex items-center gap-3 overflow-hidden rounded-xl border border-white/10 bg-white/5 p-3 shadow-sm backdrop-blur-md transition-all hover:border-white/20 hover:bg-white/8"
               >
                 <span
                   aria-hidden
-                  className="pointer-events-none absolute inset-x-0 -bottom-px h-px scale-x-0 bg-(--vhd-color-primary)/40 transition-transform group-hover/trust:scale-x-100"
+                  className="pointer-events-none absolute inset-x-0 -bottom-px h-px scale-x-0 bg-brand-accent/60 transition-transform group-hover/trust:scale-x-100"
                 />
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-(--vhd-color-highlight)/15 text-brand-highlight transition-colors group-hover/trust:bg-(--vhd-color-highlight)/30">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-(--vhd-color-highlight)/20 text-brand-highlight transition-colors group-hover/trust:bg-(--vhd-color-highlight)/35">
                   <Icon className="h-4 w-4" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{it.label}</p>
-                  <p className="text-xs text-foreground/55">{it.desc}</p>
+                  <p className="text-sm font-semibold text-white">{it.label}</p>
+                  <p className="text-xs text-white/50">{it.desc}</p>
                 </div>
               </li>
             );
@@ -318,7 +320,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.2 }}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-foreground/40"
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/35"
       >
         <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}>
           <ChevronDown className="h-5 w-5" />
