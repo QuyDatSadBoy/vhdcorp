@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" fill="none" aria-hidden="true">
+  <defs>
+    <radialGradient id="rubBody" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="40%" stop-color="#1A1A2E"/>
+      <stop offset="100%" stop-color="#0a0a14"/>
+    </radialGradient>
+    <linearGradient id="rubHl" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#4FB8E7" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#4FB8E7" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#4FB8E7" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Tilted rubber rings stacked -->
+  <g transform="translate(160 175) rotate(-22)">
+    <ellipse cx="0" cy="0" rx="120" ry="40" fill="url(#rubBody)"/>
+    <ellipse cx="0" cy="0" rx="60" ry="20" fill="#0a0a14"/>
+    <ellipse cx="0" cy="-3" rx="100" ry="3" fill="url(#rubHl)"/>
+  </g>
+  <g transform="translate(160 145) rotate(-12)">
+    <ellipse cx="0" cy="0" rx="115" ry="38" fill="url(#rubBody)"/>
+    <ellipse cx="0" cy="0" rx="58" ry="19" fill="#0a0a14"/>
+    <ellipse cx="0" cy="-3" rx="95" ry="3" fill="url(#rubHl)"/>
+  </g>
+  <g transform="translate(160 115) rotate(8)">
+    <ellipse cx="0" cy="0" rx="110" ry="36" fill="url(#rubBody)"/>
+    <ellipse cx="0" cy="0" rx="56" ry="18" fill="#0a0a14"/>
+    <ellipse cx="0" cy="-3" rx="90" ry="3" fill="url(#rubHl)"/>
+  </g>
+
+  <!-- Yellow accent rubber ring -->
+  <g transform="translate(160 205) rotate(15)">
+    <ellipse cx="0" cy="0" rx="92" ry="30" fill="#F5A623"/>
+    <ellipse cx="0" cy="0" rx="48" ry="15" fill="#fff"/>
+    <ellipse cx="0" cy="-2" rx="78" ry="2" fill="#fff" opacity="0.8"/>
+  </g>
+
+  <!-- Decorative dots ring -->
+  <g opacity="0.5">
+    <circle cx="58" cy="65" r="3" fill="#1B3A8C"/>
+    <circle cx="270" cy="80" r="2" fill="#4FB8E7"/>
+    <circle cx="280" cy="240" r="2.5" fill="#F5A623"/>
+    <circle cx="40" cy="240" r="2" fill="#1B3A8C"/>
+  </g>
+</svg>

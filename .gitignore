@@ -65,3 +65,33 @@ fe/.swc/
 coverage/
 be/coverage/
 fe/coverage/
+
+# ============================================================
+# Logs (tất cả vị trí)
+# ============================================================
+be/logs/
+fe/logs/
+
+# ============================================================
+# AI / MCP / Dev Tools — local runtime, không commit
+# ============================================================
+
+# Playwright MCP — lưu browser sessions, console logs, page snapshots
+.playwright-mcp/
+
+# ============================================================
+# Screenshots & audit artifacts
+# ============================================================
+screens/
+
+# ============================================================
+# Root node_modules (workspace root)
+# ============================================================
+/node_modules/
+
+# ============================================================
+# Prisma one-off scripts (fix-*.ts, seed scripts tạm)
+# ============================================================
+be/prisma/fix-*.ts
+be/prisma/update-*.ts
+be/prisma/data-resetting.prisma.ts

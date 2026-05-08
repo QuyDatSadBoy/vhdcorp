@@ -1,0 +1,23 @@
+                                             Table "public.users"
+      Column      |              Type              | Collation | Nullable |              Default              
+------------------+--------------------------------+-----------+----------+-----------------------------------
+ id               | integer                        |           | not null | nextval('users_id_seq'::regclass)
+ email            | text                           |           | not null | 
+ password         | text                           |           |          | 
+ name             | text                           |           | not null | ''::text
+ role             | "Role"                         |           | not null | 'CUSTOMER'::"Role"
+ avatar           | text                           |           |          | 
+ googleId         | text                           |           |          | 
+ refreshTokenHash | text                           |           |          | 
+ createdAt        | timestamp(3) without time zone |           | not null | CURRENT_TIMESTAMP
+ updatedAt        | timestamp(3) without time zone |           | not null | 
+ deletedAt        | timestamp(3) without time zone |           |          | 
+Indexes:
+    "users_pkey" PRIMARY KEY, btree (id)
+    "users_deletedAt_idx" btree ("deletedAt")
+    "users_email_key" UNIQUE, btree (email)
+    "users_googleId_key" UNIQUE, btree ("googleId")
+Referenced by:
+    TABLE "posts" CONSTRAINT "posts_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES users(id) ON UPDATE CASCADE ON DELETE RESTRICT
+    TABLE "reviews" CONSTRAINT "reviews_userId_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON UPDATE CASCADE ON DELETE RESTRICT
+

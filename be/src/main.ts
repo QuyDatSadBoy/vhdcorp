@@ -1,20 +1,32 @@
 import { NestFactory } from "@nestjs/core";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import helmet from "helmet";
 import * as cookieParser from "cookie-parser";
 import * as dotenv from "dotenv";
+import { join } from "path";
+import { mkdirSync } from "fs";
 
 dotenv.config();
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   if (process.env.NODE_ENV === "production") {
     app.getHttpAdapter().getInstance().set("trust proxy", 1);
   }
 
   app.setGlobalPrefix("api");
+
+  // Static serve for locally uploaded media (BE storage fallback when no Cloudinary)
+  const uploadsDir = join(process.cwd(), "uploads");
+  try {
+    mkdirSync(uploadsDir, { recursive: true });
+  } catch {
+    /* exists */
+  }
+  app.useStaticAssets(uploadsDir, { prefix: "/uploads/" });
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle("VHD Corp API")
@@ -37,7 +49,7 @@ async function bootstrap() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          imgSrc: ["'self'", "data:", "https:"],
+          imgSrc: ["'self'", "data:", "https:", "http://localhost:8080"],
           scriptSrc: ["'self'", "'unsafe-inline'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
           fontSrc: ["'self'", "https:", "data:"],

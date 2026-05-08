@@ -2,6 +2,8 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { ProviderModule } from "@provider/provider.module";
 import { ModelModule } from "@model/model.module";
+import { SlugModule } from "@service/slug/slug.module";
+import { CloudinaryModule } from "@service/cloudinary/cloudinary.module";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
 import { HttpExceptionFilter } from "./common/exceptions/http-exception.filter";
 import { ValidationPipe } from "@pipe/validation.pipe";
@@ -9,13 +11,17 @@ import { TransformInterceptor } from "@interceptor/transform.interceptor";
 import { AuthenticationModule } from "@authentication/authentication.module";
 import { SanitizeHtmlInterceptor } from "@interceptor/sanitize-html.interceptor";
 import { ThrottlerGuard } from "@nestjs/throttler";
+import { HealthModule } from "./health/health.module";
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ProviderModule,
+    SlugModule,
+    CloudinaryModule,
     ModelModule,
     AuthenticationModule,
+    HealthModule,
   ],
   controllers: [],
   providers: [

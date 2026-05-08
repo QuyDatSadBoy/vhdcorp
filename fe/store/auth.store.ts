@@ -1,28 +1,27 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
+import type { AuthUser } from "@/types/auth";
 
+/**
+ * Auth store — chỉ lưu thông tin user (KHÔNG lưu token).
+ * Token sống trong HttpOnly cookie do BE set.
+ */
 interface AuthState {
-  user: User | null;
-  accessToken: string | null;
+  user: AuthUser | null;
   isAuthenticated: boolean;
+  isHydrated: boolean;
 }
 
 interface AuthActions {
-  setAuth: (user: User, accessToken: string) => void;
+  setUser: (user: AuthUser | null) => void;
   clearAuth: () => void;
-}
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
+  setHydrated: (v: boolean) => void;
 }
 
 const initialState: AuthState = {
   user: null,
-  accessToken: null,
   isAuthenticated: false,
+  isHydrated: false,
 };
 
 export const useAuthStore = create<AuthState & AuthActions>()(
@@ -30,20 +29,22 @@ export const useAuthStore = create<AuthState & AuthActions>()(
     persist(
       (set) => ({
         ...initialState,
-
-        setAuth: (user, accessToken) =>
-          set({ user, accessToken, isAuthenticated: true }, false, "auth/setAuth"),
-
+        setUser: (user) =>
+          set(
+            { user, isAuthenticated: !!user },
+            false,
+            "auth/setUser",
+          ),
         clearAuth: () =>
-          set(initialState, false, "auth/clearAuth"),
+          set({ user: null, isAuthenticated: false }, false, "auth/clearAuth"),
+        setHydrated: (v) => set({ isHydrated: v }, false, "auth/setHydrated"),
       }),
       {
-        name: "auth-storage",
-        partialize: (state) => ({
-          user: state.user,
-          accessToken: state.accessToken,
-          isAuthenticated: state.isAuthenticated,
-        }),
+        name: "vhd-auth",
+        partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+        onRehydrateStorage: () => (state) => {
+          state?.setHydrated(true);
+        },
       },
     ),
     { name: "AuthStore" },

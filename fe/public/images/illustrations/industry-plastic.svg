@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" fill="none" aria-hidden="true">
+  <defs>
+    <radialGradient id="plBg" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%" stop-color="#4FB8E7" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#1B3A8C" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="plPipe" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4FB8E7"/>
+      <stop offset="55%" stop-color="#1B3A8C"/>
+      <stop offset="100%" stop-color="#0F2356"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="320" fill="url(#plBg)"/>
+  <!-- Isometric pipes arrangement -->
+  <g transform="translate(60 60)">
+    <!-- Big pipe -->
+    <ellipse cx="55" cy="14" rx="50" ry="14" fill="url(#plPipe)"/>
+    <rect x="5" y="14" width="100" height="170" fill="url(#plPipe)" rx="2"/>
+    <ellipse cx="55" cy="184" rx="50" ry="14" fill="#0a1a3d"/>
+    <ellipse cx="55" cy="14" rx="40" ry="11" fill="#06122b"/>
+    <ellipse cx="55" cy="14" rx="30" ry="8" fill="#040c20"/>
+    <rect x="14" y="22" width="6" height="158" fill="#7FD6FF" opacity="0.55"/>
+    <rect x="32" y="80" width="46" height="20" rx="3" fill="#F5A623"/>
+    <text x="55" y="94" text-anchor="middle" font-family="'Be Vietnam Pro', system-ui, sans-serif" font-size="10" font-weight="800" fill="#1B3A8C" letter-spacing="1.4">VHD</text>
+  </g>
+  <g transform="translate(160 110)">
+    <ellipse cx="35" cy="11" rx="32" ry="11" fill="url(#plPipe)"/>
+    <rect x="3" y="11" width="64" height="120" fill="url(#plPipe)" rx="2"/>
+    <ellipse cx="35" cy="131" rx="32" ry="11" fill="#0a1a3d"/>
+    <ellipse cx="35" cy="11" rx="25" ry="8" fill="#06122b"/>
+    <rect x="9" y="18" width="4" height="110" fill="#7FD6FF" opacity="0.5"/>
+  </g>
+  <!-- Floor shadow -->
+  <ellipse cx="160" cy="270" rx="120" ry="8" fill="#1B3A8C" opacity="0.12"/>
+</svg>

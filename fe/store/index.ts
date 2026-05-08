@@ -1,2 +1,3 @@
-// Re-export all stores for easy import
 export { useAuthStore } from "./auth.store";
+export { useUiStore } from "./ui.store";
+export { useSiteConfigStore } from "./site-config.store";

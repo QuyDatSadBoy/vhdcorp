@@ -1,6 +1,6 @@
 # PRD — VHD Corp E-Commerce Platform
 
-> **Version:** 1.6.0 · **Date:** 2026-05-05
+> **Version:** 1.6.2 · **Date:** 2026-05-06
 > **Tagline:** Kết nối giá trị – Hợp tác vững bền
 
 ---
@@ -24,7 +24,7 @@ VHD Corp là tổng kho cung cấp sản phẩm nhựa & cao su và thực phẩ
 
 > Routes, file names, folder names, variables, functions, types — **tất cả dùng tiếng Anh**.
 >
-> UI text hiển thị cho người dùng (label, heading, copy) — **tiếng Việt qua `messages/vi.json`**, người dùng có thể toggle sang **tiếng Anh (`messages/en.json`)** trên cùng URL.
+> UI text hiển thị cho người dùng (label, heading, copy) — **chỉ tiếng Việt qua `messages/vi.json`**. Không có toggle ngôn ngữ, không có locale prefix trong URL.
 
 ---
 
@@ -39,13 +39,14 @@ VHD Corp là tổng kho cung cấp sản phẩm nhựa & cao su và thực phẩ
 | Framework | Next.js 16 (App Router, RSC, ISR) |
 | UI | shadcn/ui + Tailwind CSS v4 |
 | Theme | Dark / Light mode (`next-themes`) |
-| Ngôn ngữ | VI / EN — toggle client-side, **URL không đổi** (`next-intl` without routing) |
+| Ngôn ngữ | Tiếng Việt duy nhất — không toggle ngôn ngữ, không locale prefix, UI strings qua `messages/vi.json` |
 | State | Zustand (`authStore`, `uiStore`, `siteConfigStore`) |
 | Server state | TanStack Query v5 |
 | Forms | React Hook Form + Zod |
 | Animation | Framer Motion + GSAP ScrollTrigger |
 | Drag & drop | `@dnd-kit/core` + `@dnd-kit/sortable` (admin builder) |
-| Images | Cloudinary Upload Widget + CDN + `next/image` |
+| Images | File upload qua BE `/media/upload` → Cloudinary/local fallback → DB lưu URL + `next/image` |
+| Rich editor | TinyMCE hoặc editor tương đương cấp production (Tiptap/ProseMirror/Editor.js) cho bài viết và mô tả sản phẩm |
 | Design refs | `clinet-DESIGN.md` (client) · `admin-genesis-DESIGN.md` (admin) |
 
 ### Backend
@@ -117,15 +118,12 @@ VHD Corp là tổng kho cung cấp sản phẩm nhựa & cao su và thực phẩ
 
 - `next-themes`, toggle ở header, persist `localStorage`
 
-### Ngôn ngữ (VI / EN)
+### Ngôn ngữ (Tiếng Việt)
 
-- **Cùng URL** — không có `/en/products`, chỉ có `/products` cho cả hai ngôn ngữ
-- Toggle nút VI / EN ở header, persist `localStorage`
-- Implementation: `next-intl` **without i18n routing** (chế độ không có locale prefix trong URL)
-  - `messages/vi.json` — mặc định
-  - `messages/en.json` — tiếng Anh
-  - `useLocale()` / `useTranslations()` đọc từ `uiStore.locale` (Zustand)
-  - Khi toggle: cập nhật `uiStore.locale`, re-render tại chỗ mà không navigate
+- UI chỉ hỗ trợ **tiếng Việt**.
+- Không có toggle ngôn ngữ ở header, không lưu locale trong `localStorage`/cookie, không có route prefix theo locale.
+- Source UI string duy nhất: `messages/vi.json`.
+- Nếu dùng `next-intl`, chỉ load locale `vi`; không dùng `useLocale()` cho toggle runtime.
 
 ### Auth Client
 
@@ -198,14 +196,22 @@ VHD Corp là tổng kho cung cấp sản phẩm nhựa & cao su và thực phẩ
 
 | Module | Tính năng |
 | --- | --- |
-| Products | Tạo/sửa/xóa, upload Cloudinary, tồn kho, giá, tag, SEO meta override |
+| Products | Tạo/sửa/xóa, mô tả bằng rich editor, upload ảnh qua BE, tồn kho, giá, tag, SEO meta override |
 | Categories | Cây đa cấp, slug tự động, thứ tự hiển thị |
-| Posts | Rich-text (Tiptap), SEO meta tùy chỉnh, publish/draft/schedule |
+| Posts | Rich editor production-grade (TinyMCE hoặc tương đương như Tiptap/ProseMirror), SEO meta tùy chỉnh, publish/draft/schedule |
 | Users | Xem, phân quyền (`customer/staff/admin`), block |
 | Reviews | Duyệt/ẩn review từ khách |
 | Banners | Upload, vị trí, bật/tắt |
-| Media | Browser Cloudinary, upload, tag, folder |
+| Media | Upload file qua BE lên Cloudinary/local fallback, lưu metadata + URL vào DB, tag, folder |
 | Settings | Thông tin công ty, analytics ID, SEO mặc định toàn site |
+
+### Rich Editor — BẮT BUỘC
+
+- Admin phải có bộ soạn thảo WYSIWYG cấp production cho **Posts.content** và **Products.description**.
+- Chấp nhận: TinyMCE, Tiptap/ProseMirror, Editor.js hoặc editor tương đương nếu đáp ứng đủ toolbar, extension và khả năng upload ảnh.
+- Tối thiểu phải có: bold, italic, underline, heading H1–H3, ordered/unordered list, blockquote, code/code block, horizontal rule, link, image, undo/redo, preview HTML.
+- Ảnh chèn trong editor **không được nhập URL thủ công làm flow chính**. User chọn file trong editor → FE gửi multipart tới `POST /api/media/upload` → BE upload lên Cloudinary/local fallback → BE lưu `Media.url` vào DB → editor insert URL đã trả về.
+- Nội dung HTML lưu DB phải qua sanitize allowlist ở BE, giữ các tag editor hợp lệ (`h1-h6`, `p`, `a`, `img`, `ul/ol/li`, `blockquote`, `pre/code`, `strong/em/u`, `hr`) và chặn script/event handler.
 
 ### ⭐ Visual Page Builder (`/admin/builder`)
 
@@ -577,8 +583,7 @@ vhdcorp/
 │   ├── types/
 │   ├── lib/                                 # axios, utils, cloudinary
 │   └── messages/
-│       ├── vi.json                          # Chuỗi tiếng Việt (mặc định)
-│       └── en.json                          # Chuỗi tiếng Anh
+│       └── vi.json                          # Chuỗi tiếng Việt duy nhất
 ├── be/
 │   └── src/
 │       ├── models/                          # Domain feature modules
@@ -605,7 +610,7 @@ vhdcorp/
 **Rules bắt buộc:**
 
 - Routes, file/folder names, variables, functions, types → **tiếng Anh**
-- UI text hiển thị → **viết qua `messages/vi.json`** (toggle sang EN không đổi URL)
+- UI text hiển thị → **viết qua `messages/vi.json`**, không hardcode, không tạo bản dịch ngôn ngữ khác
 - API calls → `services/` — không fetch trực tiếp trong component
 - Component client → `components/client/`, admin → `components/admin/`
 - Mỗi NestJS domain → 1 module riêng trong `models/`
@@ -634,8 +639,59 @@ vhd-corp/
 | Security | OWASP Top 10, HttpOnly cookie, CSRF guard, rate limit, sanitize input |
 | SEO | SSR/ISR, sitemap auto, structured data |
 | Accessibility | WCAG 2.1 AA — contrast, keyboard nav, ARIA |
-| Ngôn ngữ | VI mặc định, toggle sang EN trên cùng URL, persist `localStorage` |
+| Ngôn ngữ | Tiếng Việt duy nhất, không toggle ngôn ngữ, không persist locale |
 | Maintainability | Convention bắt buộc, review per feature, không code lan man |
+
+---
+
+## 9b. Pre-commit hook (BẮT BUỘC)
+
+**Mục tiêu**: chặn commit nếu code vi phạm format/lint/type. Code rác KHÔNG được merge.
+
+### Stack
+
+- `husky` — quản lý git hooks ở root monorepo
+- `lint-staged` — chạy linter/formatter chỉ trên file đã staged (nhanh)
+- `prettier` — format JS/TS/JSON/MD/CSS thống nhất 2 workspace
+- `eslint` — đã có sẵn ở `fe/` (`eslint-config-next`) và `be/` (`@typescript-eslint`)
+
+### Cấu trúc
+
+```text
+vhdcorp/
+├── package.json                # Workspace root: husky, lint-staged, scripts proxy
+├── .husky/
+│   └── pre-commit              # `yarn lint-staged`
+├── .lintstagedrc.json          # Map glob → command per workspace
+├── .prettierrc
+└── .prettierignore
+```
+
+### Rules áp dụng mỗi commit
+
+| Workspace | Glob | Command |
+| --- | --- | --- |
+| `fe/` | `fe/**/*.{ts,tsx}` | `eslint --fix --max-warnings=0` + `prettier --write` |
+| `fe/` | `fe/**/*.{json,css,md}` | `prettier --write` |
+| `be/` | `be/**/*.ts` | `eslint --fix --max-warnings=0` + `prettier --write` |
+| `be/` | `be/**/*.{json,md}` | `prettier --write` |
+
+> Type-check (`tsc --noEmit`) không chạy trong pre-commit (chậm với codebase lớn). Đẩy sang **pre-push** hoặc CI để giữ tốc độ commit < 5s.
+
+### Cấm tuyệt đối
+
+- `git commit --no-verify` — chỉ dùng khi user **explicit** yêu cầu, KHÔNG được tự ý thêm
+- KHÔNG đưa `--no-verify` vào CI/script/alias
+- KHÔNG bypass pre-commit để "fix nhanh" — sửa vi phạm trước
+
+### Setup lệnh (chạy 1 lần ở root)
+
+```bash
+yarn add -D -W husky lint-staged prettier
+yarn husky init
+echo "yarn lint-staged" > .husky/pre-commit
+chmod +x .husky/pre-commit
+```
 
 ---
 
@@ -650,7 +706,7 @@ vhd-corp/
 | `next` | `16.2.4` | Framework |
 | `react` / `react-dom` | `19.2.4` | UI runtime |
 | `next-themes` | `^0.4.6` | Dark / Light mode |
-| `next-intl` | `^4.11.0` | VI/EN toggle (without routing) |
+| `next-intl` | `^4.11.0` | Message provider single-locale `vi` |
 | `zustand` | `^5.0.12` | State: authStore, uiStore, siteConfigStore |
 | `@tanstack/react-query` | `^5.100.9` | Server state + mutations |
 | `@tanstack/react-query-devtools` | `^5.100.9` | Dev tools |
@@ -666,7 +722,7 @@ vhd-corp/
 | `@tiptap/react` | `^3.22.5` | Rich text editor |
 | `@tiptap/starter-kit` | `^3.22.5` | Tiptap extensions bundle |
 | `@tiptap/extension-image` | `^3.22.5` | Image trong editor |
-| `next-cloudinary` | `^6.17.5` | Cloudinary Upload Widget + CldImage |
+| `next-cloudinary` | `^6.17.5` | Cloudinary image helpers/CDN rendering; upload vẫn đi qua BE |
 | `sharp` | `^0.34.5` | Image optimization cho next/image |
 | `shadcn` | `^4.6.0` | Component CLI |
 | `radix-ui` | `^1.4.3` | Headless UI primitives |
@@ -746,3 +802,112 @@ vhd-corp/
 | `@faker-js/faker` | `^10.4.0` |
 | `prettier` | `^3.0.0` |
 | `eslint` | `^8.42.0` |
+
+---
+
+## 11. Media Upload — Cloudinary primary, local fallback
+
+### Quy tắc
+
+- **Mặc định**: BE upload buffer trực tiếp lên Cloudinary qua `cloudinary.uploader.upload_stream`. URL trả về là `https://res.cloudinary.com/<cloud>/image/upload/...` và lưu vào `Media.url`.
+- **Fallback**: Khi Cloudinary throw lỗi (hết quota, sai key, network…), BE tự động ghi file xuống `be/uploads/<folder>/<uuid>.<ext>` rồi serve qua `app.useStaticAssets()` tại `/uploads/`. URL trả về có dạng `<API_URL>/uploads/<folder>/<filename>`.
+- **DB persistence**: Sau mỗi upload thành công, BE phải tạo bản ghi `Media` gồm `url`, `publicId`, `folder`, `format`, `width`, `height`, `bytes`, `tags`, `uploadedBy`. Các bảng nghiệp vụ (`Product.images`, `Category.image`, `Banner.imageUrl`, `Post.ogImage`, `SiteConfig.brand.*`) chỉ lưu URL/metadata trả về từ BE.
+- **Admin UX**: Tuyệt đối KHÔNG bắt admin paste URL. Mọi form ảnh dùng widget `<ImageUploader>` (drag & drop + click to browse + preview + remove) hoặc grid multi-image kèm `<input type="file">`. Paste URL thủ công không được là luồng chính và không được dùng để thay thế upload file.
+- **Editor image upload**: Rich editor gọi cùng endpoint `POST /api/media/upload`; sau khi BE trả URL, editor mới insert `<img src="...">` vào nội dung. Không cho flow “admin tự dán URL ảnh” trong editor.
+- **Permission**: `POST /api/media/upload` mở cho mọi user authenticated, nhưng:
+  - `ADMIN`/`STAFF`: chọn `folder` tự do (categories, products, posts, banners, branding, vhdcorp).
+  - `CUSTOMER`: bị ép `folder = "avatars"` ở controller (chống lạm dụng storage).
+
+### `.env` BE (Cloudinary)
+
+```env
+CLOUDINARY_CLOUD_NAME=<cloud_name>
+CLOUDINARY_API_KEY=<api_key>
+CLOUDINARY_API_SECRET=<api_secret>
+CLOUDINARY_UPLOAD_PRESET=<upload_preset>
+```
+
+### Validation
+
+- MIME type: `image/(jpeg|png|webp|gif|svg+xml)`
+- Max size: 10MB (NestJS `MaxFileSizeValidator`)
+- Multipart field name: `file`, optional field `folder`
+
+---
+
+## 12. Caching policy
+
+**Quyết định**: Web KHÔNG cache (tránh bug stale data trong giai đoạn nghiệm thu).
+
+- TanStack Query: `staleTime: 0`, `gcTime: 0`, `refetchOnMount: "always"`, `refetchOnWindowFocus: true`.
+- Next.js: tất cả route admin + client động dùng `export const dynamic = "force-dynamic"`. `fetch` không bật `next: { revalidate }`.
+- BE: không bật Redis/in-memory cache cho query Prisma. Mỗi request hit DB.
+- Admin builder: lưu draft → publish → public site lập tức thấy thay đổi (không có CDN tier ở giữa).
+
+Khi muốn bật cache lại sau release: bật `revalidate` cho từng route public + thêm `staleTime` cho các query non-personal.
+
+---
+
+## 13. Acceptance Tests (UI-driven, từng feature)
+
+Toàn bộ test phải chạy trực tiếp qua **browser UI** (Playwright), không curl-only. Mỗi flow ghi rõ: pre-condition, steps, expected, actual.
+
+### Admin Auth
+- [x] `/admin/login` email + password (no Google OAuth) → `Set-Cookie: access_token; HttpOnly`
+- [x] Truy cập `/admin/dashboard` khi đã login → 200; chưa login → redirect `/admin/login`
+
+### Admin Builder
+- [x] DnD thêm section Hero/Featured/Banner/Posts… vào canvas
+- [x] Reorder section qua nút Lên/Xuống → thứ tự cập nhật ngay
+- [x] Toggle eye icon → section ẩn/hiện trên canvas, dấu `Chưa lưu` xuất hiện
+- [x] Trash icon → xóa section
+- [x] Ctrl+S → toast `Đã lưu nháp`
+- [x] Xuất bản → toast `Đã xuất bản`, public `/` reflect trong < 1s
+- [x] Mobile/Tablet/Desktop preview toggle
+- [x] Chỉnh thuộc tính right panel (text, image, link)
+
+### Admin CRUD
+- [x] **Categories**: tạo / sửa / xóa kèm ảnh (ImageUploader)
+- [x] **Posts**: editor Tiptap 17 toolbar buttons, bold/italic/H1-H3/list/quote/code/HR/link/image, ảnh cover (ImageUploader), SEO meta, status DRAFT/PUBLISHED, tags
+- [x] **Products**: name/slug, RichEditor description, multi-image, SEO, status, category, price, stock
+- [x] **Users**: đổi role ADMIN ↔ STAFF ↔ CUSTOMER → toast `Đã đổi vai trò → ...`
+- [x] **Reviews**: list + duyệt/từ chối (page render đúng, empty state OK)
+- [x] **Banners**: tạo + sửa (ImageUploader + URL fallback) + xóa
+- [x] **Media library**: upload qua `<input type=file>` → `Đã tải N ảnh`; copy URL; xóa cascade Cloudinary
+- [x] **Settings**: logo / favicon / OG image qua ImageUploader; brand colors; nav; footer; SEO defaults
+
+### Client
+- [x] `/login`: customer email/password → cookie set, redirect `/`
+- [x] `/register`: validation, tạo CUSTOMER → auto login + redirect `/`
+- [x] `/account/profile`: đổi tên, **upload avatar** (ép folder `avatars`)
+- [x] `/account/password`: đổi mật khẩu (yêu cầu password hiện tại)
+- [x] `/`: render đúng các section đã publish
+- [x] `/products`, `/products/[slug]`: list + detail với JSON-LD Product + BreadcrumbList **không trùng lặp**
+- [x] `/posts`, `/posts/[slug]`: list + detail
+- [x] `/categories/[slug]`: filter theo category
+- [x] `/search?q=`: trả về kết quả
+- [x] `/contact`: submit form → toast `Cảm ơn bạn! Chúng tôi sẽ liên hệ lại sớm nhất.`
+
+### SEO chuẩn
+- [x] Title / description / og:* / twitter:card / canonical / robots present
+- [x] JSON-LD: Product (id="ld-product"), BreadcrumbList (id="ld-breadcrumb"); chỉ render 1 lần mỗi loại (không duplicate)
+- [x] Sitemap.xml + robots.txt phục vụ public
+
+### Bugs đã fix trong vòng test
+1. **Publish 400**: axios gửi `null` body → strict JSON parser reject. Fix: gửi `undefined`.
+2. **Customer avatar 403**: `MediaController` gắn `@Roles(ADMIN,STAFF)` cấp class. Fix: tách per-method, mở `/upload` cho mọi user authenticated, ép `folder="avatars"` cho CUSTOMER.
+3. **JSON-LD duplicate**: Product + Breadcrumb render cả ở SSR `page.tsx` lẫn client `product-detail-client.tsx`. Fix: client chỉ render khi có aggregateRating, dedupe bằng id.
+4. **SiteConfig publish ghi đè partial value**: dùng rollback từ history snapshot.
+
+
+### Vòng test 2 (production build)
+- Build `yarn build` thành công, deploy lên `next start -p 3000`.
+- **JSON-LD prod build verify**: tất cả pages SSR ra **đúng 1** script mỗi loại trong raw HTML và DOM:
+  - `/` → `ld-org`, `ld-site`
+  - `/products/[slug]` → `ld-product`, `ld-breadcrumb`
+  - `/posts/[slug]` → `ld-article`, `ld-breadcrumb`
+  - Lưu ý: trong dev mode (Turbopack + RSC streaming) DOM hiển thị 4 script do hydration replay; production build đã dedup sạch.
+- **Bug fix #5**: Post detail JSON-LD duplicate — đã xóa `<JsonLd>` trong `post-detail-client.tsx`, SSR `page.tsx` là source duy nhất.
+- Tất cả 9 admin pages render thành công sau prod deploy: products/posts/categories/users/banners/media/settings/builder/reviews.
+- Builder save trong prod build: `Ctrl+S` → toast `Đã lưu nháp` ✓ (11 sections × 4 controls).
+- Cloudinary backup key đã wire vào `be/.env`: `CLOUDINARY_API_KEY_BACKUP=832243178579144`.

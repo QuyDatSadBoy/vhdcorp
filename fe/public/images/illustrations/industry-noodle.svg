@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" fill="none" aria-hidden="true">
+  <defs>
+    <radialGradient id="ndBg" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%" stop-color="#F5A623" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#C8102E" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ndStrand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFE08A"/>
+      <stop offset="50%" stop-color="#F5B53B"/>
+      <stop offset="100%" stop-color="#A86B07"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="320" fill="url(#ndBg)"/>
+  <g transform="translate(105 50) rotate(-4)">
+    <g>
+      <rect x="0"  y="0" width="3" height="220" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="6"  y="-2" width="3" height="222" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="12" y="0" width="3" height="220" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="18" y="-3" width="3" height="223" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="24" y="0" width="3" height="220" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="30" y="-2" width="3" height="222" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="36" y="0" width="3" height="220" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="42" y="-1" width="3" height="221" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="48" y="0" width="3" height="220" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="54" y="-2" width="3" height="222" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="60" y="0" width="3" height="220" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="66" y="-3" width="3" height="223" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="72" y="0" width="3" height="220" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="78" y="-1" width="3" height="221" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="84" y="0" width="3" height="220" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="90" y="-2" width="3" height="222" rx="1.5" fill="url(#ndStrand)"/>
+      <rect x="96" y="0" width="3" height="220" rx="1.5" fill="url(#ndStrand)"/>
+    </g>
+    <rect x="-6" y="98" width="111" height="34" rx="4" fill="#C8102E"/>
+    <rect x="-6" y="98" width="111" height="6" fill="#fff" opacity="0.30"/>
+    <rect x="-6" y="124" width="111" height="3" fill="#000" opacity="0.20"/>
+    <text x="49" y="118" text-anchor="middle" font-family="'Be Vietnam Pro', system-ui, sans-serif" font-size="11" font-weight="900" fill="#fff" letter-spacing="2">VHD</text>
+    <text x="49" y="129" text-anchor="middle" font-family="'Be Vietnam Pro', system-ui, sans-serif" font-size="6" font-weight="700" fill="#fff" letter-spacing="1.5" opacity="0.85">MIẾN VIỆT</text>
+    <path d="M0 -8 Q49 -16 99 -8" stroke="#C8102E" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.85"/>
+  </g>
+  <ellipse cx="160" cy="290" rx="100" ry="7" fill="#C8102E" opacity="0.1"/>
+</svg>

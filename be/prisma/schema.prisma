@@ -3,8 +3,9 @@
 
 generator client {
   provider      = "prisma-client-js"
+  engineType    = "library"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
-  output        = "./generated/client"
+  output        = "../node_modules/@vhd/prisma-client"
 }
 
 datasource db {
@@ -200,7 +201,7 @@ model Media {
 
 model SiteConfig {
   id        Int          @id @default(autoincrement())
-  key       String       @unique @default("main")
+  key       String       @default("main")
   value     Json
   version   Int          @default(1)
   status    ConfigStatus @default(DRAFT)
@@ -210,6 +211,7 @@ model SiteConfig {
 
   history SiteConfigHistory[]
 
+  @@unique([key, status])
   @@index([key, status])
   @@map("site_configs")
 }

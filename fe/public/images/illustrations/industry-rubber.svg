@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" fill="none" aria-hidden="true">
+  <defs>
+    <radialGradient id="rbBg" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%" stop-color="#4FB8E7" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#1B3A8C" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rbFill" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="40%" stop-color="#1A1A2E"/>
+      <stop offset="100%" stop-color="#070712"/>
+    </radialGradient>
+  </defs>
+  <rect width="320" height="320" fill="url(#rbBg)"/>
+  <g transform="translate(160 170)">
+    <g transform="rotate(-14) translate(0 26)">
+      <ellipse cx="0" cy="0" rx="115" ry="36" fill="url(#rbFill)"/>
+      <ellipse cx="0" cy="0" rx="56" ry="18" fill="#06060d"/>
+      <ellipse cx="0" cy="-3" rx="100" ry="3" fill="#4FB8E7" opacity="0.5"/>
+    </g>
+    <g>
+      <ellipse cx="0" cy="0" rx="110" ry="34" fill="url(#rbFill)"/>
+      <ellipse cx="0" cy="0" rx="54" ry="17" fill="#06060d"/>
+      <ellipse cx="0" cy="-2" rx="92" ry="3" fill="#4FB8E7" opacity="0.55"/>
+      <rect x="-26" y="-7" width="52" height="14" rx="2" fill="#F5A623"/>
+      <text x="0" y="3" text-anchor="middle" font-family="'Be Vietnam Pro', system-ui, sans-serif" font-size="9" font-weight="800" fill="#1B3A8C" letter-spacing="1.4">VHD CORP</text>
+    </g>
+    <g transform="rotate(10) translate(0 -28)">
+      <ellipse cx="0" cy="0" rx="100" ry="32" fill="#F5A623"/>
+      <ellipse cx="0" cy="0" rx="50" ry="16" fill="#fff"/>
+      <ellipse cx="0" cy="-2" rx="84" ry="2" fill="#fff" opacity="0.85"/>
+    </g>
+  </g>
+  <ellipse cx="160" cy="280" rx="120" ry="8" fill="#1B3A8C" opacity="0.12"/>
+</svg>

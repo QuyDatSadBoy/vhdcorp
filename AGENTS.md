@@ -63,8 +63,7 @@ fe/
 ├── lib/                        # axios.ts, utils.ts, cloudinary.ts
 ├── types/                      # {domain}.ts — TypeScript interfaces
 └── messages/
-    ├── vi.json                 # Chuỗi UI tiếng Việt (mặc định)
-    └── en.json                 # Chuỗi UI tiếng Anh
+    └── vi.json                 # Chuỗi UI tiếng Việt duy nhất
 ```
 
 ### Backend (`be/src/`)
@@ -100,6 +99,7 @@ be/src/
 
 - Fetch API trong component → **SAI**. Phải qua `fe/services/`
 - Hardcode string UI → **SAI**. Phải qua `useTranslations()` và `messages/vi.json`
+- Tạo/toggle ngôn ngữ khác → **SAI**. UI chỉ hỗ trợ tiếng Việt
 - `<img>` → **SAI**. Dùng `next/image` với `sizes` + `priority`
 - `"use client"` thêm bừa → **SAI**. Chỉ thêm khi có event handler / hook / browser API
 - Barrel `index.ts` trong FE → **SAI** (ngoại lệ duy nhất: `fe/store/index.ts`)

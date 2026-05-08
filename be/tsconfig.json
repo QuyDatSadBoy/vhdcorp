@@ -37,6 +37,12 @@
       "@interceptor/*": [
         "src/common/interceptors/*"
       ],
+      "@decorator/*": [
+        "src/common/decorators/*"
+      ],
+      "@util/*": [
+        "src/common/utils/*"
+      ],
       "@prisma/*": [
         "src/prisma/*"
       ],
@@ -48,6 +54,9 @@
       ],
       "@service/*": [
         "src/services/*"
+      ],
+      "@prisma-client": [
+        "node_modules/@vhd/prisma-client"
       ]
     }
   }
