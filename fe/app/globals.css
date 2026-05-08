@@ -129,7 +129,10 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    font-feature-settings:
+      "kern" 1,
+      "liga" 1,
+      "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -140,16 +143,33 @@
     scroll-padding-top: 96px;
   }
   /* Heading hierarchy: Be Vietnam Pro, fluid scale, line-height phù hợp dấu tiếng Việt */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-heading), "Be Vietnam Pro", system-ui, sans-serif;
     font-weight: 700;
     letter-spacing: -0.015em;
     text-wrap: balance;
   }
-  h1 { line-height: 1.08; }
-  h2, h3 { line-height: 1.15; }
-  h4, h5, h6 { line-height: 1.25; }
-  p, li { text-wrap: pretty; }
+  h1 {
+    line-height: 1.08;
+  }
+  h2,
+  h3 {
+    line-height: 1.15;
+  }
+  h4,
+  h5,
+  h6 {
+    line-height: 1.25;
+  }
+  p,
+  li {
+    text-wrap: pretty;
+  }
   /* Section headings không bị sticky header che khi scroll-into-view */
   section h2,
   section h1 {
@@ -157,31 +177,82 @@
   }
 
   /* Custom scrollbar */
-  ::-webkit-scrollbar { width: 8px; height: 8px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--vhd-color-primary); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--vhd-color-accent); }
-  ::selection { background: var(--vhd-color-highlight); color: var(--vhd-color-primary); }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--vhd-color-primary);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--vhd-color-accent);
+  }
+  ::selection {
+    background: var(--vhd-color-highlight);
+    color: var(--vhd-color-primary);
+  }
 }
 
 @layer utilities {
   /* Fluid type scale — dùng cho display heading lớn */
-  .type-display-xl { font-size: clamp(2.75rem, 6vw + 1rem, 6rem); line-height: 1.04; letter-spacing: -0.025em; font-weight: 800; }
-  .type-display-lg { font-size: clamp(2.25rem, 4vw + 1rem, 4.5rem); line-height: 1.08; letter-spacing: -0.02em; font-weight: 800; }
-  .type-display-md { font-size: clamp(1.875rem, 2.5vw + 1rem, 3rem); line-height: 1.12; letter-spacing: -0.018em; font-weight: 700; }
-  .type-eyebrow { font-size: 0.75rem; line-height: 1; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600; }
-  .type-lead { font-size: clamp(1.0625rem, 0.5vw + 1rem, 1.25rem); line-height: 1.55; }
+  .type-display-xl {
+    font-size: clamp(3.25rem, 7vw + 1rem, 7rem);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    font-weight: 900;
+  }
+  .type-display-lg {
+    font-size: clamp(2.25rem, 4vw + 1rem, 4.5rem);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    font-weight: 800;
+  }
+  .type-display-md {
+    font-size: clamp(1.875rem, 2.5vw + 1rem, 3rem);
+    line-height: 1.12;
+    letter-spacing: -0.018em;
+    font-weight: 700;
+  }
+  .type-eyebrow {
+    font-size: 0.75rem;
+    line-height: 1;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .type-lead {
+    font-size: clamp(1.0625rem, 0.5vw + 1rem, 1.25rem);
+    line-height: 1.55;
+  }
 
   /* Brand text colors */
-  .text-brand-primary { color: var(--vhd-color-primary); }
-  .text-brand-accent { color: var(--vhd-color-accent); }
-  .text-brand-highlight { color: var(--vhd-color-highlight); }
-  .text-brand-danger { color: var(--vhd-color-danger); }
+  .text-brand-primary {
+    color: var(--vhd-color-primary);
+  }
+  .text-brand-accent {
+    color: var(--vhd-color-accent);
+  }
+  .text-brand-highlight {
+    color: var(--vhd-color-highlight);
+  }
+  .text-brand-danger {
+    color: var(--vhd-color-danger);
+  }
 
   /* Brand bg */
-  .bg-brand-primary { background-color: var(--vhd-color-primary); }
-  .bg-brand-accent { background-color: var(--vhd-color-accent); }
-  .bg-brand-highlight { background-color: var(--vhd-color-highlight); }
+  .bg-brand-primary {
+    background-color: var(--vhd-color-primary);
+  }
+  .bg-brand-accent {
+    background-color: var(--vhd-color-accent);
+  }
+  .bg-brand-highlight {
+    background-color: var(--vhd-color-highlight);
+  }
 
   /* Gradient text */
   .text-gradient-primary {
@@ -203,7 +274,9 @@
     background: linear-gradient(transparent 60%, color-mix(in srgb, var(--vhd-color-highlight) 55%, transparent) 60%);
     padding: 0 0.08em;
   }
-  .dark .word-highlight { color: var(--vhd-color-text); }
+  .dark .word-highlight {
+    color: var(--vhd-color-text);
+  }
 
   /* Glass morphism card */
   .glass-card {
@@ -240,9 +313,15 @@
     z-index: -1;
   }
   @keyframes gradient-shift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
   }
 
   /* Shimmer loading */
@@ -252,13 +331,17 @@
     animation: shimmer 1.5s infinite;
   }
   @keyframes shimmer {
-    from { background-position: 200% 0; }
-    to { background-position: -200% 0; }
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
   }
 
   /* Image fallback dot pattern */
   .fallback-dot-pattern {
-    background-image: radial-gradient(circle, #1B3A8C 1px, transparent 1px);
+    background-image: radial-gradient(circle, #1b3a8c 1px, transparent 1px);
     background-size: 24px 24px;
   }
 
@@ -267,8 +350,13 @@
     animation: float 6s ease-in-out infinite;
   }
   @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-12px); }
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-12px);
+    }
   }
 
   /* Pulse glow */
@@ -276,14 +364,97 @@
     animation: pulse-glow 2s ease-in-out infinite;
   }
   @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 20px -5px var(--vhd-color-primary); }
-    50% { box-shadow: 0 0 40px 5px var(--vhd-color-accent); }
+    0%,
+    100% {
+      box-shadow: 0 0 20px -5px var(--vhd-color-primary);
+    }
+    50% {
+      box-shadow: 0 0 40px 5px var(--vhd-color-accent);
+    }
   }
 
   /* Infinite marquee */
   @keyframes marquee {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  /* U2 — Glow card border rotate */
+  @keyframes glow-rotate {
+    from {
+      --glow-angle: 0deg;
+    }
+    to {
+      --glow-angle: 360deg;
+    }
+  }
+  @property --glow-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
+
+  /* U6 — CSS-only floating particles */
+  @keyframes particle-float {
+    0% {
+      opacity: 0;
+      transform: translateY(0) translateX(0);
+    }
+    10% {
+      opacity: 0.6;
+    }
+    50% {
+      transform: translateY(-40px) translateX(15px);
+    }
+    90% {
+      opacity: 0.6;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-80px) translateX(-10px);
+    }
+  }
+
+  /* U5 — CTA glow pulse */
+  @keyframes cta-glow {
+    0%,
+    100% {
+      box-shadow: 0 0 20px -5px color-mix(in srgb, var(--vhd-color-primary) 50%, transparent);
+    }
+    50% {
+      box-shadow: 0 0 35px 0px color-mix(in srgb, var(--vhd-color-primary) 70%, transparent);
+    }
+  }
+  .animate-cta-glow {
+    animation: cta-glow 3s ease-in-out infinite;
+  }
+
+  /* U3 — Section transition blend */
+  .section-blend-bottom::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(to bottom, var(--tw-section-bg, transparent), var(--background));
+    pointer-events: none;
+    z-index: 1;
+  }
+  .section-blend-top::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(to top, var(--tw-section-bg, transparent), var(--background));
+    pointer-events: none;
+    z-index: 1;
   }
 }
 
@@ -296,7 +467,235 @@
 }
 
 @utility scrollbar-none {
-  &::-webkit-scrollbar { display: none; }
+  &::-webkit-scrollbar {
+    display: none;
+  }
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+/* E1 — Lenis smooth scroll */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* E6 — Shimmer gradient text trên từ khóa */
+@utility text-shimmer-brand {
+  background-image: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--vhd-color-highlight) 95%, transparent) 0%,
+    color-mix(in srgb, var(--vhd-color-danger) 70%, transparent) 35%,
+    color-mix(in srgb, var(--vhd-color-highlight) 95%, transparent) 70%,
+    color-mix(in srgb, var(--vhd-color-highlight) 95%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shimmer-brand 6s linear infinite;
+}
+
+@keyframes shimmer-brand {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ============================================================
+   CUSTOM CURSOR — hide default on pointer devices
+   ============================================================ */
+@media (pointer: fine) {
+  * {
+    cursor: none !important;
+  }
+}
+
+/* ============================================================
+   SPOTLIGHT CARD — cursor-tracking radial glow on cards
+   Thêm class .spotlight-card vào element cần hiệu ứng
+   ============================================================ */
+@utility spotlight-card {
+  --spotlight-x: 50%;
+  --spotlight-y: 50%;
+  --spotlight-opacity: 0;
+  position: relative;
+  isolation: isolate;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      320px circle at var(--spotlight-x) var(--spotlight-y),
+      color-mix(in srgb, var(--vhd-color-accent) 30%, transparent) 0%,
+      color-mix(in srgb, var(--vhd-color-primary) 12%, transparent) 55%,
+      transparent 75%
+    );
+    opacity: var(--spotlight-opacity);
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+/* ============================================================
+   SHIMMER BORDER — animated gradient border on hover
+   ============================================================ */
+@utility shimmer-border {
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--vhd-color-primary) 80%, transparent) 0%,
+      color-mix(in srgb, var(--vhd-color-accent) 90%, transparent) 40%,
+      color-mix(in srgb, var(--vhd-color-highlight) 80%, transparent) 80%,
+      color-mix(in srgb, var(--vhd-color-primary) 80%, transparent) 100%
+    );
+    background-size: 300% 300%;
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    animation: shimmer-border-move 3s linear infinite paused;
+    z-index: 0;
+  }
+
+  &:hover::before {
+    opacity: 1;
+    animation-play-state: running;
+  }
+}
+
+@keyframes shimmer-border-move {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ============================================================
+   GRAIN NOISE — premium texture overlay
+   Sử dụng: thêm class .grain-overlay vào section cần grain
+   ============================================================ */
+@utility grain-overlay {
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-size: 220px 220px;
+    opacity: 0.038;
+    pointer-events: none;
+    z-index: 100;
+    border-radius: inherit;
+    mix-blend-mode: overlay;
+  }
+}
+
+/* ============================================================
+   CLIP REVEAL — image/div nhô ra từ bottom via clip-path
+   Dùng với Framer Motion: clipPath: "inset(100% 0 0 0)" → "inset(0% 0 0 0)"
+   ============================================================ */
+@utility clip-reveal {
+  will-change: clip-path;
+  clip-path: inset(0 0 0 0);
+}
+
+/* ============================================================
+   SCAN LINE — nền scanline cho stats / dark hero sections
+   ============================================================ */
+@utility scan-lines {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0, 0, 0, 0.015) 3px,
+      rgba(0, 0, 0, 0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+/* ============================================================
+   TEXT GRADIENT — heading với gradient brand
+   ============================================================ */
+@utility text-gradient-brand {
+  background: linear-gradient(
+    135deg,
+    var(--vhd-color-primary) 0%,
+    var(--vhd-color-accent) 50%,
+    var(--vhd-color-highlight) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* ============================================================
+   FROSTED GLASS — premium glass card
+   ============================================================ */
+@utility glass-premium {
+  background: color-mix(in srgb, var(--background) 70%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+/* ============================================================
+   HOVER LIFT — smooth lift shadow effect
+   ============================================================ */
+@utility hover-lift {
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s ease;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 24px 60px -20px color-mix(in srgb, var(--vhd-color-primary) 35%, transparent);
+  }
 }
