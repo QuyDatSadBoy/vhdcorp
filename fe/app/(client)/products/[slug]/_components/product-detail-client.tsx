@@ -46,7 +46,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
     return (
       <div className="container mx-auto px-4 py-24 text-center">
         <h1 className="text-2xl font-bold">Không tìm thấy sản phẩm</h1>
-        <Button asChild className="mt-4"><Link href="/products">Về danh sách sản phẩm</Link></Button>
+        <Button asChild className="mt-4">
+          <Link href="/products">Về danh sách sản phẩm</Link>
+        </Button>
       </div>
     );
   }
@@ -80,18 +82,24 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
     image: images.map((src) => (src.startsWith("http") ? src : `${SITE_URL}${src}`)),
     sku: String(product.id),
     category: product.category?.name,
-    offers: Number(product.price) > 0 ? {
-      "@type": "Offer",
-      priceCurrency: "VND",
-      price: Number(product.price),
-      availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-      url: `${SITE_URL}/products/${product.slug}`,
-    } : undefined,
-    aggregateRating: (reviews ?? []).length > 0 ? {
-      "@type": "AggregateRating",
-      ratingValue: ((reviews ?? []).reduce((s, r) => s + r.rating, 0) / (reviews ?? []).length).toFixed(1),
-      reviewCount: (reviews ?? []).length,
-    } : undefined,
+    offers:
+      Number(product.price) > 0
+        ? {
+            "@type": "Offer",
+            priceCurrency: "VND",
+            price: Number(product.price),
+            availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            url: `${SITE_URL}/products/${product.slug}`,
+          }
+        : undefined,
+    aggregateRating:
+      (reviews ?? []).length > 0
+        ? {
+            "@type": "AggregateRating",
+            ratingValue: ((reviews ?? []).reduce((s, r) => s + r.rating, 0) / (reviews ?? []).length).toFixed(1),
+            reviewCount: (reviews ?? []).length,
+          }
+        : undefined,
   };
 
   // JSON-LD: Product + BreadcrumbList đã được SSR ở page.tsx (server) cho crawler.
@@ -102,12 +110,26 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
     <article className="container mx-auto px-4 py-12">
       {hasAggregateRating && <JsonLd id="product-rating" data={productLd} />}
       <nav className="mb-6 text-sm text-muted-foreground">
-        <Link href="/" className="hover:underline">Trang chủ</Link> /{" "}
-        <Link href="/products" className="hover:underline">Sản phẩm</Link>
+        <Link href="/" className="hover:underline">
+          Trang chủ
+        </Link>{" "}
+        /{" "}
+        <Link href="/products" className="hover:underline">
+          Sản phẩm
+        </Link>
         {product.category && (
-          <> / <Link href={`/categories/${product.category.slug}`} className="hover:underline">{product.category.name}</Link></>
+          <>
+            {" "}
+            /{" "}
+            <Link href={`/categories/${product.category.slug}`} className="hover:underline">
+              {product.category.name}
+            </Link>
+          </>
         )}
-        <> / <span className="text-foreground">{product.name}</span></>
+        <>
+          {" "}
+          / <span className="text-foreground">{product.name}</span>
+        </>
       </nav>
 
       <div className="grid gap-12 md:grid-cols-2">
@@ -124,7 +146,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                   exit={{ opacity: 0 }}
                   className="absolute inset-0"
                 >
-                  <Image src={images[imgIdx]} alt={product.name} fill sizes="(max-width:768px) 100vw, 50vw" className="object-cover" priority />
+                  <Image
+                    src={images[imgIdx]}
+                    alt={product.name}
+                    fill
+                    sizes="(max-width:768px) 100vw, 50vw"
+                    className="object-cover"
+                    priority
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -146,9 +175,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
         </div>
 
         <div>
-          {product.category?.name && (
-            <p className="type-eyebrow text-brand-accent">{product.category.name}</p>
-          )}
+          {product.category?.name && <p className="type-eyebrow text-brand-accent">{product.category.name}</p>}
           <motion.h1
             suppressHydrationWarning
             initial={{ opacity: 0, y: 16 }}
@@ -157,14 +184,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
           >
             {product.name}
           </motion.h1>
-          {product.shortDescription && (
-            <p className="mt-3 text-lg text-foreground/70">{product.shortDescription}</p>
-          )}
+          {product.shortDescription && <p className="mt-3 text-lg text-foreground/70">{product.shortDescription}</p>}
 
           <div className="mt-6 flex items-end gap-4">
             {Number(product.price) > 0 ? (
               <p className="font-heading text-4xl font-extrabold text-brand-primary">
-                {Number(product.price).toLocaleString("vi-VN")} <span className="text-lg font-bold text-foreground/55">₫</span>
+                {Number(product.price).toLocaleString("vi-VN")}{" "}
+                <span className="text-lg font-bold text-foreground/55">₫</span>
               </p>
             ) : (
               <p className="font-heading text-2xl font-extrabold text-foreground/65">Liên hệ báo giá</p>
@@ -193,7 +219,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             <Button
               asChild
               size="lg"
-              className="h-12 rounded-full bg-[color:var(--vhd-color-primary)] px-7 text-base font-semibold text-white shadow-[0_10px_30px_-12px_color-mix(in_srgb,var(--vhd-color-primary)_60%,transparent)] hover:bg-[color:var(--vhd-color-primary)]/90"
+              className="h-12 rounded-full bg-brand-primary px-7 text-base font-semibold text-white shadow-[0_10px_30px_-12px_color-mix(in_srgb,var(--vhd-color-primary)_60%,transparent)] hover:bg-brand-primary/90"
             >
               <Link href="/contact">Liên hệ tư vấn</Link>
             </Button>
@@ -201,7 +227,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
               asChild
               size="lg"
               variant="outline"
-              className="h-12 rounded-full border-[color:var(--vhd-color-primary)]/25 bg-transparent px-7 text-base font-semibold text-[color:var(--vhd-color-primary)] hover:bg-[color:var(--vhd-color-primary)]/8"
+              className="h-12 rounded-full border-brand-primary/25 bg-transparent px-7 text-base font-semibold text-brand-primary hover:bg-brand-primary/8"
             >
               <a href="tel:+84283xxxxxxx">Gọi báo giá</a>
             </Button>
@@ -210,19 +236,19 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
           {/* Trust bullets */}
           <ul className="mt-7 grid gap-2 rounded-2xl border border-foreground/8 bg-card p-5 text-sm text-foreground/70 sm:grid-cols-2">
             <li className="inline-flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--vhd-color-highlight)]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-highlight" />
               Chính hãng, kiểm định chất lượng
             </li>
             <li className="inline-flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--vhd-color-highlight)]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-highlight" />
               Giao hàng B2B/B2C toàn quốc
             </li>
             <li className="inline-flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--vhd-color-highlight)]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-highlight" />
               Hỗ trợ tư vấn 7 ngày/tuần
             </li>
             <li className="inline-flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--vhd-color-highlight)]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-highlight" />
               Đổi trả linh hoạt theo hợp đồng
             </li>
           </ul>
@@ -260,7 +286,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
               </button>
             ))}
           </div>
-          <Textarea className="mt-4" rows={4} value={content} onChange={(e) => setContent(e.target.value)} placeholder="Chia sẻ trải nghiệm của bạn..." />
+          <Textarea
+            className="mt-4"
+            rows={4}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Chia sẻ trải nghiệm của bạn..."
+          />
           <Button onClick={submitReview} disabled={createReview.isPending} className="mt-4">
             {createReview.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Gửi đánh giá
@@ -287,7 +319,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                 <Card className="group overflow-hidden h-full">
                   <div className="relative aspect-square bg-muted">
                     {p.images?.[0] ? (
-                      <Image src={p.images[0]} alt={p.name} fill sizes="25vw" className="object-cover transition group-hover:scale-105" />
+                      <Image
+                        src={p.images[0]}
+                        alt={p.name}
+                        fill
+                        sizes="25vw"
+                        className="object-cover transition group-hover:scale-105"
+                      />
                     ) : (
                       <ImageFallback />
                     )}

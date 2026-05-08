@@ -4,16 +4,21 @@ import Footer from "@/components/client/footer";
 import FloatingContact from "@/components/client/floating-contact";
 import { StickyCtaBar } from "@/components/client/sticky-cta-bar";
 import { BackToTop } from "@/components/client/back-to-top";
+import { LenisProvider } from "@/components/animations/lenis-provider";
+import { CustomCursor } from "@/components/animations/custom-cursor";
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1">{children}</main>
-      <Footer />
-      <StickyCtaBar />
-      <BackToTop />
-      <FloatingContact />
-    </div>
+    <LenisProvider>
+      <CustomCursor />
+      <div className="flex min-h-screen flex-col">
+        <Header />
+        <main className="flex-1">{children}</main>
+        <Footer />
+        <StickyCtaBar />
+        <BackToTop />
+        <FloatingContact />
+      </div>
+    </LenisProvider>
   );
 }

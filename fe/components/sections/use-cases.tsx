@@ -55,12 +55,7 @@ export default function UseCases({ section }: { section: UseCasesSection }) {
           {p.subheading && <p className="mt-4 type-lead text-foreground/65">{p.subheading}</p>}
         </motion.div>
 
-        <div
-          className={cn(
-            "grid gap-5 sm:grid-cols-2",
-            cols === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3",
-          )}
-        >
+        <div className={cn("grid gap-5 sm:grid-cols-2", cols === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
           {cases.map((c, i) => (
             <motion.div
               key={`${c.title}-${i}`}
@@ -69,7 +64,7 @@ export default function UseCases({ section }: { section: UseCasesSection }) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.55, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-              className="group relative flex flex-col rounded-2xl border border-foreground/8 bg-card p-6 transition-all hover:-translate-y-1 hover:border-(--vhd-color-primary)/30 hover:shadow-[0_18px_40px_-20px_rgba(15,35,86,0.28)]"
+              className="group relative flex flex-col rounded-2xl border border-foreground/8 bg-card p-6 transition-all hover:-translate-y-1 hover:border-brand-primary/30 hover:shadow-[0_18px_40px_-20px_rgba(15,35,86,0.28)]"
             >
               {c.badge && (
                 <span className="absolute right-4 top-4 rounded-full bg-(--vhd-color-highlight)/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-highlight">

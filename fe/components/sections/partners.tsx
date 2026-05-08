@@ -63,7 +63,7 @@ export default function Partners({ section }: { section: Section }) {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-40px" }}
                   transition={{ duration: 0.5, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
-                  className="group flex h-24 items-center justify-center gap-2.5 rounded-2xl border border-foreground/8 bg-card px-4 text-foreground/55 transition-all hover:-translate-y-0.5 hover:border-(--vhd-color-primary)/30 hover:bg-card hover:text-foreground hover:shadow-md"
+                  className="group flex h-24 items-center justify-center gap-2.5 rounded-2xl border border-foreground/8 bg-card px-4 text-foreground/55 transition-all hover:-translate-y-0.5 hover:border-brand-primary/30 hover:bg-card hover:text-foreground hover:shadow-md"
                 >
                   <Icon className="h-5 w-5 transition-colors group-hover:text-brand-primary" strokeWidth={1.6} />
                   <span className="font-heading text-sm font-bold tracking-tight">{b.name}</span>

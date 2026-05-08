@@ -3,6 +3,7 @@ import { PageRenderer } from "@/components/sections";
 import { defaultHomeSections } from "@/lib/default-sections";
 import { JsonLd, SITE_URL } from "@/components/seo/json-ld";
 import { SectionToc, type TocItem } from "@/components/client/section-toc";
+import { HomeMarquees } from "@/components/client/home-marquees";
 
 const TOC_LABELS: Record<string, string> = {
   hero: "Trang chủ",
@@ -20,15 +21,14 @@ const TOC_LABELS: Record<string, string> = {
   "banner-slider": "Banner",
   "faq-accordion": "FAQ",
   "comparison-table": "So sánh",
+  "sticky-story": "Quy trình",
 };
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const config = await getSiteConfig();
-  const sections = config.pages?.home?.sections?.length
-    ? config.pages.home.sections
-    : defaultHomeSections();
+  const sections = config.pages?.home?.sections?.length ? config.pages.home.sections : defaultHomeSections();
 
   const logoUrl = config.brand?.logo?.url
     ? config.brand.logo.url.startsWith("http")
@@ -36,11 +36,11 @@ export default async function HomePage() {
       : `${SITE_URL}${config.brand.logo.url}`
     : undefined;
 
-  const socials = (config.footer?.social ?? [])
-    .map((s) => s.url)
-    .filter((u): u is string => Boolean(u));
+  const socials = (config.footer?.social ?? []).map((s) => s.url).filter((u): u is string => Boolean(u));
 
-  const contactInfo = (config.footer as { contact?: { hotline?: string; email?: string; address?: string } } | undefined)?.contact;
+  const contactInfo = (
+    config.footer as { contact?: { hotline?: string; email?: string; address?: string } } | undefined
+  )?.contact;
 
   const orgLd = {
     "@context": "https://schema.org",
@@ -123,6 +123,7 @@ export default async function HomePage() {
       <JsonLd id="business" data={localBusinessLd} />
       <SectionToc items={tocItems} />
       <PageRenderer sections={sections} />
+      <HomeMarquees />
     </>
   );
 }

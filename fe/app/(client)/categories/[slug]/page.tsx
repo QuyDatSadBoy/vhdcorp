@@ -31,7 +31,7 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
         <p className="mt-2 text-foreground/55">Danh mục bạn yêu cầu không tồn tại hoặc đã bị xoá.</p>
         <Link
           href="/products"
-          className="mt-6 inline-flex h-11 items-center rounded-full bg-(--vhd-color-primary) px-6 text-sm font-semibold text-white"
+          className="mt-6 inline-flex h-11 items-center rounded-full bg-brand-primary px-6 text-sm font-semibold text-white"
         >
           ← Quay về Sản phẩm
         </Link>
@@ -68,7 +68,7 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             {list.map((p) => (
               <Link key={p.id} href={`/products/${p.slug}`}>
-                <Card className="group h-full overflow-hidden border-foreground/8 transition-all hover:-translate-y-1 hover:border-(--vhd-color-primary)/30 hover:shadow-md">
+                <Card className="group h-full overflow-hidden border-foreground/8 transition-all hover:-translate-y-1 hover:border-brand-primary/30 hover:shadow-md">
                   <div className="relative aspect-square bg-muted">
                     {p.images?.[0] ? (
                       <Image
@@ -87,9 +87,7 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
                       {p.name}
                     </h3>
                     {Number(p.price) > 0 && (
-                      <p className="font-bold text-brand-primary">
-                        {Number(p.price).toLocaleString("vi-VN")} ₫
-                      </p>
+                      <p className="font-bold text-brand-primary">{Number(p.price).toLocaleString("vi-VN")} ₫</p>
                     )}
                   </CardContent>
                 </Card>

@@ -1,15 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import {
-  Target,
-  Eye,
-  Heart,
-  Handshake,
-  ShieldCheck,
-  Sparkles,
-  Users,
-  ArrowRight,
-} from "lucide-react";
+import { Target, Eye, Heart, Handshake, ShieldCheck, Sparkles, Users, ArrowRight } from "lucide-react";
 import { getSiteConfig } from "@/lib/site-config";
 import { PageRenderer } from "@/components/sections";
 import { PageHero } from "@/components/client/page-hero";
@@ -42,11 +33,31 @@ const VALUES = [
 ];
 
 const TIMELINE = [
-  { year: "2014", title: "Thành lập VHD Corp", body: "Khởi đầu với mảng phân phối ống nhựa PVC và phụ kiện công nghiệp." },
-  { year: "2018", title: "Mở rộng cao su kỹ thuật", body: "Tích hợp dòng tấm cao su non, cao su chống rung phục vụ nhà máy." },
-  { year: "2021", title: "Đặc sản làng nghề", body: "Bắt tay với các làng nghề Bắc Bộ — đưa miến, nông sản truyền thống ra thị trường." },
-  { year: "2024", title: "Nền tảng e-commerce", body: "Ra mắt website B2B/B2C, chuẩn hoá quy trình đặt hàng và giao nhận toàn quốc." },
-  { year: "2030", title: "Vươn ra quốc tế", body: "Mục tiêu phân phối tại 30+ quốc gia, ưu tiên Đông Nam Á và Đông Á." },
+  {
+    year: "2014",
+    title: "Thành lập VHD Corp",
+    body: "Khởi đầu với mảng phân phối ống nhựa PVC và phụ kiện công nghiệp.",
+  },
+  {
+    year: "2018",
+    title: "Mở rộng cao su kỹ thuật",
+    body: "Tích hợp dòng tấm cao su non, cao su chống rung phục vụ nhà máy.",
+  },
+  {
+    year: "2021",
+    title: "Đặc sản làng nghề",
+    body: "Bắt tay với các làng nghề Bắc Bộ — đưa miến, nông sản truyền thống ra thị trường.",
+  },
+  {
+    year: "2024",
+    title: "Nền tảng e-commerce",
+    body: "Ra mắt website B2B/B2C, chuẩn hoá quy trình đặt hàng và giao nhận toàn quốc.",
+  },
+  {
+    year: "2030",
+    title: "Vươn ra quốc tế",
+    body: "Mục tiêu phân phối tại 30+ quốc gia, ưu tiên Đông Nam Á và Đông Á.",
+  },
 ];
 
 const STATS = [
@@ -103,9 +114,9 @@ export default async function AboutPage() {
             return (
               <article
                 key={p.title}
-                className="group relative overflow-hidden rounded-3xl border border-foreground/8 bg-card p-7 transition-all hover:-translate-y-1 hover:border-(--vhd-color-primary)/30 hover:shadow-lg"
+                className="group relative overflow-hidden rounded-3xl border border-foreground/8 bg-card p-7 transition-all hover:-translate-y-1 hover:border-brand-primary/30 hover:shadow-lg"
               >
-                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-(--vhd-color-primary) text-white">
+                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-primary text-white">
                   <Icon className="h-5 w-5" />
                 </span>
                 <h3 className="mt-5 font-heading text-xl font-bold text-foreground">{p.title}</h3>
@@ -131,15 +142,20 @@ export default async function AboutPage() {
             <div className="mt-4 h-1 w-12 rounded-full bg-brand-highlight" />
             <div className="mt-6 space-y-4 text-foreground/70">
               <p>
-                VHD Corp khởi nghiệp năm 2014 với một niềm tin đơn giản: <strong className="text-foreground">sản phẩm Việt xứng đáng có hệ thống phân phối chuyên nghiệp</strong>. Từ vài đơn hàng ống nhựa đầu tiên cho doanh nghiệp địa phương, chúng tôi từng bước xây dựng tổng kho 850+ SKU, hợp tác cùng 120+ nhà sản xuất.
+                VHD Corp khởi nghiệp năm 2014 với một niềm tin đơn giản:{" "}
+                <strong className="text-foreground">sản phẩm Việt xứng đáng có hệ thống phân phối chuyên nghiệp</strong>
+                . Từ vài đơn hàng ống nhựa đầu tiên cho doanh nghiệp địa phương, chúng tôi từng bước xây dựng tổng kho
+                850+ SKU, hợp tác cùng 120+ nhà sản xuất.
               </p>
               <p>
-                Logo VHD — hai bàn tay nắm chặt dưới mái nhà — là cam kết của chúng tôi: <strong className="text-foreground">đứng cùng đối tác Việt</strong>, mang giá trị thực đến tay người dùng cuối, và xây dựng nền tảng hợp tác bền vững giữa các bên.
+                Logo VHD — hai bàn tay nắm chặt dưới mái nhà — là cam kết của chúng tôi:{" "}
+                <strong className="text-foreground">đứng cùng đối tác Việt</strong>, mang giá trị thực đến tay người
+                dùng cuối, và xây dựng nền tảng hợp tác bền vững giữa các bên.
               </p>
             </div>
             <Link
               href="/contact"
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-(--vhd-color-primary) px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-(--vhd-color-primary)/90"
+              className="mt-8 inline-flex items-center gap-2 rounded-full bg-brand-primary px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-primary/90"
             >
               Hợp tác cùng chúng tôi
               <ArrowRight className="h-4 w-4" />
@@ -202,7 +218,7 @@ export default async function AboutPage() {
               <li key={it.year} className="ml-8 pb-10 last:pb-0">
                 <span
                   aria-hidden
-                  className="absolute -left-[11px] grid h-5 w-5 place-items-center rounded-full bg-(--vhd-color-primary) ring-4 ring-background"
+                  className="absolute -left-[11px] grid h-5 w-5 place-items-center rounded-full bg-brand-primary ring-4 ring-background"
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-(--vhd-color-highlight)" />
                 </span>
@@ -225,7 +241,7 @@ export default async function AboutPage() {
 
       {/* Closing CTA */}
       <section className="container mx-auto px-4 py-16">
-        <div className="relative overflow-hidden rounded-3xl bg-(--vhd-color-primary) p-10 text-center text-white md:p-16">
+        <div className="relative overflow-hidden rounded-3xl bg-brand-primary p-10 text-center text-white md:p-16">
           <div
             aria-hidden
             className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-accent/30 blur-3xl"
@@ -240,7 +256,8 @@ export default async function AboutPage() {
               Cùng VHD Corp xây dựng <span className="word-highlight">giá trị bền vững</span>
             </h2>
             <p className="mx-auto mt-5 max-w-2xl text-white/80">
-              Đội ngũ tư vấn của chúng tôi sẵn sàng giải đáp về sản phẩm, báo giá và lịch giao hàng B2B/B2C trên toàn quốc.
+              Đội ngũ tư vấn của chúng tôi sẵn sàng giải đáp về sản phẩm, báo giá và lịch giao hàng B2B/B2C trên toàn
+              quốc.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link

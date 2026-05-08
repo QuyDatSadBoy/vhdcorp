@@ -23,7 +23,9 @@ export default function ChangePasswordPage() {
       setPending(true);
       await axios.put("/users/me/password", { currentPassword, newPassword });
       toast.success("Đổi mật khẩu thành công");
-      setCurrent(""); setNewPwd(""); setConfirm("");
+      setCurrent("");
+      setNewPwd("");
+      setConfirm("");
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Đổi mật khẩu thất bại");
     } finally {
@@ -47,20 +49,41 @@ export default function ChangePasswordPage() {
       </div>
       <div className="space-y-2">
         <Label htmlFor="cur">Mật khẩu hiện tại</Label>
-        <Input id="cur" type="password" autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrent(e.target.value)} required />
+        <Input
+          id="cur"
+          type="password"
+          autoComplete="current-password"
+          value={currentPassword}
+          onChange={(e) => setCurrent(e.target.value)}
+          required
+        />
       </div>
       <div className="space-y-2">
         <Label htmlFor="new">Mật khẩu mới</Label>
-        <Input id="new" type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPwd(e.target.value)} required />
+        <Input
+          id="new"
+          type="password"
+          autoComplete="new-password"
+          value={newPassword}
+          onChange={(e) => setNewPwd(e.target.value)}
+          required
+        />
       </div>
       <div className="space-y-2">
         <Label htmlFor="cnf">Xác nhận mật khẩu</Label>
-        <Input id="cnf" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+        <Input
+          id="cnf"
+          type="password"
+          autoComplete="new-password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          required
+        />
       </div>
       <Button
         type="submit"
         disabled={pending}
-        className="h-11 rounded-full bg-[color:var(--vhd-color-primary)] px-6 text-sm font-semibold text-white hover:bg-[color:var(--vhd-color-primary)]/90"
+        className="h-11 rounded-full bg-brand-primary px-6 text-sm font-semibold text-white hover:bg-brand-primary/90"
       >
         {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
         Cập nhật mật khẩu

@@ -19,8 +19,12 @@ export function StickyCtaBar({ hotline = "+84 28 3000 0000", ctaHref = "/contact
   const pathname = usePathname();
 
   // Hide on contact + admin + auth pages
-  const hidePath = pathname?.startsWith("/admin") || pathname?.startsWith("/account") ||
-    pathname === "/contact" || pathname === "/login" || pathname === "/register" ||
+  const hidePath =
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/account") ||
+    pathname === "/contact" ||
+    pathname === "/login" ||
+    pathname === "/register" ||
     pathname?.startsWith("/callback");
 
   useEffect(() => {
@@ -69,14 +73,14 @@ export function StickyCtaBar({ hotline = "+84 28 3000 0000", ctaHref = "/contact
             </div>
             <a
               href={`tel:${hotline.replace(/\s/g, "")}`}
-              className="hidden items-center gap-1.5 rounded-full border border-foreground/10 px-4 py-2 text-xs font-semibold text-foreground/80 transition-colors hover:border-(--vhd-color-primary)/40 hover:text-foreground sm:inline-flex"
+              className="hidden items-center gap-1.5 rounded-full border border-foreground/10 px-4 py-2 text-xs font-semibold text-foreground/80 transition-colors hover:border-brand-primary/40 hover:text-foreground sm:inline-flex"
             >
               <Phone className="h-3.5 w-3.5" />
               {hotline}
             </a>
             <Link
               href={ctaHref}
-              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-(--vhd-color-primary)/90"
+              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-brand-primary/90"
             >
               Liên hệ ngay
               <ArrowRight className="h-3 w-3" />

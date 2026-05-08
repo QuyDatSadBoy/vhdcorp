@@ -221,7 +221,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
               <Button
                 asChild
                 size="lg"
-                className="group h-12 rounded-full bg-brand-primary px-7 text-base font-semibold text-white shadow-[0_10px_30px_-10px_color-mix(in_srgb,var(--vhd-color-primary)_60%,transparent)] hover:bg-(--vhd-color-primary)/95 animate-cta-glow"
+                className="group h-12 rounded-full bg-brand-primary px-7 text-base font-semibold text-white shadow-[0_10px_30px_-10px_color-mix(in_srgb,var(--vhd-color-primary)_60%,transparent)] hover:bg-brand-primary/95 animate-cta-glow"
               >
                 <Link href={p.ctaLink}>
                   <span className="flex items-center gap-2">

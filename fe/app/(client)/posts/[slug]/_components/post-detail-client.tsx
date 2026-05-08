@@ -44,7 +44,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
       <div className="container mx-auto px-4 py-24 text-center">
         <h1 className="font-heading text-2xl font-bold">Không tìm thấy bài viết</h1>
         <p className="mt-2 text-foreground/55">Bài viết bạn yêu cầu không tồn tại hoặc đã bị xoá.</p>
-        <Button asChild className="mt-6 h-11 rounded-full bg-[color:var(--vhd-color-primary)] px-6">
+        <Button asChild className="mt-6 h-11 rounded-full bg-brand-primary px-6">
           <Link href="/posts">← Về danh sách Tin tức</Link>
         </Button>
       </div>
@@ -58,25 +58,29 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
     if (typeof window === "undefined") return;
     void navigator.clipboard.writeText(window.location.href).then(
       () => toast.success("Đã sao chép liên kết bài viết"),
-      () => toast.error("Không thể sao chép liên kết"),
+      () => toast.error("Không thể sao chép liên kết")
     );
   }
 
   return (
     <article>
       {/* Article hero — title block on tinted brand surface */}
-      <header className="border-b border-foreground/8 bg-[color:var(--vhd-color-surface)]/60">
+      <header className="border-b border-foreground/8 bg-(--vhd-color-surface)/60">
         <div className="container mx-auto max-w-4xl px-4 py-14 md:py-20">
           <nav aria-label="Breadcrumb" className="mb-6 flex flex-wrap items-center gap-1.5 text-sm text-foreground/55">
-            <Link href="/" className="hover:text-foreground">Trang chủ</Link>
+            <Link href="/" className="hover:text-foreground">
+              Trang chủ
+            </Link>
             <span className="opacity-60">/</span>
-            <Link href="/posts" className="hover:text-foreground">Tin tức</Link>
+            <Link href="/posts" className="hover:text-foreground">
+              Tin tức
+            </Link>
             <span className="opacity-60">/</span>
             <span className="text-foreground line-clamp-1">{post.title}</span>
           </nav>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--vhd-color-highlight)]/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[color:var(--vhd-color-primary)]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-highlight/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-brand-primary">
               <Tag className="h-3 w-3" />
               Tin tức VHD
             </span>
@@ -99,16 +103,12 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
             {post.title}
           </motion.h1>
 
-          {post.excerpt && (
-            <p className="mt-5 max-w-3xl text-lg leading-relaxed text-foreground/70">
-              {post.excerpt}
-            </p>
-          )}
+          {post.excerpt && <p className="mt-5 max-w-3xl text-lg leading-relaxed text-foreground/70">{post.excerpt}</p>}
 
           <div className="mt-7 flex flex-wrap items-center gap-4">
             {post.author?.name && (
               <div className="flex items-center gap-2.5">
-                <span className="grid h-10 w-10 place-items-center rounded-full bg-[color:var(--vhd-color-primary)] text-sm font-bold text-white">
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-brand-primary text-sm font-bold text-white">
                   {post.author.name[0]?.toUpperCase()}
                 </span>
                 <div className="text-sm">
@@ -122,7 +122,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
             <button
               type="button"
               onClick={shareToClipboard}
-              className="ml-auto inline-flex items-center gap-2 rounded-full border border-foreground/15 bg-card px-4 py-2 text-sm font-medium text-foreground hover:border-[color:var(--vhd-color-primary)]/40 hover:text-[color:var(--vhd-color-primary)]"
+              className="ml-auto inline-flex items-center gap-2 rounded-full border border-foreground/15 bg-card px-4 py-2 text-sm font-medium text-foreground hover:border-brand-primary/40 hover:text-brand-primary"
               aria-label="Chia sẻ bài viết"
             >
               <Share2 className="h-4 w-4" /> Chia sẻ
@@ -138,7 +138,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="relative -mt-10 aspect-16/9 overflow-hidden rounded-3xl border border-foreground/8 bg-muted shadow-xl"
+          className="relative -mt-10 aspect-video overflow-hidden rounded-3xl border border-foreground/8 bg-muted shadow-xl"
         >
           {post.coverImage ? (
             <Image
@@ -158,7 +158,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
       {/* Body */}
       <div className="container mx-auto max-w-3xl px-4 py-12">
         <div
-          className="prose prose-lg max-w-none dark:prose-invert prose-headings:font-heading prose-headings:tracking-tight prose-a:text-[color:var(--vhd-color-primary)] prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-img:rounded-2xl"
+          className="prose prose-lg max-w-none dark:prose-invert prose-headings:font-heading prose-headings:tracking-tight prose-a:text-brand-primary prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-img:rounded-2xl"
           dangerouslySetInnerHTML={{ __html: post.content ?? "" }}
         />
 
@@ -169,7 +169,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
               <Link
                 key={t}
                 href={`/posts?tag=${encodeURIComponent(t)}`}
-                className="rounded-full border border-foreground/12 bg-card px-3 py-1 text-xs font-medium text-foreground/75 transition-colors hover:border-[color:var(--vhd-color-primary)]/30 hover:text-[color:var(--vhd-color-primary)]"
+                className="rounded-full border border-foreground/12 bg-card px-3 py-1 text-xs font-medium text-foreground/75 transition-colors hover:border-brand-primary/30 hover:text-brand-primary"
               >
                 #{t}
               </Link>
@@ -178,9 +178,9 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
         ) : null}
 
         {/* Author + share strip */}
-        <div className="mt-12 grid gap-4 rounded-3xl bg-[color:var(--vhd-color-surface)]/60 p-6 sm:grid-cols-[1fr_auto] sm:items-center">
+        <div className="mt-12 grid gap-4 rounded-3xl bg-(--vhd-color-surface)/60 p-6 sm:grid-cols-[1fr_auto] sm:items-center">
           <div className="flex items-center gap-4">
-            <span className="grid h-12 w-12 place-items-center rounded-full bg-[color:var(--vhd-color-primary)] text-base font-bold text-white">
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-brand-primary text-base font-bold text-white">
               {post.author?.name?.[0]?.toUpperCase() ?? "V"}
             </span>
             <div>
@@ -193,7 +193,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
           <button
             type="button"
             onClick={shareToClipboard}
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-[color:var(--vhd-color-primary)] px-5 text-sm font-semibold text-white hover:bg-[color:var(--vhd-color-primary)]/90"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-brand-primary px-5 text-sm font-semibold text-white hover:bg-brand-primary/90"
           >
             <Share2 className="h-4 w-4" /> Chia sẻ bài viết
           </button>
@@ -205,7 +205,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
               <ArrowLeft className="mr-2 h-4 w-4" /> Tất cả bài viết
             </Link>
           </Button>
-          <Button asChild className="rounded-full bg-[color:var(--vhd-color-primary)] hover:bg-[color:var(--vhd-color-primary)]/90">
+          <Button asChild className="rounded-full bg-brand-primary hover:bg-brand-primary/90">
             <Link href="/contact">
               Liên hệ VHD <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
@@ -215,7 +215,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
 
       {/* Related */}
       {related.length > 0 && (
-        <section className="border-t border-foreground/8 bg-[color:var(--vhd-color-surface)]/40 py-16">
+        <section className="border-t border-foreground/8 bg-(--vhd-color-surface)/40 py-16">
           <div className="container mx-auto max-w-5xl px-4">
             <div className="mb-8">
               <p className="type-eyebrow text-brand-accent">Có thể bạn quan tâm</p>
@@ -227,7 +227,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
                 <Link
                   key={p.id}
                   href={`/posts/${p.slug}`}
-                  className="group flex flex-col overflow-hidden rounded-2xl border border-foreground/8 bg-card transition-all hover:-translate-y-1 hover:border-[color:var(--vhd-color-primary)]/30 hover:shadow-lg"
+                  className="group flex flex-col overflow-hidden rounded-2xl border border-foreground/8 bg-card transition-all hover:-translate-y-1 hover:border-brand-primary/30 hover:shadow-lg"
                 >
                   <div className="relative aspect-16/10 overflow-hidden bg-muted">
                     {p.coverImage ? (
@@ -243,15 +243,11 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
                     )}
                   </div>
                   <div className="flex flex-1 flex-col gap-2 p-5">
-                    {p.publishedAt && (
-                      <p className="text-xs text-foreground/55">{fmtDate(p.publishedAt)}</p>
-                    )}
+                    {p.publishedAt && <p className="text-xs text-foreground/55">{fmtDate(p.publishedAt)}</p>}
                     <h3 className="line-clamp-2 font-heading text-base font-bold text-foreground transition-colors group-hover:text-brand-primary">
                       {p.title}
                     </h3>
-                    {p.excerpt && (
-                      <p className="line-clamp-2 text-sm text-foreground/60">{p.excerpt}</p>
-                    )}
+                    {p.excerpt && <p className="line-clamp-2 text-sm text-foreground/60">{p.excerpt}</p>}
                   </div>
                 </Link>
               ))}

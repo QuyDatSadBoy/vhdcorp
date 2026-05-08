@@ -34,7 +34,7 @@ export default function Header() {
   return (
     <>
       {/* Promo strip */}
-      <div className="bg-(--vhd-color-primary) text-white">
+      <div className="bg-brand-primary text-white">
         <div className="container mx-auto flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-xs">
           <span className="hidden items-center gap-2 md:inline-flex">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-highlight" />
@@ -42,7 +42,10 @@ export default function Header() {
           </span>
           <span className="inline-flex items-center gap-3">
             {hotline && (
-              <a href={`tel:${hotline.replace(/\s+/g, "")}`} className="inline-flex items-center gap-1.5 hover:text-brand-highlight">
+              <a
+                href={`tel:${hotline.replace(/\s+/g, "")}`}
+                className="inline-flex items-center gap-1.5 hover:text-brand-highlight"
+              >
                 <Phone className="h-3 w-3" /> {hotline}
               </a>
             )}
@@ -61,7 +64,7 @@ export default function Header() {
           "sticky top-0 z-50 w-full transition-all duration-300",
           scrolled
             ? "border-b border-foreground/10 bg-background/85 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/75"
-            : "bg-background/0",
+            : "bg-background/0"
         )}
       >
         <div className="container mx-auto flex h-16 items-center justify-between gap-6 px-4 md:h-20">
@@ -85,9 +88,7 @@ export default function Header() {
               </span>
             )}
             <span className="hidden flex-col leading-tight sm:flex">
-              <span className="font-heading text-base font-bold text-foreground">
-                {brand?.siteName ?? "VHD Corp"}
-              </span>
+              <span className="font-heading text-base font-bold text-foreground">{brand?.siteName ?? "VHD Corp"}</span>
               <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-brand-primary/80 dark:text-foreground/65">
                 {brand?.tagline ?? "KẾT NỐI GIÁ TRỊ - HỢP TÁC VỮNG BỀN"}
               </span>
@@ -126,7 +127,7 @@ export default function Header() {
                 </Link>
               </Button>
             ) : (
-              <Button asChild size="sm" className="hidden h-9 rounded-full bg-(--vhd-color-primary) px-4 sm:inline-flex">
+              <Button asChild size="sm" className="hidden h-9 rounded-full bg-brand-primary px-4 sm:inline-flex">
                 <Link href="/login">Đăng nhập</Link>
               </Button>
             )}
@@ -166,7 +167,7 @@ export default function Header() {
                   <Link
                     href="/login"
                     onClick={() => setOpen(false)}
-                    className="mt-2 rounded-lg bg-(--vhd-color-primary) px-3 py-3 text-center text-sm font-semibold text-white"
+                    className="mt-2 rounded-lg bg-brand-primary px-3 py-3 text-center text-sm font-semibold text-white"
                   >
                     Đăng nhập
                   </Link>

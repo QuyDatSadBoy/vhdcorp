@@ -24,9 +24,7 @@ export function PageHero({ eyebrow, title, description, breadcrumbs, variant = "
     <section
       className={
         "relative isolate overflow-hidden " +
-        (isDark
-          ? "bg-(--vhd-color-primary) text-white"
-          : "border-b border-foreground/8 bg-(--vhd-color-surface)/60")
+        (isDark ? "bg-brand-primary text-white" : "border-b border-foreground/8 bg-(--vhd-color-surface)/60")
       }
     >
       {isDark && (
@@ -40,17 +38,13 @@ export function PageHero({ eyebrow, title, description, breadcrumbs, variant = "
           <nav
             aria-label="Breadcrumb"
             className={
-              "mb-5 flex flex-wrap items-center gap-1.5 text-sm " +
-              (isDark ? "text-white/70" : "text-foreground/55")
+              "mb-5 flex flex-wrap items-center gap-1.5 text-sm " + (isDark ? "text-white/70" : "text-foreground/55")
             }
           >
             {breadcrumbs.map((b, i) => (
               <span key={i} className="inline-flex items-center gap-1.5">
                 {b.href ? (
-                  <Link
-                    href={b.href}
-                    className={isDark ? "hover:text-white" : "hover:text-foreground"}
-                  >
+                  <Link href={b.href} className={isDark ? "hover:text-white" : "hover:text-foreground"}>
                     {b.label}
                   </Link>
                 ) : (
@@ -62,28 +56,12 @@ export function PageHero({ eyebrow, title, description, breadcrumbs, variant = "
           </nav>
         )}
         {eyebrow && (
-          <p
-            className={
-              "type-eyebrow " + (isDark ? "text-brand-highlight" : "text-brand-accent")
-            }
-          >
-            {eyebrow}
-          </p>
+          <p className={"type-eyebrow " + (isDark ? "text-brand-highlight" : "text-brand-accent")}>{eyebrow}</p>
         )}
-        <h1
-          className={
-            "mt-3 type-display-lg " + (isDark ? "text-white" : "text-foreground")
-          }
-        >
-          {title}
-        </h1>
+        <h1 className={"mt-3 type-display-lg " + (isDark ? "text-white" : "text-foreground")}>{title}</h1>
         <div className="mt-4 h-1 w-12 rounded-full bg-brand-highlight" />
         {description && (
-          <p
-            className={
-              "mt-5 max-w-3xl type-lead " + (isDark ? "text-white/80" : "text-foreground/65")
-            }
-          >
+          <p className={"mt-5 max-w-3xl type-lead " + (isDark ? "text-white/80" : "text-foreground/65")}>
             {description}
           </p>
         )}

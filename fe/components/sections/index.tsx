@@ -16,6 +16,7 @@ import FeatureShowcase from "./feature-showcase";
 import UseCases from "./use-cases";
 import FaqAccordion from "./faq-accordion";
 import ComparisonTable from "./comparison-table";
+import StickyStory from "./sticky-story";
 import CustomHtml from "./custom-html";
 
 /**
@@ -55,6 +56,8 @@ export function SectionRenderer({ section }: { section: Section }) {
       return <FaqAccordion section={section} />;
     case "comparison-table":
       return <ComparisonTable section={section} />;
+    case "sticky-story":
+      return <StickyStory section={section} />;
     case "custom-html":
       return <CustomHtml section={section} />;
     default:

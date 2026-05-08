@@ -96,12 +96,12 @@ export default function ProcessSection({ section }: { section: ProcessType }) {
               >
                 {/* Dot on timeline */}
                 <div
-                  className={`absolute top-7 hidden h-4 w-4 rounded-full border-4 border-background bg-(--vhd-color-primary) shadow-md md:block ${
+                  className={`absolute top-7 hidden h-4 w-4 rounded-full border-4 border-background bg-brand-primary shadow-md md:block ${
                     isLeft ? "right-[-2.5rem] translate-x-1/2" : "left-[-2.5rem] -translate-x-1/2"
                   }`}
                 />
 
-                <div className="rounded-3xl border border-foreground/8 bg-card p-7 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_24px_-16px_rgba(15,35,86,0.18)] transition-all hover:-translate-y-0.5 hover:border-(--vhd-color-primary)/30 hover:shadow-[0_18px_40px_-20px_rgba(15,35,86,0.28)]">
+                <div className="rounded-3xl border border-foreground/8 bg-card p-7 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_24px_-16px_rgba(15,35,86,0.18)] transition-all hover:-translate-y-0.5 hover:border-brand-primary/30 hover:shadow-[0_18px_40px_-20px_rgba(15,35,86,0.28)]">
                   <div className={`flex items-center gap-3 ${isLeft ? "md:flex-row-reverse" : ""}`}>
                     <span className="grid h-12 w-12 place-items-center rounded-2xl bg-(--vhd-color-highlight)/14 text-brand-highlight">
                       <Icon className="h-5 w-5" />

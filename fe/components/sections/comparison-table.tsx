@@ -22,7 +22,7 @@ function CellValue({ v }: { v: string }) {
   if (v === "✓" || v.startsWith("✓ ")) {
     return (
       <span className="inline-flex items-center gap-1.5 font-semibold text-brand-primary">
-        <span className="grid h-5 w-5 place-items-center rounded-full bg-(--vhd-color-primary) text-white">
+        <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-primary text-white">
           <Check className="h-3 w-3" strokeWidth={3} />
         </span>
         {v.startsWith("✓ ") ? v.slice(2) : null}
@@ -69,7 +69,7 @@ export default function ComparisonTable({ section }: { section: ComparisonTableS
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-foreground/10 bg-(--vhd-color-primary)/[0.03]">
+                <tr className="border-b border-foreground/10 bg-brand-primary/[0.03]">
                   <th className="px-6 py-5 text-xs font-bold uppercase tracking-[0.16em] text-foreground/55">
                     Tính năng
                   </th>
@@ -78,9 +78,7 @@ export default function ComparisonTable({ section }: { section: ComparisonTableS
                       key={c}
                       className={cn(
                         "px-6 py-5 text-sm font-bold tracking-tight",
-                        i === columns.length - 1
-                          ? "bg-(--vhd-color-primary)/8 text-brand-primary"
-                          : "text-foreground",
+                        i === columns.length - 1 ? "bg-brand-primary/8 text-brand-primary" : "text-foreground"
                       )}
                     >
                       <div className="flex items-center gap-2">
@@ -100,19 +98,13 @@ export default function ComparisonTable({ section }: { section: ComparisonTableS
                   <tr
                     key={`${r.label}-${i}`}
                     className={cn(
-                      "border-b border-foreground/5 transition-colors hover:bg-(--vhd-color-primary)/[0.03]",
-                      r.highlight && "bg-(--vhd-color-highlight)/[0.05]",
+                      "border-b border-foreground/5 transition-colors hover:bg-brand-primary/[0.03]",
+                      r.highlight && "bg-(--vhd-color-highlight)/[0.05]"
                     )}
                   >
                     <td className="px-6 py-4 font-medium text-foreground/85">{r.label}</td>
                     {r.values.map((v, j) => (
-                      <td
-                        key={j}
-                        className={cn(
-                          "px-6 py-4",
-                          j === r.values.length - 1 && "bg-(--vhd-color-primary)/[0.025]",
-                        )}
-                      >
+                      <td key={j} className={cn("px-6 py-4", j === r.values.length - 1 && "bg-brand-primary/[0.025]")}>
                         <CellValue v={v} />
                       </td>
                     ))}

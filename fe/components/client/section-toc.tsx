@@ -38,12 +38,10 @@ export function SectionToc({ items, ctaHref = "/contact", ctaLabel = "Liên hệ
       (entries) => {
         const visibleEntries = entries.filter((e) => e.isIntersecting);
         if (visibleEntries.length === 0) return;
-        const top = visibleEntries.reduce((a, b) =>
-          a.intersectionRatio > b.intersectionRatio ? a : b,
-        );
+        const top = visibleEntries.reduce((a, b) => (a.intersectionRatio > b.intersectionRatio ? a : b));
         setActive(top.target.id);
       },
-      { rootMargin: "-30% 0px -55% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
+      { rootMargin: "-30% 0px -55% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] }
     );
     items.forEach((it) => {
       const el = document.getElementById(it.id);
@@ -60,7 +58,7 @@ export function SectionToc({ items, ctaHref = "/contact", ctaLabel = "Liên hệ
       aria-hidden={visible ? "false" : "true"}
       className={cn(
         "sticky top-16 z-40 border-b border-foreground/8 bg-background/95 shadow-[0_2px_8px_-4px_rgba(15,35,86,0.1)] backdrop-blur transition-all duration-300 md:top-20",
-        visible ? "translate-y-0 opacity-100" : "-translate-y-full pointer-events-none opacity-0",
+        visible ? "translate-y-0 opacity-100" : "-translate-y-full pointer-events-none opacity-0"
       )}
     >
       <div className="container mx-auto flex h-12 items-center gap-3 px-4 sm:gap-4">
@@ -91,8 +89,8 @@ export function SectionToc({ items, ctaHref = "/contact", ctaLabel = "Liên hệ
               className={cn(
                 "whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
                 active === it.id
-                  ? "bg-(--vhd-color-primary)/10 text-brand-primary"
-                  : "text-foreground/60 hover:bg-foreground/5 hover:text-foreground",
+                  ? "bg-brand-primary/10 text-brand-primary"
+                  : "text-foreground/60 hover:bg-foreground/5 hover:text-foreground"
               )}
             >
               {it.label}
@@ -102,7 +100,7 @@ export function SectionToc({ items, ctaHref = "/contact", ctaLabel = "Liên hệ
 
         <Link
           href={ctaHref}
-          className="hidden shrink-0 items-center gap-1 rounded-full bg-brand-primary px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-(--vhd-color-primary)/90 sm:inline-flex"
+          className="hidden shrink-0 items-center gap-1 rounded-full bg-brand-primary px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-brand-primary/90 sm:inline-flex"
         >
           {ctaLabel}
           <ArrowRight className="h-3 w-3" />

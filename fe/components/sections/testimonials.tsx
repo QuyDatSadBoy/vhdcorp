@@ -10,7 +10,7 @@ import { AuroraBg } from "@/components/animations/aurora-bg";
 
 export default function Testimonials({ section }: { section: Section }) {
   const p = section.props;
-  const quotes = p.quotes ?? [];
+  const quotes = useMemo(() => p.quotes ?? [], [p.quotes]);
   const [idx, setIdx] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -157,7 +157,7 @@ export default function Testimonials({ section }: { section: Section }) {
                 type="button"
                 onClick={prev}
                 aria-label="Đánh giá trước"
-                className="grid h-10 w-10 place-items-center rounded-full border border-foreground/10 bg-card text-foreground/70 transition-colors hover:border-(--vhd-color-primary)/40 hover:text-foreground lg:hidden"
+                className="grid h-10 w-10 place-items-center rounded-full border border-foreground/10 bg-card text-foreground/70 transition-colors hover:border-brand-primary/40 hover:text-foreground lg:hidden"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -183,7 +183,7 @@ export default function Testimonials({ section }: { section: Section }) {
                 type="button"
                 onClick={next}
                 aria-label="Đánh giá tiếp theo"
-                className="grid h-10 w-10 place-items-center rounded-full border border-foreground/10 bg-card text-foreground/70 transition-colors hover:border-(--vhd-color-primary)/40 hover:text-foreground lg:hidden"
+                className="grid h-10 w-10 place-items-center rounded-full border border-foreground/10 bg-card text-foreground/70 transition-colors hover:border-brand-primary/40 hover:text-foreground lg:hidden"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

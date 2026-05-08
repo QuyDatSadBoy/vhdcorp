@@ -19,14 +19,10 @@ export type SectionType =
   | "use-cases"
   | "faq-accordion"
   | "comparison-table"
+  | "sticky-story"
   | "custom-html";
 
-export type AnimationType =
-  | "none"
-  | "fade-up"
-  | "fade-in"
-  | "slide-left"
-  | "zoom-in";
+export type AnimationType = "none" | "fade-up" | "fade-in" | "slide-left" | "zoom-in";
 
 export type SpacingPreset = "compact" | "normal" | "spacious";
 
@@ -46,134 +42,196 @@ export interface BaseSection<TType extends SectionType, TProps> {
   props: TProps & CommonSectionProps;
 }
 
-export type HeroSection = BaseSection<"hero", {
-  heading: string;
-  subheading?: string;
-  ctaText?: string;
-  ctaLink?: string;
-  bgImage?: string;
-  overlayOpacity?: number;
-  align?: "left" | "center" | "right";
-  minHeight?: number;
-  videoUrl?: string;
-  videoThumbnail?: string;
-}>;
+export type HeroSection = BaseSection<
+  "hero",
+  {
+    heading: string;
+    subheading?: string;
+    ctaText?: string;
+    ctaLink?: string;
+    bgImage?: string;
+    overlayOpacity?: number;
+    align?: "left" | "center" | "right";
+    minHeight?: number;
+    videoUrl?: string;
+    videoThumbnail?: string;
+  }
+>;
 
-export type FeaturedProductsSection = BaseSection<"featured-products", {
-  heading: string;
-  limit?: number;
-  categoryId?: number;
-  layout?: "grid" | "carousel";
-}>;
+export type FeaturedProductsSection = BaseSection<
+  "featured-products",
+  {
+    heading: string;
+    limit?: number;
+    categoryId?: number;
+    layout?: "grid" | "carousel";
+  }
+>;
 
-export type CategoryGridSection = BaseSection<"category-grid", {
-  heading: string;
-  categoryIds: number[];
-  columns?: number;
-}>;
+export type CategoryGridSection = BaseSection<
+  "category-grid",
+  {
+    heading: string;
+    categoryIds: number[];
+    columns?: number;
+  }
+>;
 
-export type BannerSliderSection = BaseSection<"banner-slider", {
-  slides: { image: string; link?: string; alt?: string }[];
-  autoplay?: boolean;
-  interval?: number;
-}>;
+export type BannerSliderSection = BaseSection<
+  "banner-slider",
+  {
+    slides: { image: string; link?: string; alt?: string }[];
+    autoplay?: boolean;
+    interval?: number;
+  }
+>;
 
-export type BlogPreviewSection = BaseSection<"blog-preview", {
-  heading: string;
-  limit?: number;
-  layout?: "list" | "grid";
-  tagFilter?: string;
-}>;
+export type BlogPreviewSection = BaseSection<
+  "blog-preview",
+  {
+    heading: string;
+    limit?: number;
+    layout?: "list" | "grid";
+    tagFilter?: string;
+  }
+>;
 
-export type TestimonialsSection = BaseSection<"testimonials", {
-  quotes: { name: string; role?: string; company?: string; avatar?: string; quote: string }[];
-  autoplay?: boolean;
-}>;
+export type TestimonialsSection = BaseSection<
+  "testimonials",
+  {
+    quotes: { name: string; role?: string; company?: string; avatar?: string; quote: string }[];
+    autoplay?: boolean;
+  }
+>;
 
-export type ContactCtaSection = BaseSection<"contact-cta", {
-  heading: string;
-  body?: string;
-  ctaText: string;
-  ctaLink: string;
-  bgColor?: string;
-}>;
+export type ContactCtaSection = BaseSection<
+  "contact-cta",
+  {
+    heading: string;
+    body?: string;
+    ctaText: string;
+    ctaLink: string;
+    bgColor?: string;
+  }
+>;
 
-export type StatsCounterSection = BaseSection<"stats-counter", {
-  heading?: string;
-  stats: { label: string; value: number; unit?: string }[];
-}>;
+export type StatsCounterSection = BaseSection<
+  "stats-counter",
+  {
+    heading?: string;
+    stats: { label: string; value: number; unit?: string }[];
+  }
+>;
 
-export type PartnersSection = BaseSection<"partners", {
-  heading?: string;
-  logos: { image: string; name: string; link?: string }[];
-  grayscale?: boolean;
-  speed?: number;
-}>;
+export type PartnersSection = BaseSection<
+  "partners",
+  {
+    heading?: string;
+    logos: { image: string; name: string; link?: string }[];
+    grayscale?: boolean;
+    speed?: number;
+  }
+>;
 
-export type CustomHtmlSection = BaseSection<"custom-html", {
-  html: string;
-}>;
+export type CustomHtmlSection = BaseSection<
+  "custom-html",
+  {
+    html: string;
+  }
+>;
 
-export type IndustriesSection = BaseSection<"industries", {
-  heading?: string;
-  subheading?: string;
-  items?: {
-    icon?: string;
-    title: string;
-    description: string;
-    href?: string;
+export type IndustriesSection = BaseSection<
+  "industries",
+  {
+    heading?: string;
+    subheading?: string;
+    items?: {
+      icon?: string;
+      title: string;
+      description: string;
+      href?: string;
+      bullets?: string[];
+      accent?: "primary" | "accent" | "highlight" | "danger";
+    }[];
+  }
+>;
+
+export type ProcessSection = BaseSection<
+  "process",
+  {
+    heading?: string;
+    subheading?: string;
+    steps?: { title: string; description: string }[];
+  }
+>;
+
+export type FeatureShowcaseSection = BaseSection<
+  "feature-showcase",
+  {
+    eyebrow?: string;
+    heading: string;
+    subheading?: string;
     bullets?: string[];
-    accent?: "primary" | "accent" | "highlight" | "danger";
-  }[];
-}>;
-
-export type ProcessSection = BaseSection<"process", {
-  heading?: string;
-  subheading?: string;
-  steps?: { title: string; description: string }[];
-}>;
-
-export type FeatureShowcaseSection = BaseSection<"feature-showcase", {
-  eyebrow?: string;
-  heading: string;
-  subheading?: string;
-  bullets?: string[];
-  ctaText?: string;
-  ctaLink?: string;
-  imageSide?: "left" | "right";
-  videoUrl?: string;
-  thumbnailUrl?: string;
-  badge?: string;
-}>;
-
-export type UseCasesSection = BaseSection<"use-cases", {
-  eyebrow?: string;
-  heading: string;
-  subheading?: string;
-  cases?: {
-    emoji: string;
-    title: string;
-    description: string;
-    href?: string;
+    ctaText?: string;
+    ctaLink?: string;
+    imageSide?: "left" | "right";
+    videoUrl?: string;
+    thumbnailUrl?: string;
     badge?: string;
-  }[];
-  columns?: 3 | 4;
-}>;
+  }
+>;
 
-export type FaqAccordionSection = BaseSection<"faq-accordion", {
-  eyebrow?: string;
-  heading: string;
-  subheading?: string;
-  items?: { question: string; answer: string }[];
-}>;
+export type UseCasesSection = BaseSection<
+  "use-cases",
+  {
+    eyebrow?: string;
+    heading: string;
+    subheading?: string;
+    cases?: {
+      emoji: string;
+      title: string;
+      description: string;
+      href?: string;
+      badge?: string;
+    }[];
+    columns?: 3 | 4;
+  }
+>;
 
-export type ComparisonTableSection = BaseSection<"comparison-table", {
-  eyebrow?: string;
-  heading: string;
-  subheading?: string;
-  columnHeaders?: string[];
-  rows?: { label: string; values: string[]; highlight?: boolean }[];
-}>;
+export type FaqAccordionSection = BaseSection<
+  "faq-accordion",
+  {
+    eyebrow?: string;
+    heading: string;
+    subheading?: string;
+    items?: { question: string; answer: string }[];
+  }
+>;
+
+export type ComparisonTableSection = BaseSection<
+  "comparison-table",
+  {
+    eyebrow?: string;
+    heading: string;
+    subheading?: string;
+    columnHeaders?: string[];
+    rows?: { label: string; values: string[]; highlight?: boolean }[];
+  }
+>;
+
+export type StickyStorySection = BaseSection<
+  "sticky-story",
+  {
+    eyebrow?: string;
+    heading: string;
+    subheading?: string;
+    steps?: {
+      title: string;
+      description: string;
+      icon?: string;
+    }[];
+  }
+>;
 
 export type Section =
   | HeroSection
@@ -191,6 +249,7 @@ export type Section =
   | UseCasesSection
   | FaqAccordionSection
   | ComparisonTableSection
+  | StickyStorySection
   | CustomHtmlSection;
 
 export interface PageSchema {

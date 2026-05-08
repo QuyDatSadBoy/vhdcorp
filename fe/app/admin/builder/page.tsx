@@ -3,9 +3,40 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Loader2, Save, Rocket, Plus, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Undo2, Redo2, Smartphone, Tablet, Monitor, ExternalLink, GripVertical } from "lucide-react";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
-import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import {
+  Loader2,
+  Save,
+  Rocket,
+  Plus,
+  Trash2,
+  Eye,
+  EyeOff,
+  ArrowUp,
+  ArrowDown,
+  Undo2,
+  Redo2,
+  Smartphone,
+  Tablet,
+  Monitor,
+  ExternalLink,
+  GripVertical,
+} from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDraftSiteConfig, useSaveDraftSiteConfig, usePublishSiteConfig } from "@/services/site-config.service";
 import type { Section, SiteConfigValue } from "@/types/site-config";
@@ -21,17 +52,84 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
-  hero: () => ({ id: `hero-${Date.now()}`, type: "hero", order: 0, visible: true, props: { heading: "Tiêu đề", subheading: "Phụ đề", ctaText: "Khám phá", ctaLink: "/products", align: "center", minHeight: 600 } }),
-  "featured-products": () => ({ id: `fp-${Date.now()}`, type: "featured-products", order: 0, visible: true, props: { heading: "Sản phẩm nổi bật", limit: 8 } }),
-  "category-grid": () => ({ id: `cg-${Date.now()}`, type: "category-grid", order: 0, visible: true, props: { heading: "Danh mục", categoryIds: [] } }),
-  "banner-slider": () => ({ id: `bs-${Date.now()}`, type: "banner-slider", order: 0, visible: true, props: { slides: [], autoplay: true, interval: 5000 } }),
-  "blog-preview": () => ({ id: `bp-${Date.now()}`, type: "blog-preview", order: 0, visible: true, props: { heading: "Tin tức", limit: 3 } }),
-  testimonials: () => ({ id: `t-${Date.now()}`, type: "testimonials", order: 0, visible: true, props: { quotes: [], autoplay: true } }),
-  "contact-cta": () => ({ id: `cta-${Date.now()}`, type: "contact-cta", order: 0, visible: true, props: { heading: "Sẵn sàng hợp tác?", ctaText: "Liên hệ", ctaLink: "/contact" } }),
-  "stats-counter": () => ({ id: `sc-${Date.now()}`, type: "stats-counter", order: 0, visible: true, props: { stats: [{ label: "Khách hàng", value: 1000 }] } }),
+  hero: () => ({
+    id: `hero-${Date.now()}`,
+    type: "hero",
+    order: 0,
+    visible: true,
+    props: {
+      heading: "Tiêu đề",
+      subheading: "Phụ đề",
+      ctaText: "Khám phá",
+      ctaLink: "/products",
+      align: "center",
+      minHeight: 600,
+    },
+  }),
+  "featured-products": () => ({
+    id: `fp-${Date.now()}`,
+    type: "featured-products",
+    order: 0,
+    visible: true,
+    props: { heading: "Sản phẩm nổi bật", limit: 8 },
+  }),
+  "category-grid": () => ({
+    id: `cg-${Date.now()}`,
+    type: "category-grid",
+    order: 0,
+    visible: true,
+    props: { heading: "Danh mục", categoryIds: [] },
+  }),
+  "banner-slider": () => ({
+    id: `bs-${Date.now()}`,
+    type: "banner-slider",
+    order: 0,
+    visible: true,
+    props: { slides: [], autoplay: true, interval: 5000 },
+  }),
+  "blog-preview": () => ({
+    id: `bp-${Date.now()}`,
+    type: "blog-preview",
+    order: 0,
+    visible: true,
+    props: { heading: "Tin tức", limit: 3 },
+  }),
+  testimonials: () => ({
+    id: `t-${Date.now()}`,
+    type: "testimonials",
+    order: 0,
+    visible: true,
+    props: { quotes: [], autoplay: true },
+  }),
+  "contact-cta": () => ({
+    id: `cta-${Date.now()}`,
+    type: "contact-cta",
+    order: 0,
+    visible: true,
+    props: { heading: "Sẵn sàng hợp tác?", ctaText: "Liên hệ", ctaLink: "/contact" },
+  }),
+  "stats-counter": () => ({
+    id: `sc-${Date.now()}`,
+    type: "stats-counter",
+    order: 0,
+    visible: true,
+    props: { stats: [{ label: "Khách hàng", value: 1000 }] },
+  }),
   partners: () => ({ id: `p-${Date.now()}`, type: "partners", order: 0, visible: true, props: { logos: [] } }),
-  industries: () => ({ id: `ind-${Date.now()}`, type: "industries", order: 0, visible: true, props: { heading: "Lĩnh vực kinh doanh" } }),
-  process: () => ({ id: `pro-${Date.now()}`, type: "process", order: 0, visible: true, props: { heading: "Quy trình hợp tác" } }),
+  industries: () => ({
+    id: `ind-${Date.now()}`,
+    type: "industries",
+    order: 0,
+    visible: true,
+    props: { heading: "Lĩnh vực kinh doanh" },
+  }),
+  process: () => ({
+    id: `pro-${Date.now()}`,
+    type: "process",
+    order: 0,
+    visible: true,
+    props: { heading: "Quy trình hợp tác" },
+  }),
   "feature-showcase": () => ({
     id: `fs-${Date.now()}`,
     type: "feature-showcase",
@@ -69,19 +167,43 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
     visible: true,
     props: { eyebrow: "So sánh gói", heading: "Chọn gói VHD phù hợp" },
   }),
-  "custom-html": () => ({ id: `html-${Date.now()}`, type: "custom-html", order: 0, visible: true, props: { html: "<div>Custom</div>" } }),
+  "sticky-story": () => ({
+    id: `ss-${Date.now()}`,
+    type: "sticky-story",
+    order: 0,
+    visible: true,
+    props: {
+      eyebrow: "Cách VHD hoạt động",
+      heading: "Bốn bước đến đối tác bền vững",
+      subheading: "Quy trình minh bạch — từ tư vấn đến giao hàng.",
+    },
+  }),
+  "custom-html": () => ({
+    id: `html-${Date.now()}`,
+    type: "custom-html",
+    order: 0,
+    visible: true,
+    props: { html: "<div>Custom</div>" },
+  }),
 };
 
 const TYPE_LABELS: Record<Section["type"], string> = {
-  hero: "Hero", "featured-products": "Sản phẩm nổi bật", "category-grid": "Lưới danh mục",
-  "banner-slider": "Banner slider", "blog-preview": "Bài viết",
-  testimonials: "Testimonials", "contact-cta": "CTA liên hệ",
-  "stats-counter": "Số liệu", partners: "Đối tác",
-  industries: "Lĩnh vực kinh doanh", process: "Quy trình",
+  hero: "Hero",
+  "featured-products": "Sản phẩm nổi bật",
+  "category-grid": "Lưới danh mục",
+  "banner-slider": "Banner slider",
+  "blog-preview": "Bài viết",
+  testimonials: "Testimonials",
+  "contact-cta": "CTA liên hệ",
+  "stats-counter": "Số liệu",
+  partners: "Đối tác",
+  industries: "Lĩnh vực kinh doanh",
+  process: "Quy trình",
   "feature-showcase": "Showcase tính năng",
   "use-cases": "Use Cases B2B",
   "faq-accordion": "FAQ Accordion",
   "comparison-table": "Bảng so sánh",
+  "sticky-story": "Sticky Story (Quy trình)",
   "custom-html": "HTML tùy chỉnh",
 };
 
@@ -108,7 +230,7 @@ function SortableSection({
       innerRef.current = node;
       setNodeRef(node);
     },
-    [setNodeRef],
+    [setNodeRef]
   );
   useEffect(() => {
     const el = innerRef.current;
@@ -126,15 +248,62 @@ function SortableSection({
       >
         <div className="flex items-center justify-between gap-1">
           {/* Drag handle */}
-          <span {...listeners} className="cursor-grab active:cursor-grabbing touch-none shrink-0 text-muted-foreground/50 hover:text-muted-foreground">
+          <span
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing touch-none shrink-0 text-muted-foreground/50 hover:text-muted-foreground"
+          >
             <GripVertical className="h-4 w-4" />
           </span>
           <span className="font-medium truncate flex-1">{TYPE_LABELS[s.type]}</span>
           <div className="flex gap-0.5 shrink-0">
-            <span role="button" tabIndex={0} aria-label="Lên" onClick={(e) => { e.stopPropagation(); onMove(-1); }} className="rounded p-1 hover:bg-muted"><ArrowUp className="h-3 w-3" /></span>
-            <span role="button" tabIndex={0} aria-label="Xuống" onClick={(e) => { e.stopPropagation(); onMove(1); }} className="rounded p-1 hover:bg-muted"><ArrowDown className="h-3 w-3" /></span>
-            <span role="button" tabIndex={0} aria-label="Hiện/ẩn" onClick={(e) => { e.stopPropagation(); onToggleVisible(); }} className="rounded p-1 hover:bg-muted">{s.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3 text-muted-foreground" />}</span>
-            <span role="button" tabIndex={0} aria-label="Xóa" onClick={(e) => { e.stopPropagation(); onRemove(); }} className="rounded p-1 hover:bg-red-500/10"><Trash2 className="h-3 w-3 text-red-500" /></span>
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Lên"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMove(-1);
+              }}
+              className="rounded p-1 hover:bg-muted"
+            >
+              <ArrowUp className="h-3 w-3" />
+            </span>
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Xuống"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMove(1);
+              }}
+              className="rounded p-1 hover:bg-muted"
+            >
+              <ArrowDown className="h-3 w-3" />
+            </span>
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Hiện/ẩn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleVisible();
+              }}
+              className="rounded p-1 hover:bg-muted"
+            >
+              {s.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3 text-muted-foreground" />}
+            </span>
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Xóa"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove();
+              }}
+              className="rounded p-1 hover:bg-red-500/10"
+            >
+              <Trash2 className="h-3 w-3 text-red-500" />
+            </span>
           </div>
         </div>
       </button>
@@ -172,7 +341,7 @@ export default function AdminBuilderPage() {
   // DnD Kit sensors — kéo thả thứ tự sections
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   // Undo/redo: lưu snapshot của draft để quay lại (giới hạn 50)
@@ -257,7 +426,9 @@ export default function AdminBuilderPage() {
   // Auto-save mỗi 30s khi có thay đổi
   useEffect(() => {
     if (!dirty) return;
-    const timer = setTimeout(() => { handleSaveRef.current(); }, 30_000);
+    const timer = setTimeout(() => {
+      handleSaveRef.current();
+    }, 30_000);
     return () => clearTimeout(timer);
   }, [dirty, draft]);
 
@@ -267,14 +438,17 @@ export default function AdminBuilderPage() {
       const meta = e.ctrlKey || e.metaKey;
       if (!meta) return;
       const tag = (e.target as HTMLElement)?.tagName;
-      if (e.key === "s" || e.key === "S") { e.preventDefault(); handleSaveRef.current(); }
-      else if ((e.key === "z" || e.key === "Z") && !e.shiftKey) {
+      if (e.key === "s" || e.key === "S") {
+        e.preventDefault();
+        handleSaveRef.current();
+      } else if ((e.key === "z" || e.key === "Z") && !e.shiftKey) {
         if (tag === "INPUT" || tag === "TEXTAREA") return;
-        e.preventDefault(); undoRef.current();
-      }
-      else if ((e.key === "y" || e.key === "Y") || ((e.key === "z" || e.key === "Z") && e.shiftKey)) {
+        e.preventDefault();
+        undoRef.current();
+      } else if (e.key === "y" || e.key === "Y" || ((e.key === "z" || e.key === "Z") && e.shiftKey)) {
         if (tag === "INPUT" || tag === "TEXTAREA") return;
-        e.preventDefault(); redoRef.current();
+        e.preventDefault();
+        redoRef.current();
       }
     }
     window.addEventListener("keydown", onKey);
@@ -283,19 +457,24 @@ export default function AdminBuilderPage() {
 
   // Cập nhật refs trong useLayoutEffect để không vi phạm react-hooks/refs
   useLayoutEffect(() => {
-    handleSaveRef.current = () => { void handleSave(); };
+    handleSaveRef.current = () => {
+      void handleSave();
+    };
     undoRef.current = undo;
     redoRef.current = redo;
   });
 
-    if (isLoading || !draft) return <p>Đang tải Page Builder...</p>;
+  if (isLoading || !draft) return <p>Đang tải Page Builder...</p>;
 
   const sections = draft.pages[page]?.sections ?? [];
   const selected = sections.find((s) => s.id === selectedId) ?? null;
 
   function setSections(next: Section[]) {
     if (!draft) return;
-    updateDraft((prev) => ({ ...prev, pages: { ...prev.pages, [page]: { sections: next.map((s, i) => ({ ...s, order: i + 1 })) } } }));
+    updateDraft((prev) => ({
+      ...prev,
+      pages: { ...prev.pages, [page]: { sections: next.map((s, i) => ({ ...s, order: i + 1 })) } },
+    }));
   }
 
   function addSection(type: Section["type"]) {
@@ -317,11 +496,13 @@ export default function AdminBuilderPage() {
     setSections(next);
   }
   function toggleVisible(id: string) {
-    setSections(sections.map((s) => s.id === id ? { ...s, visible: !s.visible } : s));
+    setSections(sections.map((s) => (s.id === id ? { ...s, visible: !s.visible } : s)));
   }
   function updateSelected(patch: Record<string, unknown>) {
     if (!selected) return;
-    const next = sections.map((s) => s.id === selected.id ? ({ ...s, props: { ...s.props, ...patch } } as Section) : s);
+    const next = sections.map((s) =>
+      s.id === selected.id ? ({ ...s, props: { ...s.props, ...patch } } as Section) : s
+    );
     setSections(next);
   }
 
@@ -347,12 +528,20 @@ export default function AdminBuilderPage() {
       setDirty(false);
       setLastSavedAt(new Date());
       toast.success("Đã lưu nháp");
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Lưu thất bại"); }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Lưu thất bại");
+    }
   }
   async function handlePublish() {
     if (!confirm("Xuất bản layout hiện tại?")) return;
-    try { await publish.mutateAsync("main"); setDirty(false); setLastSavedAt(new Date()); toast.success("Đã xuất bản"); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Xuất bản thất bại"); }
+    try {
+      await publish.mutateAsync("main");
+      setDirty(false);
+      setLastSavedAt(new Date());
+      toast.success("Đã xuất bản");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Xuất bản thất bại");
+    }
   }
 
   function undo() {
@@ -389,8 +578,16 @@ export default function AdminBuilderPage() {
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-2">
             <h2 className="font-bold">Page Builder</h2>
-            <Select value={page} onValueChange={(v: "home" | "about" | "contact") => { setPage(v); setSelectedId(null); }}>
-              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <Select
+              value={page}
+              onValueChange={(v: "home" | "about" | "contact") => {
+                setPage(v);
+                setSelectedId(null);
+              }}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="home">Trang chủ</SelectItem>
                 <SelectItem value="about">Giới thiệu</SelectItem>
@@ -402,13 +599,20 @@ export default function AdminBuilderPage() {
 
         <Tabs defaultValue="sections" className="p-3">
           <TabsList className="w-full">
-            <TabsTrigger value="sections" className="flex-1">Sections</TabsTrigger>
-            <TabsTrigger value="add" className="flex-1">Thêm</TabsTrigger>
+            <TabsTrigger value="sections" className="flex-1">
+              Sections
+            </TabsTrigger>
+            <TabsTrigger value="add" className="flex-1">
+              Thêm
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="sections" className="space-y-1 mt-3">
             {sections.length === 0 && (
               <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                Chưa có section. <Button variant="link" size="sm" onClick={loadDefaults}>Tải layout mẫu</Button>
+                Chưa có section.{" "}
+                <Button variant="link" size="sm" onClick={loadDefaults}>
+                  Tải layout mẫu
+                </Button>
               </div>
             )}
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -448,39 +652,66 @@ export default function AdminBuilderPage() {
           </Button>
           <span className="mx-1 h-5 w-px bg-border" />
           <Button size="sm" variant="outline" onClick={handleSave} disabled={saveDraft.isPending} title="Lưu (Ctrl+S)">
-            {saveDraft.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Lưu
+            {saveDraft.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}{" "}
+            Lưu
           </Button>
           <Button size="sm" onClick={handlePublish} disabled={publish.isPending}>
-            {publish.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rocket className="mr-2 h-4 w-4" />} Xuất bản
+            {publish.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Rocket className="mr-2 h-4 w-4" />
+            )}{" "}
+            Xuất bản
           </Button>
           <span className="mx-1 h-5 w-px bg-border" />
           {/* Responsive toggle (PRD §4): Mobile / Tablet / Desktop */}
           <div className="flex items-center rounded-md border bg-background p-0.5">
             <Button
-              size="sm" variant={device === "mobile" ? "default" : "ghost"}
+              size="sm"
+              variant={device === "mobile" ? "default" : "ghost"}
               className="h-7 px-2"
-              onClick={() => setDevice("mobile")} title="Mobile (390px)"
+              onClick={() => setDevice("mobile")}
+              title="Mobile (390px)"
               aria-pressed={device === "mobile"}
-            ><Smartphone className="h-4 w-4" /></Button>
+            >
+              <Smartphone className="h-4 w-4" />
+            </Button>
             <Button
-              size="sm" variant={device === "tablet" ? "default" : "ghost"}
+              size="sm"
+              variant={device === "tablet" ? "default" : "ghost"}
               className="h-7 px-2"
-              onClick={() => setDevice("tablet")} title="Tablet (820px)"
+              onClick={() => setDevice("tablet")}
+              title="Tablet (820px)"
               aria-pressed={device === "tablet"}
-            ><Tablet className="h-4 w-4" /></Button>
+            >
+              <Tablet className="h-4 w-4" />
+            </Button>
             <Button
-              size="sm" variant={device === "desktop" ? "default" : "ghost"}
+              size="sm"
+              variant={device === "desktop" ? "default" : "ghost"}
               className="h-7 px-2"
-              onClick={() => setDevice("desktop")} title="Desktop (full)"
+              onClick={() => setDevice("desktop")}
+              title="Desktop (full)"
               aria-pressed={device === "desktop"}
-            ><Monitor className="h-4 w-4" /></Button>
+            >
+              <Monitor className="h-4 w-4" />
+            </Button>
           </div>
           <Button
-            size="sm" variant="ghost"
+            size="sm"
+            variant="ghost"
             onClick={async () => {
               // Lưu nháp trước rồi mở tab mới với cờ ?preview=draft để FE đọc draft.
               if (dirty) {
-                try { await handleSave(); } catch { /* lỗi đã được toast trong handleSave */ }
+                try {
+                  await handleSave();
+                } catch {
+                  /* lỗi đã được toast trong handleSave */
+                }
               }
               window.open("/?preview=draft", "_blank", "noopener");
             }}
@@ -489,14 +720,15 @@ export default function AdminBuilderPage() {
             <ExternalLink className="mr-2 h-4 w-4" /> Xem trước
           </Button>
           <span className="ml-auto text-xs text-muted-foreground">
-            {dirty ? "• Chưa lưu" : lastSavedAt ? `Đã lưu lúc ${lastSavedAt.toLocaleTimeString("vi-VN")}` : "Live preview"}
+            {dirty
+              ? "• Chưa lưu"
+              : lastSavedAt
+                ? `Đã lưu lúc ${lastSavedAt.toLocaleTimeString("vi-VN")}`
+                : "Live preview"}
           </span>
         </div>
         <motion.div suppressHydrationWarning initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-0">
-          <div
-            ref={previewFrameRef}
-            className="mx-auto bg-background transition-[max-width] duration-200"
-          >
+          <div ref={previewFrameRef} className="mx-auto bg-background transition-[max-width] duration-200">
             <PageRenderer sections={sections} />
           </div>
         </motion.div>
@@ -508,13 +740,15 @@ export default function AdminBuilderPage() {
         {!selected ? (
           <p className="text-sm text-muted-foreground">Chọn một section để chỉnh sửa.</p>
         ) : (
-          <Card><CardContent className="p-4 space-y-3">
-            <div>
-              <p className="text-xs text-muted-foreground">Loại</p>
-              <p className="font-medium">{TYPE_LABELS[selected.type]}</p>
-            </div>
-            <PropsEditor section={selected} onChange={updateSelected} />
-          </CardContent></Card>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Loại</p>
+                <p className="font-medium">{TYPE_LABELS[selected.type]}</p>
+              </div>
+              <PropsEditor section={selected} onChange={updateSelected} />
+            </CardContent>
+          </Card>
         )}
       </aside>
     </div>
@@ -523,7 +757,9 @@ export default function AdminBuilderPage() {
 
 function PropsEditor({ section, onChange }: { section: Section; onChange: (patch: Record<string, unknown>) => void }) {
   const props = section.props as unknown as Record<string, unknown>;
-  const fields = Object.keys(props).filter((k) => !["paddingTop", "paddingBottom", "background", "animation", "animationDelay"].includes(k));
+  const fields = Object.keys(props).filter(
+    (k) => !["paddingTop", "paddingBottom", "background", "animation", "animationDelay"].includes(k)
+  );
 
   return (
     <div className="space-y-3">
@@ -531,22 +767,60 @@ function PropsEditor({ section, onChange }: { section: Section; onChange: (patch
         const v = props[k];
         if (typeof v === "string") {
           if (k.toLowerCase().includes("html") || k === "subheading" || k === "body" || k === "description") {
-            return <div key={k} className="space-y-1"><Label className="text-xs">{k}</Label><Textarea rows={3} value={v} onChange={(e) => onChange({ [k]: e.target.value })} /></div>;
+            return (
+              <div key={k} className="space-y-1">
+                <Label className="text-xs">{k}</Label>
+                <Textarea rows={3} value={v} onChange={(e) => onChange({ [k]: e.target.value })} />
+              </div>
+            );
           }
-          return <div key={k} className="space-y-1"><Label className="text-xs">{k}</Label><Input value={v} onChange={(e) => onChange({ [k]: e.target.value })} /></div>;
+          return (
+            <div key={k} className="space-y-1">
+              <Label className="text-xs">{k}</Label>
+              <Input value={v} onChange={(e) => onChange({ [k]: e.target.value })} />
+            </div>
+          );
         }
         if (typeof v === "number") {
-          return <div key={k} className="space-y-1"><Label className="text-xs">{k}</Label><Input type="number" value={v} onChange={(e) => onChange({ [k]: Number(e.target.value) })} /></div>;
+          return (
+            <div key={k} className="space-y-1">
+              <Label className="text-xs">{k}</Label>
+              <Input type="number" value={v} onChange={(e) => onChange({ [k]: Number(e.target.value) })} />
+            </div>
+          );
         }
         if (typeof v === "boolean") {
-          return <div key={k} className="flex items-center justify-between"><Label className="text-xs" htmlFor={`bool-${k}`}>{k}</Label><input id={`bool-${k}`} type="checkbox" aria-label={k} title={k} checked={v} onChange={(e) => onChange({ [k]: e.target.checked })} /></div>;
+          return (
+            <div key={k} className="flex items-center justify-between">
+              <Label className="text-xs" htmlFor={`bool-${k}`}>
+                {k}
+              </Label>
+              <input
+                id={`bool-${k}`}
+                type="checkbox"
+                aria-label={k}
+                title={k}
+                checked={v}
+                onChange={(e) => onChange({ [k]: e.target.checked })}
+              />
+            </div>
+          );
         }
         return (
           <div key={k} className="space-y-1">
             <Label className="text-xs">{k} (JSON)</Label>
-            <Textarea rows={4} className="font-mono text-xs" value={JSON.stringify(v, null, 2)} onChange={(e) => {
-              try { onChange({ [k]: JSON.parse(e.target.value) }); } catch { /* ignore */ }
-            }} />
+            <Textarea
+              rows={4}
+              className="font-mono text-xs"
+              value={JSON.stringify(v, null, 2)}
+              onChange={(e) => {
+                try {
+                  onChange({ [k]: JSON.parse(e.target.value) });
+                } catch {
+                  /* ignore */
+                }
+              }}
+            />
           </div>
         );
       })}

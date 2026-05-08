@@ -26,7 +26,7 @@ export default function FeatureShowcase({ section }: { section: FeatureShowcaseS
         <div
           className={cn(
             "grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16",
-            imageSide === "left" && "lg:[&>*:first-child]:order-2",
+            imageSide === "left" && "lg:[&>*:first-child]:order-2"
           )}
         >
           {/* Text column */}
@@ -45,14 +45,12 @@ export default function FeatureShowcase({ section }: { section: FeatureShowcaseS
             )}
             {p.eyebrow && <p className="type-eyebrow text-brand-accent">{p.eyebrow}</p>}
             <h2 className="mt-3 type-display-md text-foreground">{p.heading}</h2>
-            {p.subheading && (
-              <p className="mt-4 type-lead text-foreground/65">{p.subheading}</p>
-            )}
+            {p.subheading && <p className="mt-4 type-lead text-foreground/65">{p.subheading}</p>}
             {p.bullets && p.bullets.length > 0 && (
               <ul className="mt-7 space-y-3">
                 {p.bullets.map((b, i) => (
                   <li key={i} className="flex items-start gap-3 text-foreground/80">
-                    <span className="mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-(--vhd-color-primary)/10 text-brand-primary">
+                    <span className="mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-primary/10 text-brand-primary">
                       <Check className="h-3 w-3" strokeWidth={3} />
                     </span>
                     <span>{b}</span>
@@ -63,7 +61,7 @@ export default function FeatureShowcase({ section }: { section: FeatureShowcaseS
             {p.ctaText && p.ctaLink && (
               <Link
                 href={p.ctaLink}
-                className="mt-8 inline-flex items-center gap-2 rounded-full bg-brand-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-(--vhd-color-primary)/90"
+                className="mt-8 inline-flex items-center gap-2 rounded-full bg-brand-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-primary/90"
               >
                 {p.ctaText}
                 <ArrowRight className="h-4 w-4" />
@@ -117,10 +115,7 @@ export default function FeatureShowcase({ section }: { section: FeatureShowcaseS
 
       {p.videoUrl && (
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent
-            showCloseButton
-            className="max-w-4xl border-none bg-black p-0"
-          >
+          <DialogContent showCloseButton className="max-w-4xl border-none bg-black p-0">
             <DialogTitle className="sr-only">Video showcase {p.heading}</DialogTitle>
             <div className="aspect-video w-full">
               {open && embedUrl && (

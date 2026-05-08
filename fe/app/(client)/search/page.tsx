@@ -65,7 +65,7 @@ function SearchContent() {
               <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                 {(products.data?.records ?? []).map((p) => (
                   <Link key={p.id} href={`/products/${p.slug}`}>
-                    <Card className="group overflow-hidden border-foreground/8 transition-all hover:border-(--vhd-color-primary)/30 hover:shadow-md">
+                    <Card className="group overflow-hidden border-foreground/8 transition-all hover:border-brand-primary/30 hover:shadow-md">
                       <div className="relative aspect-square bg-muted">
                         {p.images?.[0] ? (
                           <Image
@@ -106,11 +106,17 @@ function SearchContent() {
                   <li key={post.id}>
                     <Link
                       href={`/posts/${post.slug}`}
-                      className="group grid grid-cols-[100px_1fr] gap-4 rounded-2xl border border-foreground/8 bg-card p-4 transition-all hover:border-(--vhd-color-primary)/30 hover:shadow-md sm:grid-cols-[140px_1fr]"
+                      className="group grid grid-cols-[100px_1fr] gap-4 rounded-2xl border border-foreground/8 bg-card p-4 transition-all hover:border-brand-primary/30 hover:shadow-md sm:grid-cols-[140px_1fr]"
                     >
                       <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">
                         {post.coverImage ? (
-                          <Image src={post.coverImage} alt={post.title} fill sizes="140px" className="object-cover transition-transform group-hover:scale-105" />
+                          <Image
+                            src={post.coverImage}
+                            alt={post.title}
+                            fill
+                            sizes="140px"
+                            className="object-cover transition-transform group-hover:scale-105"
+                          />
                         ) : (
                           <ImageFallback label="Tin tức" />
                         )}
@@ -119,9 +125,7 @@ function SearchContent() {
                         <h3 className="font-semibold text-foreground transition-colors group-hover:text-brand-primary">
                           {post.title}
                         </h3>
-                        {post.excerpt && (
-                          <p className="line-clamp-2 text-sm text-foreground/60">{post.excerpt}</p>
-                        )}
+                        {post.excerpt && <p className="line-clamp-2 text-sm text-foreground/60">{post.excerpt}</p>}
                         {post.publishedAt && (
                           <p className="text-xs text-foreground/45">
                             {new Date(post.publishedAt).toLocaleDateString("vi-VN")}
