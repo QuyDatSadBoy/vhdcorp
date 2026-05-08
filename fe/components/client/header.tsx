@@ -67,7 +67,7 @@ export default function Header() {
             : "bg-background/0"
         )}
       >
-        <div className="container mx-auto flex h-16 items-center justify-between gap-6 px-4 md:h-20">
+        <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4 md:h-20">
           <Link href="/" className="flex items-center gap-3" aria-label={brand?.siteName ?? "VHD Corp"}>
             {brand?.logo?.url && !logoError ? (
               <Image
@@ -89,18 +89,18 @@ export default function Header() {
             )}
             <span className="hidden flex-col leading-tight sm:flex">
               <span className="font-heading text-base font-bold text-foreground">{brand?.siteName ?? "VHD Corp"}</span>
-              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-brand-primary/80 dark:text-foreground/65">
+              <span className="hidden text-[9px] font-bold uppercase tracking-[0.16em] text-brand-primary/80 dark:text-foreground/65 lg:block">
                 {brand?.tagline ?? "KẾT NỐI GIÁ TRỊ - HỢP TÁC VỮNG BỀN"}
               </span>
             </span>
           </Link>
 
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden min-w-0 items-center gap-0.5 md:flex">
             {nav.map((item) => (
               <Link
                 key={item.id}
                 href={item.href}
-                className="rounded-md px-3 py-2 text-sm font-medium text-foreground/75 transition-colors hover:bg-accent/40 hover:text-foreground"
+                className="whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium text-foreground/75 transition-colors hover:bg-accent/40 hover:text-foreground lg:px-3"
                 {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
               >
                 {item.label}
