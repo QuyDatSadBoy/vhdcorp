@@ -60,11 +60,15 @@ export default function Header() {
         initial={{ y: -16, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        data-scrolled={scrolled ? "true" : "false"}
         className={cn(
-          "sticky top-0 z-50 w-full transition-all duration-300",
+          // Luôn hiển thị glass-blur để header không bị "biến mất" trên hero tối.
+          // Khi cuộn xuống → opacity dày hơn + shadow rõ hơn.
+          "sticky top-0 z-50 w-full transition-[background-color,backdrop-filter,box-shadow,border-color] duration-300",
+          "border-b backdrop-blur-md supports-backdrop-filter:backdrop-blur-xl",
           scrolled
-            ? "border-b border-foreground/10 bg-background/85 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/75"
-            : "bg-background/0"
+            ? "border-foreground/10 bg-background/90 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)] supports-backdrop-filter:bg-background/75"
+            : "border-white/10 bg-background/55 supports-backdrop-filter:bg-background/35"
         )}
       >
         <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4 md:h-20">
@@ -100,7 +104,8 @@ export default function Header() {
               <Link
                 key={item.id}
                 href={item.href}
-                className="whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium text-foreground/75 transition-colors hover:bg-accent/40 hover:text-foreground lg:px-3"
+                data-cursor-hover
+                className="whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium text-foreground/85 transition-colors hover:bg-accent/40 hover:text-foreground lg:px-3"
                 {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
               >
                 {item.label}

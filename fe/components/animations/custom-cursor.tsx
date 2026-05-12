@@ -1,9 +1,8 @@
 "use client";
 
 /**
- * CustomCursor — disabled.
- * Dùng cursor mặc định của browser.
- * Export giữ nguyên để layout.tsx không cần sửa.
+ * CustomCursor — disabled per user preference.
+ * Trả về null để dùng cursor mặc định của browser; giữ export để layout không cần sửa import.
  */
 export function CustomCursor() {
   return null;

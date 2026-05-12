@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
@@ -12,9 +13,20 @@ import { useSiteConfigStore } from "@/store/site-config.store";
 import { cn } from "@/lib/utils";
 import { HeroDomainArt } from "@/components/animations/hero-domain-art";
 import { MagneticButton } from "@/components/animations/magnetic-button";
-import { AuroraBg } from "@/components/animations/aurora-bg";
 import { CursorGlow } from "@/components/animations/cursor-glow";
 import { ParticlesCSS } from "@/components/animations/particles-css";
+
+// WebGL shader canvas: lazy + ssr:false để tránh bundle three vào server.
+const AuroraShaderCanvas = dynamic(
+  () => import("@/components/animations/aurora-shader-canvas").then((m) => m.AuroraShaderCanvas),
+  { ssr: false, loading: () => null }
+);
+
+// Hero 3D scene — Shopify Editions inspired floating glass primitives.
+const Hero3DScene = dynamic(() => import("@/components/animations/hero-3d-scene").then((m) => m.Hero3DScene), {
+  ssr: false,
+  loading: () => null,
+});
 
 function AnimatedHeading({ text, className }: { text: string; className?: string }) {
   // Tách từ theo whitespace, hỗ trợ cú pháp *từ* để admin highlight (cho phép có dấu câu kèm sau).
@@ -119,8 +131,24 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
 
       {!p.bgImage && (
         <>
-          {/* Aurora conic gradient background — vivid trên nền tối */}
-          <AuroraBg className="-z-30" intensity="vivid" />
+          {/* WebGL mesh-gradient aurora — Shopify Editions Winter 2026 inspired.
+              Metaballs trôi mượt trong tone NAVY + CYAN của logo VHD. */}
+          <AuroraShaderCanvas className="-z-30" intensity={0.85} />
+
+          {/* 3D R3F scene — floating glass primitives với Environment lighting,
+              parallax theo chuột. Đặt bên phải, layered trên shader. */}
+          <Hero3DScene className="-z-15 left-auto right-0 hidden w-[55%] lg:block" />
+
+          {/* Readability scrim — gradient tối ở rìa trái + đáy để text luôn đọc được.
+              Pointer-events:none → không chặn cursor warp. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-20 bg-[radial-gradient(ellipse_at_left_center,rgba(4,10,24,0.6)_0%,rgba(4,10,24,0.25)_45%,rgba(4,10,24,0.0)_75%)]"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 -z-20 h-1/3 bg-linear-to-t from-[#040a18]/85 via-[#040a18]/30 to-transparent"
+          />
 
           {/* E9 — Cursor glow */}
           <CursorGlow className="-z-25" />
@@ -141,10 +169,10 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
             className="pointer-events-none absolute inset-0 -z-10 opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.8)_1px,transparent_1px)] bg-size-[60px_60px]"
           />
 
-          {/* Domain illustration: ống nhựa + cao su + miến (parallax on scroll) */}
+          {/* Domain illustration SVG — subtle backdrop, 3D scene là main focal */}
           <motion.div
             style={{ y: artY, scale: artScale }}
-            className="absolute inset-y-0 right-0 -z-10 hidden w-[58%] lg:block"
+            className="absolute inset-y-0 right-0 -z-10 hidden w-[58%] opacity-30 lg:block"
           >
             <HeroDomainArt className="absolute inset-0" />
           </motion.div>
