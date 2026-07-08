@@ -77,7 +77,7 @@ export default function FeaturedProducts({ section }: { section: Section }) {
     <section ref={sectionRef} className="container mx-auto px-4">
       <Reveal className="mb-10 flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="type-eyebrow text-brand-accent">Sản phẩm</p>
+          <p className="type-eyebrow text-brand-primary">Sản phẩm</p>
           <h2 className="mt-3 type-display-md text-foreground">{p.heading ?? "Sản phẩm nổi bật"}</h2>
           <div className="mt-4 h-1 w-12 rounded-full bg-brand-highlight" />
         </div>

@@ -1,6 +1,10 @@
-import { ArgumentMetadata, BadRequestException, PipeTransform } from "@nestjs/common";
-import { validate } from "class-validator";
-import { plainToInstance } from "class-transformer";
+import {
+  ArgumentMetadata,
+  BadRequestException,
+  PipeTransform,
+} from '@nestjs/common';
+import { validate } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
 
 export class ValidationPipe implements PipeTransform<any> {
   async transform(value: any, { metatype }: ArgumentMetadata) {
@@ -11,9 +15,15 @@ export class ValidationPipe implements PipeTransform<any> {
     const errors = await validate(object);
     if (errors.length > 0) {
       // Get error messages
-      const errorMessage: string = errors.reduce((accumulator, currentValue) =>
-          accumulator.concat(Object.values(currentValue.constraints).map((err => err.toString() + " \n ")).toString())
-        , ``);
+      const errorMessage: string = errors.reduce(
+        (accumulator, currentValue) =>
+          accumulator.concat(
+            Object.values(currentValue.constraints)
+              .map((err) => err.toString() + ' \n ')
+              .toString(),
+          ),
+        ``,
+      );
       throw new BadRequestException(errorMessage);
     }
     return value;
@@ -23,5 +33,4 @@ export class ValidationPipe implements PipeTransform<any> {
     const types: any[] = [String, Boolean, Number, Array, Object];
     return !types.includes(metatype);
   }
-
 }

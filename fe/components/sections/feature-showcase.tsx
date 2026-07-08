@@ -43,7 +43,7 @@ export default function FeatureShowcase({ section }: { section: FeatureShowcaseS
                 {p.badge}
               </span>
             )}
-            {p.eyebrow && <p className="type-eyebrow text-brand-accent">{p.eyebrow}</p>}
+            {p.eyebrow && <p className="type-eyebrow text-brand-primary">{p.eyebrow}</p>}
             <h2 className="mt-3 type-display-md text-foreground">{p.heading}</h2>
             {p.subheading && <p className="mt-4 type-lead text-foreground/65">{p.subheading}</p>}
             {p.bullets && p.bullets.length > 0 && (

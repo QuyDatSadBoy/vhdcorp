@@ -72,11 +72,11 @@ export default function Header() {
         )}
       >
         <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4 md:h-20">
-          <Link href="/" className="flex items-center gap-3" aria-label={brand?.siteName ?? "VHD Corp"}>
+          <Link href="/" className="flex items-center gap-3">
             {brand?.logo?.url && !logoError ? (
               <Image
                 src={brand.logo.url}
-                alt={brand.siteName ?? "VHD Corp"}
+                alt=""
                 width={40}
                 height={40}
                 className="h-10 w-10 rounded-lg object-contain"

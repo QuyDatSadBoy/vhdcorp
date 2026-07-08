@@ -1,5 +1,5 @@
-import { IsEnum, IsObject, IsOptional, IsString } from "class-validator";
-import { ConfigStatus } from "@vhd/prisma-client";
+import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
+import { ConfigStatus } from '@vhd/prisma-client';
 
 export class UpdateSiteConfigDto {
   @IsObject()

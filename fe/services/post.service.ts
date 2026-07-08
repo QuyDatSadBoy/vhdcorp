@@ -20,15 +20,13 @@ export const postKeys = {
 };
 
 export const postService = {
-  list: (params?: PostListParams) =>
-    axios.get<{ data: PaginatedResult<Post> }>("/posts", { params }).then(unwrap),
+  list: (params?: PostListParams) => axios.get<{ data: PaginatedResult<Post> }>("/posts", { params }).then(unwrap),
   adminList: (params?: PostListParams) =>
     axios.get<{ data: PaginatedResult<Post> }>("/posts/admin", { params }).then(unwrap),
   bySlug: (slug: string) => axios.get<{ data: Post }>(`/posts/slug/${slug}`).then(unwrap),
   byId: (id: number) => axios.get<{ data: Post }>(`/posts/${id}`).then(unwrap),
   create: (payload: Partial<Post>) => axios.post<{ data: Post }>("/posts", payload).then(unwrap),
-  update: (id: number, payload: Partial<Post>) =>
-    axios.put<{ data: Post }>(`/posts/${id}`, payload).then(unwrap),
+  update: (id: number, payload: Partial<Post>) => axios.put<{ data: Post }>(`/posts/${id}`, payload).then(unwrap),
   remove: (id: number) => axios.delete(`/posts/${id}`).then(() => undefined),
 };
 
@@ -63,8 +61,7 @@ export function useCreatePost() {
 export function useUpdatePost() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<Post> }) =>
-      postService.update(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: Partial<Post> }) => postService.update(id, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: postKeys.all }),
   });
 }

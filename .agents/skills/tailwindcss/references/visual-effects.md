@@ -66,12 +66,18 @@ Utilities for box shadow, opacity, mix-blend, and filters.
 ### Object fit (images/video)
 
 ```html
-<img class="object-contain" /> <!-- Fit within bounds -->
-<img class="object-cover" />   <!-- Cover area, may crop -->
-<img class="object-fill" />    <!-- Stretch -->
-<img class="object-none" />    <!-- No resize -->
-<img class="object-scale-down" /> <!-- contain or none, whichever is smaller -->
-<img class="object-top object-cover" /> <!-- Position -->
+<img class="object-contain" />
+<!-- Fit within bounds -->
+<img class="object-cover" />
+<!-- Cover area, may crop -->
+<img class="object-fill" />
+<!-- Stretch -->
+<img class="object-none" />
+<!-- No resize -->
+<img class="object-scale-down" />
+<!-- contain or none, whichever is smaller -->
+<img class="object-top object-cover" />
+<!-- Position -->
 ```
 
 ## Key Points

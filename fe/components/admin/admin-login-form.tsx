@@ -53,16 +53,40 @@ export function AdminLoginForm() {
   }
 
   return (
-    <motion.form suppressHydrationWarning initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+    <motion.form
+      suppressHydrationWarning
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      onSubmit={form.handleSubmit(onSubmit)}
+      className="space-y-5"
+    >
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-zinc-200">Email</Label>
-        <Input id="email" type="email" autoComplete="email" {...form.register("email")} className="bg-zinc-700 border-zinc-600 text-white" />
+        <Label htmlFor="email" className="text-zinc-200">
+          Email
+        </Label>
+        <Input
+          id="email"
+          type="email"
+          autoComplete="email"
+          {...form.register("email")}
+          className="bg-zinc-700 border-zinc-600 text-white"
+        />
         {form.formState.errors.email && <p className="text-xs text-red-400">{form.formState.errors.email.message}</p>}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password" className="text-zinc-200">Mật khẩu</Label>
-        <Input id="password" type="password" autoComplete="current-password" {...form.register("password")} className="bg-zinc-700 border-zinc-600 text-white" />
-        {form.formState.errors.password && <p className="text-xs text-red-400">{form.formState.errors.password.message}</p>}
+        <Label htmlFor="password" className="text-zinc-200">
+          Mật khẩu
+        </Label>
+        <Input
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          {...form.register("password")}
+          className="bg-zinc-700 border-zinc-600 text-white"
+        />
+        {form.formState.errors.password && (
+          <p className="text-xs text-red-400">{form.formState.errors.password.message}</p>
+        )}
       </div>
       <Button type="submit" className="w-full" disabled={login.isPending}>
         {login.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Shield className="mr-2 h-4 w-4" />}

@@ -50,7 +50,7 @@ export default function UseCases({ section }: { section: UseCasesSection }) {
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="mx-auto mb-12 max-w-3xl text-center"
         >
-          {p.eyebrow && <p className="type-eyebrow text-brand-accent">{p.eyebrow}</p>}
+          {p.eyebrow && <p className="type-eyebrow text-brand-primary">{p.eyebrow}</p>}
           <h2 className="mt-3 type-display-md text-foreground">{p.heading}</h2>
           {p.subheading && <p className="mt-4 type-lead text-foreground/65">{p.subheading}</p>}
         </motion.div>

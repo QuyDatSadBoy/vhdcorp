@@ -3,8 +3,8 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
-} from "@nestjs/common";
-import { map, Observable } from "rxjs";
+} from '@nestjs/common';
+import { map, Observable } from 'rxjs';
 
 interface ApiEnvelope<T> {
   statusCode: number;
@@ -19,7 +19,10 @@ interface ApiEnvelope<T> {
  * KHÔNG xóa field `id` (mọi entity đều cần id cho FE).
  */
 @Injectable()
-export class TransformInterceptor<T> implements NestInterceptor<T, ApiEnvelope<T>> {
+export class TransformInterceptor<T> implements NestInterceptor<
+  T,
+  ApiEnvelope<T>
+> {
   intercept(
     context: ExecutionContext,
     next: CallHandler<T>,
@@ -28,7 +31,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, ApiEnvelope<T
     const response = ctx.getResponse<{ statusCode: number }>();
     return next.handle().pipe(
       map((data) => {
-        if (typeof data === "string") {
+        if (typeof data === 'string') {
           return {
             statusCode: response.statusCode,
             success: response.statusCode < 400,

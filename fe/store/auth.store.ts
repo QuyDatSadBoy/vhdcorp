@@ -29,14 +29,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
     persist(
       (set) => ({
         ...initialState,
-        setUser: (user) =>
-          set(
-            { user, isAuthenticated: !!user },
-            false,
-            "auth/setUser",
-          ),
-        clearAuth: () =>
-          set({ user: null, isAuthenticated: false }, false, "auth/clearAuth"),
+        setUser: (user) => set({ user, isAuthenticated: !!user }, false, "auth/setUser"),
+        clearAuth: () => set({ user: null, isAuthenticated: false }, false, "auth/clearAuth"),
         setHydrated: (v) => set({ isHydrated: v }, false, "auth/setHydrated"),
       }),
       {
@@ -45,8 +39,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         onRehydrateStorage: () => (state) => {
           state?.setHydrated(true);
         },
-      },
+      }
     ),
-    { name: "AuthStore" },
-  ),
+    { name: "AuthStore" }
+  )
 );

@@ -36,14 +36,7 @@ interface RevealProps extends Omit<HTMLMotionProps<"div">, "children"> {
   children?: ReactNode;
 }
 
-export function Reveal({
-  type = "fade-up",
-  delay = 0,
-  once = true,
-  amount = 0.2,
-  children,
-  ...rest
-}: RevealProps) {
+export function Reveal({ type = "fade-up", delay = 0, once = true, amount = 0.2, children, ...rest }: RevealProps) {
   return (
     <motion.div
       initial="hidden"
@@ -64,12 +57,7 @@ interface StaggerProps extends Omit<HTMLMotionProps<"div">, "children"> {
   children?: ReactNode;
 }
 
-export function Stagger({
-  delay = 0,
-  staggerChildren = 0.08,
-  children,
-  ...rest
-}: StaggerProps) {
+export function Stagger({ delay = 0, staggerChildren = 0.08, children, ...rest }: StaggerProps) {
   return (
     <motion.div
       initial="hidden"

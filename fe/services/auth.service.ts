@@ -18,14 +18,12 @@ const authApi = {
       throw err;
     }
   },
-  login: (payload: LoginPayload) =>
-    axios.post<{ data: { user: AuthUser } }>("/auth/login", payload).then(unwrap),
+  login: (payload: LoginPayload) => axios.post<{ data: { user: AuthUser } }>("/auth/login", payload).then(unwrap),
   adminLogin: (payload: LoginPayload) =>
     axios.post<{ data: { user: AuthUser } }>("/auth/admin/login", payload).then(unwrap),
   register: (payload: RegisterPayload) =>
     axios.post<{ data: { user: AuthUser } }>("/auth/register", payload).then(unwrap),
-  google: (idToken: string) =>
-    axios.post<{ data: { user: AuthUser } }>("/auth/google", { idToken }).then(unwrap),
+  google: (idToken: string) => axios.post<{ data: { user: AuthUser } }>("/auth/google", { idToken }).then(unwrap),
   logout: () => axios.post("/auth/logout").then(() => undefined),
 };
 

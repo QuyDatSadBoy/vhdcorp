@@ -10,14 +10,30 @@ export interface PaginatedResult<T> {
   pageSize: number;
 }
 
+/**
+ * Chấp nhận cả `pageNumber/pageSize` (legacy) và `page/limit` (alias chuẩn REST).
+ * Ưu tiên giá trị nào được truyền vào trước (legacy giữ ưu tiên để khỏi breaking).
+ */
 export function buildPaginationParams(
-  pageNumber?: string | number,
-  pageSize?: string | number,
+  pageNumberOrPage?: string | number,
+  pageSizeOrLimit?: string | number,
+  fallbackPage?: string | number,
+  fallbackLimit?: string | number,
 ): { page: number; limit: number; skip: number; take: number } {
-  const page = Number(pageNumber) > 0 ? Number(pageNumber) : 1;
-  const rawLimit = Number(pageSize) > 0 ? Number(pageSize) : 16;
-  const limit = Math.min(rawLimit, 100);
-  return { page, limit, skip: (page - 1) * limit, take: limit };
+  const rawPage =
+    Number(pageNumberOrPage) > 0
+      ? Number(pageNumberOrPage)
+      : Number(fallbackPage) > 0
+        ? Number(fallbackPage)
+        : 1;
+  const rawSize =
+    Number(pageSizeOrLimit) > 0
+      ? Number(pageSizeOrLimit)
+      : Number(fallbackLimit) > 0
+        ? Number(fallbackLimit)
+        : 16;
+  const limit = Math.min(rawSize, 100);
+  return { page: rawPage, limit, skip: (rawPage - 1) * limit, take: limit };
 }
 
 export function toPaginated<T>(

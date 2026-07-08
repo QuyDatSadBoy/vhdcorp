@@ -20,23 +20,23 @@ const {
   setError,
   clearErrors,
   setFocus,
-} = useForm<FormData>(options)
+} = useForm<FormData>(options);
 ```
 
 ### Options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `resolver` | `Resolver` | Schema validation resolver (zodResolver, etc.) |
-| `mode` | `'onSubmit' \| 'onChange' \| 'onBlur' \| 'all'` | When to validate (default: 'onSubmit') |
-| `reValidateMode` | `'onChange' \| 'onBlur'` | When to re-validate after error |
-| `defaultValues` | `object \| () => object \| Promise<object>` | Initial form values |
-| `values` | `object` | Controlled form values |
-| `resetOptions` | `object` | Options for reset behavior |
-| `shouldUnregister` | `boolean` | Unregister fields when unmounted |
-| `shouldFocusError` | `boolean` | Focus first error on submit |
-| `criteriaMode` | `'firstError' \| 'all'` | Return first error or all |
-| `delayError` | `number` | Delay error display (ms) |
+| Option             | Type                                            | Description                                    |
+| ------------------ | ----------------------------------------------- | ---------------------------------------------- |
+| `resolver`         | `Resolver`                                      | Schema validation resolver (zodResolver, etc.) |
+| `mode`             | `'onSubmit' \| 'onChange' \| 'onBlur' \| 'all'` | When to validate (default: 'onSubmit')         |
+| `reValidateMode`   | `'onChange' \| 'onBlur'`                        | When to re-validate after error                |
+| `defaultValues`    | `object \| () => object \| Promise<object>`     | Initial form values                            |
+| `values`           | `object`                                        | Controlled form values                         |
+| `resetOptions`     | `object`                                        | Options for reset behavior                     |
+| `shouldUnregister` | `boolean`                                       | Unregister fields when unmounted               |
+| `shouldFocusError` | `boolean`                                       | Focus first error on submit                    |
+| `criteriaMode`     | `'firstError' \| 'all'`                         | Return first error or all                      |
+| `delayError`       | `number`                                        | Delay error display (ms)                       |
 
 ---
 
@@ -49,6 +49,7 @@ Register input and apply validation rules.
 ```
 
 **Options**:
+
 - `required`: `boolean | string`
 - `min`: `number | { value: number, message: string }`
 - `max`: `number | { value: number, message: string }`
@@ -88,21 +89,21 @@ Watch specified inputs and return their values.
 
 ```typescript
 // Watch all fields
-const values = watch()
+const values = watch();
 
 // Watch specific field
-const email = watch('email')
+const email = watch("email");
 
 // Watch multiple fields
-const [email, password] = watch(['email', 'password'])
+const [email, password] = watch(["email", "password"]);
 
 // Watch with callback
 useEffect(() => {
   const subscription = watch((value, { name, type }) => {
-    console.log(value, name, type)
-  })
-  return () => subscription.unsubscribe()
-}, [watch])
+    console.log(value, name, type);
+  });
+  return () => subscription.unsubscribe();
+}, [watch]);
 ```
 
 ---
@@ -113,17 +114,17 @@ Form state object.
 
 ```typescript
 const {
-  isDirty,        // Form has been modified
-  dirtyFields,    // Object of modified fields
-  touchedFields,  // Object of touched fields
-  isSubmitted,    // Form has been submitted
+  isDirty, // Form has been modified
+  dirtyFields, // Object of modified fields
+  touchedFields, // Object of touched fields
+  isSubmitted, // Form has been submitted
   isSubmitSuccessful, // Last submission successful
-  isSubmitting,   // Form is currently submitting
-  isValidating,   // Form is validating
-  isValid,        // Form is valid
-  errors,         // Validation errors
-  submitCount,    // Number of submissions
-} = formState
+  isSubmitting, // Form is currently submitting
+  isValidating, // Form is validating
+  isValid, // Form is valid
+  errors, // Validation errors
+  submitCount, // Number of submissions
+} = formState;
 ```
 
 ---
@@ -151,13 +152,13 @@ Get current form values.
 
 ```typescript
 // Get all values
-const values = getValues()
+const values = getValues();
 
 // Get specific field
-const email = getValues('email')
+const email = getValues("email");
 
 // Get multiple fields
-const [email, password] = getValues(['email', 'password'])
+const [email, password] = getValues(["email", "password"]);
 ```
 
 ---
@@ -167,9 +168,9 @@ const [email, password] = getValues(['email', 'password'])
 Reset form to default values.
 
 ```typescript
-reset() // Reset to defaultValues
+reset(); // Reset to defaultValues
 
-reset({ email: '', password: '' }) // Reset to specific values
+reset({ email: "", password: "" }); // Reset to specific values
 
 reset(undefined, {
   keepErrors: boolean,
@@ -178,7 +179,7 @@ reset(undefined, {
   keepTouched: boolean,
   keepIsValid: boolean,
   keepSubmitCount: boolean,
-})
+});
 ```
 
 ---
@@ -189,13 +190,13 @@ Manually trigger validation.
 
 ```typescript
 // Trigger all fields
-await trigger()
+await trigger();
 
 // Trigger specific field
-await trigger('email')
+await trigger("email");
 
 // Trigger multiple fields
-await trigger(['email', 'password'])
+await trigger(["email", "password"]);
 ```
 
 ---
@@ -205,16 +206,16 @@ await trigger(['email', 'password'])
 Set field error manually.
 
 ```typescript
-setError('fieldName', {
-  type: 'manual',
-  message: 'Error message',
-})
+setError("fieldName", {
+  type: "manual",
+  message: "Error message",
+});
 
 // Root error (not tied to specific field)
-setError('root', {
-  type: 'server',
-  message: 'Server error',
-})
+setError("root", {
+  type: "server",
+  message: "Server error",
+});
 ```
 
 ---
@@ -224,11 +225,11 @@ setError('root', {
 Clear field errors.
 
 ```typescript
-clearErrors() // Clear all errors
+clearErrors(); // Clear all errors
 
-clearErrors('email') // Clear specific field
+clearErrors("email"); // Clear specific field
 
-clearErrors(['email', 'password']) // Clear multiple fields
+clearErrors(["email", "password"]); // Clear multiple fields
 ```
 
 ---
@@ -238,7 +239,7 @@ clearErrors(['email', 'password']) // Clear multiple fields
 Focus on specific field.
 
 ```typescript
-setFocus('fieldName', { shouldSelect: true })
+setFocus("fieldName", { shouldSelect: true });
 ```
 
 ---
@@ -265,6 +266,7 @@ import { Controller } from 'react-hook-form'
 ```
 
 **render props**:
+
 - `field`: `{ value, onChange, onBlur, ref, name }`
 - `fieldState`: `{ invalid, isTouched, isDirty, error }`
 - `formState`: Full form state
@@ -301,16 +303,17 @@ function CustomInput({ name, control }) {
 Manage dynamic field arrays.
 
 ```typescript
-import { useFieldArray } from 'react-hook-form'
+import { useFieldArray } from "react-hook-form";
 
 const { fields, append, prepend, remove, insert, update, replace } = useFieldArray({
   control,
-  name: 'items',
-  keyName: 'id', // Default: 'id'
-})
+  name: "items",
+  keyName: "id", // Default: 'id'
+});
 ```
 
 **Methods**:
+
 - `append(value)` - Add to end
 - `prepend(value)` - Add to beginning
 - `insert(index, value)` - Insert at index
@@ -335,13 +338,13 @@ const { fields, append, prepend, remove, insert, update, replace } = useFieldArr
 Subscribe to input changes without re-rendering entire form.
 
 ```typescript
-import { useWatch } from 'react-hook-form'
+import { useWatch } from "react-hook-form";
 
 const email = useWatch({
   control,
-  name: 'email',
-  defaultValue: '',
-})
+  name: "email",
+  defaultValue: "",
+});
 ```
 
 ---
@@ -351,9 +354,9 @@ const email = useWatch({
 Subscribe to form state without re-rendering entire form.
 
 ```typescript
-import { useFormState } from 'react-hook-form'
+import { useFormState } from "react-hook-form";
 
-const { isDirty, isValid } = useFormState({ control })
+const { isDirty, isValid } = useFormState({ control });
 ```
 
 ---

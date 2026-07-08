@@ -68,12 +68,8 @@ Use `start-<number>` and `end-<number>` for RTL-aware positioning:
 Use fractions for percentages or arbitrary values:
 
 ```html
-<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-  Centered
-</div>
-<div class="absolute top-[117px] left-[20%]">
-  Custom position
-</div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">Centered</div>
+<div class="absolute top-[117px] left-[20%]">Custom position</div>
 ```
 
 ## Key Points

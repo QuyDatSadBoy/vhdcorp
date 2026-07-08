@@ -16,14 +16,10 @@ interface ListParams {
 }
 
 export const mediaService = {
-  list: (params?: ListParams) =>
-    axios.get<{ data: PaginatedResult<Media> }>("/media", { params }).then(unwrap),
+  list: (params?: ListParams) => axios.get<{ data: PaginatedResult<Media> }>("/media", { params }).then(unwrap),
   signUpload: (folder: string, publicId?: string) =>
-    axios
-      .post<{ data: CloudinarySignedUpload }>("/media/sign", { folder, publicId })
-      .then(unwrap),
-  saveMeta: (payload: Partial<Media>) =>
-    axios.post<{ data: Media }>("/media", payload).then(unwrap),
+    axios.post<{ data: CloudinarySignedUpload }>("/media/sign", { folder, publicId }).then(unwrap),
+  saveMeta: (payload: Partial<Media>) => axios.post<{ data: Media }>("/media", payload).then(unwrap),
   remove: (id: number) => axios.delete(`/media/${id}`).then(() => undefined),
 };
 
@@ -32,10 +28,7 @@ export const mediaService = {
  * BE tự xử lý: thử Cloudinary trước, fallback lưu local /uploads.
  * UX: admin chỉ chọn file, không cần biết storage backend.
  */
-export async function uploadToCloudinary(
-  file: File,
-  folder: string,
-): Promise<Media> {
+export async function uploadToCloudinary(file: File, folder: string): Promise<Media> {
   const form = new FormData();
   form.append("file", file);
   form.append("folder", folder);

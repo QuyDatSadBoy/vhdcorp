@@ -8,9 +8,7 @@ export default function CustomHtml({ section }: { section: Section }) {
   const html = (p.html ?? "").trim();
   // Bỏ qua section trống hoặc còn placeholder mặc định khi admin chưa biên tập.
   const isPlaceholder =
-    html === "" ||
-    /^<div>\s*Custom\s*block\s*<\/div>$/i.test(html) ||
-    /^<p>\s*Custom\s*block\s*<\/p>$/i.test(html);
+    html === "" || /^<div>\s*Custom\s*block\s*<\/div>$/i.test(html) || /^<p>\s*Custom\s*block\s*<\/p>$/i.test(html);
   if (isPlaceholder) return null;
   return (
     <section

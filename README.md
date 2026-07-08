@@ -6,9 +6,9 @@ Monorepo: **NestJS** backend + **Next.js** frontend.
 
 ## Stack
 
-| Layer | Tech |
-| --- | --- |
-| Backend | NestJS 11, Prisma 7, PostgreSQL, Passport JWT |
+| Layer    | Tech                                                                      |
+| -------- | ------------------------------------------------------------------------- |
+| Backend  | NestJS 11, Prisma 7, PostgreSQL, Passport JWT                             |
 | Frontend | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui, Zustand, TanStack Query |
 
 ## Cấu trúc
@@ -58,17 +58,17 @@ tail -f be/logs/app.log fe/logs/app.log
 
 ## Scripts
 
-| Lệnh | Mô tả |
-| --- | --- |
-| `cd be && yarn start:dev` | Backend dev (hot reload) |
-| `cd be && yarn start:log` | Backend dev + log ra `be/logs/app.log` |
-| `cd be && yarn start:prod` | Production (`node dist/main`) |
-| `cd be && yarn seed` | Seed dữ liệu mẫu |
-| `cd be && yarn reset` | Reset database |
-| `cd be && yarn prisma studio` | Prisma Studio GUI |
-| `cd fe && yarn dev` | Frontend dev |
-| `cd fe && yarn dev:log` | Frontend dev + log ra `fe/logs/app.log` |
-| `cd fe && yarn build` | Build production |
+| Lệnh                          | Mô tả                                   |
+| ----------------------------- | --------------------------------------- |
+| `cd be && yarn start:dev`     | Backend dev (hot reload)                |
+| `cd be && yarn start:log`     | Backend dev + log ra `be/logs/app.log`  |
+| `cd be && yarn start:prod`    | Production (`node dist/main`)           |
+| `cd be && yarn seed`          | Seed dữ liệu mẫu                        |
+| `cd be && yarn reset`         | Reset database                          |
+| `cd be && yarn prisma studio` | Prisma Studio GUI                       |
+| `cd fe && yarn dev`           | Frontend dev                            |
+| `cd fe && yarn dev:log`       | Frontend dev + log ra `fe/logs/app.log` |
+| `cd fe && yarn build`         | Build production                        |
 
 ## Prisma
 
@@ -90,14 +90,14 @@ yarn prisma generate
 
 ## Env quan trọng
 
-| Biến | Mô tả |
-| --- | --- |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `JWT_ACCESS_SECRET` | Secret cho access token (min 32 chars) |
+| Biến                 | Mô tả                                   |
+| -------------------- | --------------------------------------- |
+| `DATABASE_URL`       | PostgreSQL connection string            |
+| `JWT_ACCESS_SECRET`  | Secret cho access token (min 32 chars)  |
 | `JWT_REFRESH_SECRET` | Secret cho refresh token (min 32 chars) |
-| `COOKIE_SECRET` | Secret cho cookie-parser signing |
-| `CORS_ORIGIN` | `*` khi dev, domain cụ thể khi prod |
-| `FRONTEND_URL` | URL FE để BE redirect OAuth callback |
+| `COOKIE_SECRET`      | Secret cho cookie-parser signing        |
+| `CORS_ORIGIN`        | `*` khi dev, domain cụ thể khi prod     |
+| `FRONTEND_URL`       | URL FE để BE redirect OAuth callback    |
 
 ## Kiến trúc nhanh
 

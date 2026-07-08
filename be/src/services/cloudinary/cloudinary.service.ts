@@ -1,6 +1,6 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { v2 as cloudinary, type UploadApiOptions } from "cloudinary";
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { v2 as cloudinary, type UploadApiOptions } from 'cloudinary';
 
 export interface SignedUploadParams {
   apiKey: string;
@@ -21,9 +21,9 @@ export class CloudinaryService {
 
   constructor(private config: ConfigService) {
     cloudinary.config({
-      cloud_name: this.config.get<string>("CLOUDINARY_CLOUD_NAME"),
-      api_key: this.config.get<string>("CLOUDINARY_API_KEY"),
-      api_secret: this.config.get<string>("CLOUDINARY_API_SECRET"),
+      cloud_name: this.config.get<string>('CLOUDINARY_CLOUD_NAME'),
+      api_key: this.config.get<string>('CLOUDINARY_API_KEY'),
+      api_secret: this.config.get<string>('CLOUDINARY_API_SECRET'),
       secure: true,
     });
   }
@@ -34,12 +34,15 @@ export class CloudinaryService {
     const paramsToSign: Record<string, string | number> = { timestamp, folder };
     if (publicId) paramsToSign.public_id = publicId;
 
-    const apiSecret = this.config.get<string>("CLOUDINARY_API_SECRET") ?? "";
-    const signature = cloudinary.utils.api_sign_request(paramsToSign, apiSecret);
+    const apiSecret = this.config.get<string>('CLOUDINARY_API_SECRET') ?? '';
+    const signature = cloudinary.utils.api_sign_request(
+      paramsToSign,
+      apiSecret,
+    );
 
     return {
-      apiKey: this.config.get<string>("CLOUDINARY_API_KEY") ?? "",
-      cloudName: this.config.get<string>("CLOUDINARY_CLOUD_NAME") ?? "",
+      apiKey: this.config.get<string>('CLOUDINARY_API_KEY') ?? '',
+      cloudName: this.config.get<string>('CLOUDINARY_CLOUD_NAME') ?? '',
       timestamp,
       signature,
       folder,
@@ -50,14 +53,17 @@ export class CloudinaryService {
   async destroy(publicId: string): Promise<boolean> {
     try {
       const result = await cloudinary.uploader.destroy(publicId);
-      return result.result === "ok";
+      return result.result === 'ok';
     } catch (error) {
       this.logger.error(`Cloudinary destroy failed: ${publicId}`, error);
       return false;
     }
   }
 
-  async upload(buffer: Buffer, options: UploadApiOptions): Promise<{
+  async upload(
+    buffer: Buffer,
+    options: UploadApiOptions,
+  ): Promise<{
     url: string;
     publicId: string;
     width?: number;
@@ -66,17 +72,20 @@ export class CloudinaryService {
     bytes: number;
   }> {
     return new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(options, (err, result) => {
-        if (err || !result) return reject(err);
-        resolve({
-          url: result.secure_url,
-          publicId: result.public_id,
-          width: result.width,
-          height: result.height,
-          format: result.format,
-          bytes: result.bytes,
-        });
-      });
+      const stream = cloudinary.uploader.upload_stream(
+        options,
+        (err, result) => {
+          if (err || !result) return reject(err);
+          resolve({
+            url: result.secure_url,
+            publicId: result.public_id,
+            width: result.width,
+            height: result.height,
+            format: result.format,
+            bytes: result.bytes,
+          });
+        },
+      );
       stream.end(buffer);
     });
   }

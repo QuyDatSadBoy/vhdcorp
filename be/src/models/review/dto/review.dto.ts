@@ -1,5 +1,14 @@
-import { IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
-import { ReviewStatus } from "@vhd/prisma-client";
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
+import { ReviewStatus } from '@vhd/prisma-client';
 
 export class CreateReviewDto {
   @IsInt()

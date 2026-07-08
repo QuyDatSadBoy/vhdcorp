@@ -130,19 +130,19 @@ be/src/
 
 ## Skills — Đọc SKILL.md trước khi code
 
-| Task | Skill file |
-| --- | --- |
-| NestJS module, guard, DTO, interceptor | `.agents/skills/nestjs-best-practices/SKILL.md` |
-| Next.js page, component, data fetching | `.agents/skills/vercel-react-best-practices/SKILL.md` |
-| TanStack Query | `.agents/skills/tanstack-query-best-practices/SKILL.md` |
-| Form + Zod | `.agents/skills/react-hook-form-zod/SKILL.md` |
-| shadcn/ui | `.agents/skills/shadcn-ui/SKILL.md` |
-| Tailwind CSS | `.agents/skills/tailwindcss/SKILL.md` |
-| Prisma query | `.agents/skills/prisma-client-api/SKILL.md` |
-| PostgreSQL schema | `.agents/skills/postgresql-table-design/SKILL.md` |
-| SEO, metadata | `.agents/skills/seo/SKILL.md` |
-| Animation | `.agents/skills/framer-motion-animator/SKILL.md` hoặc `.agents/skills/gsap-scrolltrigger/SKILL.md` |
-| TypeScript | `.agents/skills/typescript-best-practices/SKILL.md` |
+| Task                                   | Skill file                                                                                         |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| NestJS module, guard, DTO, interceptor | `.agents/skills/nestjs-best-practices/SKILL.md`                                                    |
+| Next.js page, component, data fetching | `.agents/skills/vercel-react-best-practices/SKILL.md`                                              |
+| TanStack Query                         | `.agents/skills/tanstack-query-best-practices/SKILL.md`                                            |
+| Form + Zod                             | `.agents/skills/react-hook-form-zod/SKILL.md`                                                      |
+| shadcn/ui                              | `.agents/skills/shadcn-ui/SKILL.md`                                                                |
+| Tailwind CSS                           | `.agents/skills/tailwindcss/SKILL.md`                                                              |
+| Prisma query                           | `.agents/skills/prisma-client-api/SKILL.md`                                                        |
+| PostgreSQL schema                      | `.agents/skills/postgresql-table-design/SKILL.md`                                                  |
+| SEO, metadata                          | `.agents/skills/seo/SKILL.md`                                                                      |
+| Animation                              | `.agents/skills/framer-motion-animator/SKILL.md` hoặc `.agents/skills/gsap-scrolltrigger/SKILL.md` |
+| TypeScript                             | `.agents/skills/typescript-best-practices/SKILL.md`                                                |
 
 ---
 

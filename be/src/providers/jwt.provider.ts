@@ -1,6 +1,6 @@
-import { Module } from "@nestjs/common";
-import { JwtModule } from "@nestjs/jwt";
-import { ConfigService } from "@nestjs/config";
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -9,8 +9,10 @@ import { ConfigService } from "@nestjs/config";
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         // Default secret cho convenience; service auth tự override per token type.
-        secret: configService.getOrThrow("JWT_ACCESS_SECRET"),
-        signOptions: { expiresIn: configService.get("JWT_ACCESS_EXPIRES") || "15m" },
+        secret: configService.getOrThrow('JWT_ACCESS_SECRET'),
+        signOptions: {
+          expiresIn: configService.get('JWT_ACCESS_EXPIRES') || '15m',
+        },
       }),
     }),
   ],

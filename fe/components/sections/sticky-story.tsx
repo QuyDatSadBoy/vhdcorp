@@ -82,7 +82,7 @@ export default function StickyStory({ section }: { section: StickyStorySection }
       <div className="sticky top-0 flex h-screen items-center overflow-hidden">
         <div className="container mx-auto grid gap-10 px-4 lg:grid-cols-2 lg:gap-16">
           <div className="max-w-xl self-center">
-            <p className="type-eyebrow text-brand-accent">{p.eyebrow ?? "Cách VHD hoạt động"}</p>
+            <p className="type-eyebrow text-brand-primary">{p.eyebrow ?? "Cách VHD hoạt động"}</p>
             <h2 className="mt-3 type-display-md text-foreground">{p.heading ?? "Bốn bước đến đối tác bền vững"}</h2>
             {p.subheading && <p className="mt-4 type-lead text-foreground/65">{p.subheading}</p>}
 

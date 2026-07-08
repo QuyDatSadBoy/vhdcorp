@@ -44,13 +44,7 @@ interface RichEditorProps {
  * Toolbar đầy đủ cho non-tech user: heading, bold, italic, list, link, image, code...
  * Output là HTML string (sanitize ở BE qua `SanitizeHtmlInterceptor`).
  */
-export function RichEditor({
-  value,
-  onChange,
-  placeholder,
-  uploadFolder = "posts",
-  className,
-}: RichEditorProps) {
+export function RichEditor({ value, onChange, placeholder, uploadFolder = "posts", className }: RichEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -67,10 +61,7 @@ export function RichEditor({
     content: value || "",
     editorProps: {
       attributes: {
-        class: cn(
-          "prose prose-sm max-w-none focus:outline-none dark:prose-invert",
-          "px-4 py-3"
-        ),
+        class: cn("prose prose-sm max-w-none focus:outline-none dark:prose-invert", "px-4 py-3"),
         "data-placeholder": placeholder ?? "Nhập nội dung...",
       },
     },
@@ -92,14 +83,7 @@ export function RichEditor({
   }, [value, editor]);
 
   if (!editor) {
-    return (
-      <div
-        className={cn(
-          "min-h-80 rounded-md border bg-muted/30",
-          className,
-        )}
-      />
-    );
+    return <div className={cn("min-h-80 rounded-md border bg-muted/30", className)} />;
   }
 
   return (
@@ -144,7 +128,7 @@ function Toolbar({ editor, uploadFolder }: ToolbarProps) {
         setUploading(false);
       }
     },
-    [editor, uploadFolder],
+    [editor, uploadFolder]
   );
 
   return (
@@ -239,27 +223,20 @@ function Toolbar({ editor, uploadFolder }: ToolbarProps) {
       >
         <Code2 className="h-4 w-4" />
       </ToolbarButton>
-      <ToolbarButton
-        label="Đường kẻ ngang"
-        onClick={() => editor.chain().focus().setHorizontalRule().run()}
-      >
+      <ToolbarButton label="Đường kẻ ngang" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
         <Minus className="h-4 w-4" />
       </ToolbarButton>
 
       <ToolbarDivider />
 
-      <ToolbarButton
-        label="Chèn liên kết"
-        active={editor.isActive("link")}
-        onClick={insertLink}
-      >
+      <ToolbarButton label="Chèn liên kết" active={editor.isActive("link")} onClick={insertLink}>
         <LinkIcon className="h-4 w-4" />
       </ToolbarButton>
       <label
         title="Chèn ảnh từ máy"
         className={cn(
           "inline-flex h-8 cursor-pointer items-center justify-center rounded px-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-          uploading && "pointer-events-none opacity-60",
+          uploading && "pointer-events-none opacity-60"
         )}
       >
         <input
@@ -316,7 +293,7 @@ function ToolbarButton({ label, active, disabled, onClick, children }: ToolbarBu
         "inline-flex h-8 w-8 items-center justify-center rounded text-muted-foreground transition",
         "hover:bg-accent hover:text-accent-foreground",
         "disabled:pointer-events-none disabled:opacity-40",
-        active && "bg-primary/10 text-primary",
+        active && "bg-primary/10 text-primary"
       )}
     >
       {children}

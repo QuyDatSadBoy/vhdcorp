@@ -62,6 +62,30 @@ export const DEFAULT_SITE_CONFIG: SiteConfigValue = {
  * Lấy site config (server-side, cache per request).
  * Fallback về DEFAULT_SITE_CONFIG nếu BE lỗi để tránh trang trắng.
  */
+/**
+ * Deep-merge value DB lên DEFAULT_SITE_CONFIG để không vỡ trang khi DB thiếu key
+ * (ví dụ seed cũ chưa có `seo`, `customCss`, ...). Override key có trong DB.
+ */
+function mergeWithDefaults(partial: Partial<SiteConfigValue> | undefined): SiteConfigValue {
+  if (!partial) return DEFAULT_SITE_CONFIG;
+  return {
+    ...DEFAULT_SITE_CONFIG,
+    ...partial,
+    brand: { ...DEFAULT_SITE_CONFIG.brand, ...(partial.brand ?? {}) },
+    theme: {
+      ...DEFAULT_SITE_CONFIG.theme,
+      ...(partial.theme ?? {}),
+      colors: { ...DEFAULT_SITE_CONFIG.theme.colors, ...(partial.theme?.colors ?? {}) },
+      fonts: { ...DEFAULT_SITE_CONFIG.theme.fonts, ...(partial.theme?.fonts ?? {}) },
+    },
+    seo: { ...DEFAULT_SITE_CONFIG.seo, ...(partial.seo ?? {}) },
+    pages: { ...DEFAULT_SITE_CONFIG.pages, ...(partial.pages ?? {}) },
+    navigation: partial.navigation ?? DEFAULT_SITE_CONFIG.navigation,
+    footer: { ...DEFAULT_SITE_CONFIG.footer, ...(partial.footer ?? {}) },
+    customCss: partial.customCss ?? DEFAULT_SITE_CONFIG.customCss,
+  };
+}
+
 export const getSiteConfig = cache(async (): Promise<SiteConfigValue> => {
   try {
     const res = await fetch(`${API_URL}/site-config`, {
@@ -69,7 +93,7 @@ export const getSiteConfig = cache(async (): Promise<SiteConfigValue> => {
     });
     if (!res.ok) return DEFAULT_SITE_CONFIG;
     const json = (await res.json()) as { data?: SiteConfigDto };
-    return json.data?.value ?? DEFAULT_SITE_CONFIG;
+    return mergeWithDefaults(json.data?.value as Partial<SiteConfigValue> | undefined);
   } catch {
     return DEFAULT_SITE_CONFIG;
   }

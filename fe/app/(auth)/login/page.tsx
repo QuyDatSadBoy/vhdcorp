@@ -9,9 +9,7 @@ export default function LoginPage() {
         ← Quay về trang chủ
       </Link>
       <h1 className="mt-2 text-center text-2xl font-bold">Đăng nhập</h1>
-      <p className="mb-6 text-center text-sm text-muted-foreground">
-        Chào mừng bạn quay lại VHD Corp
-      </p>
+      <p className="mb-6 text-center text-sm text-muted-foreground">Chào mừng bạn quay lại VHD Corp</p>
       <Suspense>
         <LoginForm />
       </Suspense>

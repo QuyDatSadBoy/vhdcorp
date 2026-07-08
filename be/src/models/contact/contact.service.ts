@@ -1,5 +1,5 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { CreateContactDto } from "./dto/create-contact.dto";
+import { Injectable, Logger } from '@nestjs/common';
+import { CreateContactDto } from './dto/create-contact.dto';
 
 @Injectable()
 export class ContactService {
@@ -10,6 +10,6 @@ export class ContactService {
     this.logger.log(
       `Liên hệ mới từ ${dto.name} <${dto.email}>: ${dto.subject}`,
     );
-    return { message: "Cảm ơn bạn! Chúng tôi sẽ liên hệ lại sớm nhất." };
+    return { message: 'Cảm ơn bạn! Chúng tôi sẽ liên hệ lại sớm nhất.' };
   }
 }

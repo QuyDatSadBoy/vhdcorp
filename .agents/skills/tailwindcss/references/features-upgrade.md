@@ -35,16 +35,16 @@ Requires Node.js 20+. Run in a new branch, review diff, test. Handles most migra
 
 ## Renamed Utilities
 
-| v3 | v4 |
-|----|-----|
-| `shadow-sm` | `shadow-xs` |
-| `shadow` | `shadow-sm` |
-| `rounded-sm` | `rounded-xs` |
-| `rounded` | `rounded-sm` |
-| `blur-sm` | `blur-xs` |
-| `blur` | `blur-sm` |
+| v3             | v4               |
+| -------------- | ---------------- |
+| `shadow-sm`    | `shadow-xs`      |
+| `shadow`       | `shadow-sm`      |
+| `rounded-sm`   | `rounded-xs`     |
+| `rounded`      | `rounded-sm`     |
+| `blur-sm`      | `blur-xs`        |
+| `blur`         | `blur-sm`        |
 | `outline-none` | `outline-hidden` |
-| `ring` | `ring-3` |
+| `ring`         | `ring-3`         |
 
 ## Removed / Replaced
 
@@ -58,9 +58,9 @@ Requires Node.js 20+. Run in a new branch, review diff, test. Handles most migra
 ```html
 <!-- v3: ! at start -->
 <div class="!bg-red-500">
-
-<!-- v4: ! at end -->
-<div class="bg-red-500!">
+  <!-- v4: ! at end -->
+  <div class="bg-red-500!"></div>
+</div>
 ```
 
 ## Ring & Border Defaults

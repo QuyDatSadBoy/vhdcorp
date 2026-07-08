@@ -9,10 +9,11 @@ Complete reference for known issues and their solutions.
 **Error**: Type inference doesn't work correctly with Zod v4
 
 **Symptoms**:
+
 ```typescript
 // Types don't match expected structure
-const schema = z.object({ name: z.string() })
-type FormData = z.infer<typeof schema> // Type issues
+const schema = z.object({ name: z.string() });
+type FormData = z.infer<typeof schema>; // Type issues
 ```
 
 **Source**: [GitHub Issue #13109](https://github.com/react-hook-form/react-hook-form/issues/13109) (Closed 2025-11-01)
@@ -20,15 +21,16 @@ type FormData = z.infer<typeof schema> // Type issues
 **Note**: This issue was resolved in react-hook-form v7.66.x. Upgrade to v7.66.1+ to avoid this problem.
 
 **Solution**:
+
 ```typescript
 // Use correct Zod v4 patterns
-const schema = z.object({ name: z.string() })
-type FormData = z.infer<typeof schema>
+const schema = z.object({ name: z.string() });
+type FormData = z.infer<typeof schema>;
 
 // Explicitly type useForm if needed
 const form = useForm<z.infer<typeof schema>>({
   resolver: zodResolver(schema),
-})
+});
 ```
 
 ---
@@ -38,6 +40,7 @@ const form = useForm<z.infer<typeof schema>>({
 **Error**: "A component is changing an uncontrolled input to be controlled"
 
 **Symptoms**:
+
 ```
 Warning: A component is changing an uncontrolled input of type text to be controlled.
 Input elements should not switch from uncontrolled to controlled (or vice versa).
@@ -46,18 +49,19 @@ Input elements should not switch from uncontrolled to controlled (or vice versa)
 **Cause**: Not setting defaultValues causes fields to be undefined initially
 
 **Solution**:
+
 ```typescript
 // BAD
-const form = useForm()
+const form = useForm();
 
 // GOOD - Always set defaultValues
 const form = useForm({
   defaultValues: {
-    email: '',
-    password: '',
+    email: "",
+    password: "",
     remember: false,
   },
-})
+});
 ```
 
 ---
@@ -67,12 +71,14 @@ const form = useForm({
 **Error**: Errors for nested fields don't display correctly
 
 **Symptoms**:
+
 ```typescript
 // errors.address.street is undefined even though validation failed
 <span>{errors.address.street?.message}</span> // Shows nothing
 ```
 
 **Solution**:
+
 ```typescript
 // Use optional chaining for nested errors
 {errors.address?.street && (
@@ -94,6 +100,7 @@ const form = useForm({
 **Cause**: Using array index as key instead of field.id
 
 **Solution**:
+
 ```typescript
 // BAD
 {fields.map((field, index) => (
@@ -119,28 +126,29 @@ const form = useForm({
 **Symptoms**: Old validation results override new ones
 
 **Solution**:
+
 ```typescript
 // Use debouncing
-import { useDebouncedCallback } from 'use-debounce'
+import { useDebouncedCallback } from "use-debounce";
 
 const debouncedValidation = useDebouncedCallback(
-  () => trigger('username'),
+  () => trigger("username"),
   500 // Wait 500ms after user stops typing
-)
+);
 
 // AND cancel pending requests
-const abortControllerRef = useRef<AbortController | null>(null)
+const abortControllerRef = useRef<AbortController | null>(null);
 
 useEffect(() => {
   if (abortControllerRef.current) {
-    abortControllerRef.current.abort()
+    abortControllerRef.current.abort();
   }
 
-  abortControllerRef.current = new AbortController()
+  abortControllerRef.current = new AbortController();
 
   // Make request with abort signal
-  fetch('/api/check', { signal: abortControllerRef.current.signal })
-}, [value])
+  fetch("/api/check", { signal: abortControllerRef.current.signal });
+}, [value]);
 ```
 
 ---
@@ -150,34 +158,35 @@ useEffect(() => {
 **Error**: Server validation errors don't map to form fields
 
 **Solution**:
+
 ```typescript
 const onSubmit = async (data) => {
   try {
-    const response = await fetch('/api/submit', {
-      method: 'POST',
+    const response = await fetch("/api/submit", {
+      method: "POST",
       body: JSON.stringify(data),
-    })
+    });
 
     if (!response.ok) {
-      const { errors } = await response.json()
+      const { errors } = await response.json();
 
       // Map server errors to form fields
       Object.entries(errors).forEach(([field, message]) => {
         setError(field, {
-          type: 'server',
+          type: "server",
           message: Array.isArray(message) ? message[0] : message,
-        })
-      })
+        });
+      });
 
-      return
+      return;
     }
   } catch (error) {
-    setError('root', {
-      type: 'server',
-      message: 'Network error',
-    })
+    setError("root", {
+      type: "server",
+      message: "Network error",
+    });
   }
-}
+};
 ```
 
 ---
@@ -189,29 +198,30 @@ const onSubmit = async (data) => {
 **Cause**: Setting defaultValues after form initialization
 
 **Solution**:
+
 ```typescript
 // BAD - Set in useState
-const [defaultValues, setDefaultValues] = useState({})
+const [defaultValues, setDefaultValues] = useState({});
 
 useEffect(() => {
-  setDefaultValues({ email: 'user@example.com' }) // Too late!
-}, [])
+  setDefaultValues({ email: "user@example.com" }); // Too late!
+}, []);
 
-const form = useForm({ defaultValues })
+const form = useForm({ defaultValues });
 
 // GOOD - Set directly or use reset()
 const form = useForm({
-  defaultValues: { email: 'user@example.com' },
-})
+  defaultValues: { email: "user@example.com" },
+});
 
 // OR fetch and use reset
 useEffect(() => {
   async function loadData() {
-    const data = await fetchData()
-    reset(data)
+    const data = await fetchData();
+    reset(data);
   }
-  loadData()
-}, [reset])
+  loadData();
+}, [reset]);
 ```
 
 ---
@@ -223,6 +233,7 @@ useEffect(() => {
 **Cause**: Not spreading {...field} in Controller render
 
 **Solution**:
+
 ```typescript
 // BAD
 <Controller
@@ -246,11 +257,13 @@ useEffect(() => {
 **Error**: React warning about duplicate keys in list
 
 **Symptoms**:
+
 ```
 Warning: Encountered two children with the same key
 ```
 
 **Solution**:
+
 ```typescript
 // BAD - Using index as key
 {fields.map((field, index) => (
@@ -272,6 +285,7 @@ Warning: Encountered two children with the same key
 **Cause**: Not specifying path in refinement
 
 **Solution**:
+
 ```typescript
 // BAD - Error appears at form level
 z.object({
@@ -280,7 +294,7 @@ z.object({
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   // Missing path!
-})
+});
 
 // GOOD - Error appears at confirmPassword field
 z.object({
@@ -288,8 +302,8 @@ z.object({
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
-  path: ['confirmPassword'], // Specify path
-})
+  path: ["confirmPassword"], // Specify path
+});
 ```
 
 ---
@@ -302,14 +316,11 @@ z.object({
 
 ```typescript
 // Use TRANSFORM for output transformation (after validation)
-z.string().transform((val) => val.toUpperCase())
+z.string().transform((val) => val.toUpperCase());
 // Input: 'hello' -> Validation: passes -> Output: 'HELLO'
 
 // Use PREPROCESS for input transformation (before validation)
-z.preprocess(
-  (val) => (val === '' ? undefined : val),
-  z.string().optional()
-)
+z.preprocess((val) => (val === "" ? undefined : val), z.string().optional());
 // Input: '' -> Preprocess: undefined -> Validation: passes
 ```
 
@@ -322,21 +333,22 @@ z.preprocess(
 **Cause**: Trying to use multiple validation libraries simultaneously
 
 **Solution**:
+
 ```typescript
 // BAD - Can't use multiple resolvers
 const form = useForm({
   resolver: zodResolver(schema),
   resolver: yupResolver(schema), // Overrides previous
-})
+});
 
 // GOOD - Use single resolver, combine schemas if needed
-const schema1 = z.object({ email: z.string() })
-const schema2 = z.object({ password: z.string() })
-const combinedSchema = schema1.merge(schema2)
+const schema1 = z.object({ email: z.string() });
+const schema2 = z.object({ password: z.string() });
+const combinedSchema = schema1.merge(schema2);
 
 const form = useForm({
   resolver: zodResolver(combinedSchema),
-})
+});
 ```
 
 ---
@@ -359,23 +371,24 @@ import { DevTool } from '@hookform/devtools'
 
 ```typescript
 useEffect(() => {
-  console.log('Form State:', formState)
-  console.log('Errors:', errors)
-  console.log('Values:', getValues())
-}, [formState, errors, getValues])
+  console.log("Form State:", formState);
+  console.log("Errors:", errors);
+  console.log("Values:", getValues());
+}, [formState, errors, getValues]);
 ```
 
 ### Validate on Change During Development
 
 ```typescript
 const form = useForm({
-  mode: 'onChange', // See errors immediately
+  mode: "onChange", // See errors immediately
   resolver: zodResolver(schema),
-})
+});
 ```
 
 ---
 
 **Official Docs**:
+
 - React Hook Form: https://react-hook-form.com/
 - Zod: https://zod.dev/

@@ -1,7 +1,7 @@
-import { Response } from "express";
+import { Response } from 'express';
 
-export const ACCESS_COOKIE = "access_token";
-export const REFRESH_COOKIE = "refresh_token";
+export const ACCESS_COOKIE = 'access_token';
+export const REFRESH_COOKIE = 'refresh_token';
 
 interface CookieEnv {
   NODE_ENV?: string;
@@ -10,7 +10,8 @@ interface CookieEnv {
   JWT_REFRESH_EXPIRES?: string;
 }
 
-const readEnv = (env: CookieEnv | NodeJS.ProcessEnv): CookieEnv => env as CookieEnv;
+const readEnv = (env: CookieEnv | NodeJS.ProcessEnv): CookieEnv =>
+  env as CookieEnv;
 
 const parseDurationMs = (raw: string | undefined, fallback: number): number => {
   if (!raw) return fallback;
@@ -18,28 +19,36 @@ const parseDurationMs = (raw: string | undefined, fallback: number): number => {
   if (!match) return fallback;
   const n = Number(match[1]);
   const unit = match[2];
-  const map: Record<string, number> = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 };
+  const map: Record<string, number> = {
+    s: 1000,
+    m: 60_000,
+    h: 3_600_000,
+    d: 86_400_000,
+  };
   return n * (map[unit] ?? 1000);
 };
 
 const baseCookieOptions = (env: CookieEnv) => ({
   httpOnly: true,
-  secure: env.NODE_ENV === "production",
-  sameSite: "strict" as const,
+  secure: env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
   signed: true,
   domain: env.COOKIE_DOMAIN || undefined,
-  path: "/",
+  path: '/',
 });
 
 export const setAuthCookies = (
   res: Response,
   accessToken: string,
   refreshToken: string,
-  envInput: CookieEnv | NodeJS.ProcessEnv = process.env
+  envInput: CookieEnv | NodeJS.ProcessEnv = process.env,
 ) => {
   const env = readEnv(envInput);
   const accessMs = parseDurationMs(env.JWT_ACCESS_EXPIRES, 15 * 60 * 1000);
-  const refreshMs = parseDurationMs(env.JWT_REFRESH_EXPIRES, 7 * 24 * 60 * 60 * 1000);
+  const refreshMs = parseDurationMs(
+    env.JWT_REFRESH_EXPIRES,
+    7 * 24 * 60 * 60 * 1000,
+  );
   const opts = baseCookieOptions(env);
   res.cookie(ACCESS_COOKIE, accessToken, { ...opts, maxAge: accessMs });
   res.cookie(REFRESH_COOKIE, refreshToken, { ...opts, maxAge: refreshMs });
@@ -47,7 +56,7 @@ export const setAuthCookies = (
 
 export const clearAuthCookies = (
   res: Response,
-  envInput: CookieEnv | NodeJS.ProcessEnv = process.env
+  envInput: CookieEnv | NodeJS.ProcessEnv = process.env,
 ) => {
   const env = readEnv(envInput);
   const opts = baseCookieOptions(env);

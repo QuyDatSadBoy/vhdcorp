@@ -64,7 +64,7 @@ Apply Tailwind variants to styles in your CSS:
 ```css
 .my-element {
   background: white;
-  
+
   @variant dark {
     background: black;
   }
@@ -104,7 +104,7 @@ Import stylesheet for reference without including styles (useful for Vue/Svelte 
 ```html
 <style>
   @reference "../../app.css";
-  
+
   h1 {
     @apply text-2xl font-bold text-red-500;
   }
@@ -116,7 +116,7 @@ Or reference Tailwind directly:
 ```html
 <style>
   @reference "tailwindcss";
-  
+
   h1 {
     @apply text-2xl font-bold;
   }
@@ -138,7 +138,7 @@ Directives support subpath imports (like TypeScript path aliases):
 ```html
 <style>
   @reference "#app.css";
-  
+
   h1 {
     @apply text-2xl font-bold;
   }
@@ -188,9 +188,7 @@ Compiles to:
 Useful in arbitrary values with `calc()`:
 
 ```html
-<div class="py-[calc(--spacing(4)-1px)]">
-  Content
-</div>
+<div class="py-[calc(--spacing(4)-1px)]">Content</div>
 ```
 
 ## Compatibility Directives

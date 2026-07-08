@@ -1,11 +1,23 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { Target, Eye, Heart, Handshake, ShieldCheck, Sparkles, Users, ArrowRight } from "lucide-react";
 import { getSiteConfig } from "@/lib/site-config";
+import { buildMetadata } from "@/lib/seo";
+import { SITE_URL } from "@/components/seo/json-ld";
 import { PageRenderer } from "@/components/sections";
 import { PageHero } from "@/components/client/page-hero";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return buildMetadata({
+    title: "Giới thiệu",
+    description:
+      "VHD Corp — tổng kho nhựa PVC, cao su kỹ thuật và đặc sản miến làng nghề Việt Nam. Sứ mệnh, tầm nhìn, giá trị cốt lõi và hành trình 12+ năm phục vụ B2B/B2C.",
+    canonical: `${SITE_URL}/about`,
+  });
+}
 
 const PILLARS = [
   {
@@ -104,7 +116,7 @@ export default async function AboutPage() {
       {/* Pillars */}
       <section className="container mx-auto px-4 py-20">
         <div className="mb-12 max-w-2xl">
-          <p className="type-eyebrow text-brand-accent">Định hướng</p>
+          <p className="type-eyebrow text-brand-primary">Định hướng</p>
           <h2 className="mt-3 type-display-md text-foreground">Ba trụ cột làm nên VHD Corp</h2>
           <div className="mt-4 h-1 w-12 rounded-full bg-brand-highlight" />
         </div>
@@ -135,7 +147,7 @@ export default async function AboutPage() {
       <section className="bg-(--vhd-color-surface)/60 py-20">
         <div className="container mx-auto grid items-center gap-12 px-4 lg:grid-cols-2">
           <div>
-            <p className="type-eyebrow text-brand-accent">Câu chuyện thương hiệu</p>
+            <p className="type-eyebrow text-brand-primary">Câu chuyện thương hiệu</p>
             <h2 className="mt-3 type-display-md text-foreground">
               Hành trình từ <span className="word-highlight">làng nghề</span> ra thế giới
             </h2>
@@ -182,7 +194,7 @@ export default async function AboutPage() {
       {/* Values grid */}
       <section className="container mx-auto px-4 py-20">
         <div className="mb-12 max-w-2xl">
-          <p className="type-eyebrow text-brand-accent">Giá trị</p>
+          <p className="type-eyebrow text-brand-primary">Giá trị</p>
           <h2 className="mt-3 type-display-md text-foreground">Chuẩn mực cốt lõi của VHD</h2>
           <div className="mt-4 h-1 w-12 rounded-full bg-brand-highlight" />
         </div>
@@ -209,7 +221,7 @@ export default async function AboutPage() {
       <section className="bg-(--vhd-color-surface)/60 py-20">
         <div className="container mx-auto px-4">
           <div className="mb-12 max-w-2xl">
-            <p className="type-eyebrow text-brand-accent">Mốc thời gian</p>
+            <p className="type-eyebrow text-brand-primary">Mốc thời gian</p>
             <h2 className="mt-3 type-display-md text-foreground">Hành trình phát triển</h2>
             <div className="mt-4 h-1 w-12 rounded-full bg-brand-highlight" />
           </div>

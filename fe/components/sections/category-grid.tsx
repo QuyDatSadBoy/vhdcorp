@@ -47,7 +47,7 @@ export default function CategoryGrid({ section }: { section: Section }) {
   return (
     <section ref={sectionRef} className="container mx-auto px-4">
       <Reveal className="mb-10 max-w-2xl">
-        <p className="type-eyebrow text-brand-accent">Danh mục</p>
+        <p className="type-eyebrow text-brand-primary">Danh mục</p>
         <h2 className="mt-3 type-display-md text-foreground">{p.heading ?? "Khám phá theo danh mục"}</h2>
         <div className="mt-4 h-1 w-12 rounded-full bg-brand-highlight" />
         <p className="mt-4 text-foreground/65">

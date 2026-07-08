@@ -45,7 +45,7 @@ export function Providers({ children, initialSiteConfig }: ProvidersProps) {
           },
           mutations: { retry: 0 },
         },
-      }),
+      })
   );
 
   const setConfig = useSiteConfigStore((s) => s.setConfig);

@@ -34,9 +34,7 @@ export const siteConfigService = {
   getDraft: (key = "main") =>
     axios.get<{ data: SiteConfigEntity }>("/site-config/draft", { params: { key } }).then(unwrap),
   saveDraft: (key: string, value: SiteConfigValue) =>
-    axios
-      .put<{ data: SiteConfigEntity }>("/site-config/draft", { value }, { params: { key } })
-      .then(unwrap),
+    axios.put<{ data: SiteConfigEntity }>("/site-config/draft", { value }, { params: { key } }).then(unwrap),
   publish: (key = "main") =>
     // BE body parser ở chế độ strict — không gửi body (axios mặc định undefined sẽ không set Content-Type)
     axios.post<{ data: SiteConfigEntity }>("/site-config/publish", undefined, { params: { key } }).then(unwrap),
@@ -74,7 +72,10 @@ export function usePublishSiteConfig() {
       const result = await siteConfigService.publish(key);
       // Trigger Next.js on-demand revalidation để client thấy thay đổi ngay (không chờ ISR 60s).
       try {
-        await fetch(`/api/revalidate?secret=${encodeURIComponent(process.env.NEXT_PUBLIC_REVALIDATE_SECRET ?? "vhdcorp-revalidate")}&tag=site-config`, { method: "POST" });
+        await fetch(
+          `/api/revalidate?secret=${encodeURIComponent(process.env.NEXT_PUBLIC_REVALIDATE_SECRET ?? "vhdcorp-revalidate")}&tag=site-config`,
+          { method: "POST" }
+        );
       } catch {
         /* best-effort: revalidate có thể fail nhưng không nên block publish */
       }

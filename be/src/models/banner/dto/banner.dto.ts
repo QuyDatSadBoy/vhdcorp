@@ -1,4 +1,11 @@
-import { IsBoolean, IsInt, IsOptional, IsString, MaxLength, Min } from "class-validator";
+import {
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateBannerDto {
   @IsString()
@@ -28,5 +35,5 @@ export class CreateBannerDto {
   order?: number;
 }
 
-import { PartialType } from "@nestjs/mapped-types";
+import { PartialType } from '@nestjs/mapped-types';
 export class UpdateBannerDto extends PartialType(CreateBannerDto) {}

@@ -43,7 +43,7 @@ export default function Partners({ section }: { section: Section }) {
     <section ref={sectionRef} className="overflow-hidden border-y border-border/40 bg-muted/30">
       <Reveal>
         <div className="mb-10 text-center">
-          <p className="type-eyebrow text-brand-accent">Đối tác tin cậy</p>
+          <p className="type-eyebrow text-brand-primary">Đối tác tin cậy</p>
           <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight text-foreground md:text-3xl">
             {p.heading ?? "Hơn 120+ doanh nghiệp đồng hành cùng VHD"}
           </h2>

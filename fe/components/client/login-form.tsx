@@ -140,7 +140,7 @@ export function LoginForm() {
             d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.5l6.2 5.2C40.8 36.5 44 30.8 44 24c0-1.3-.1-2.4-.4-3.5z"
           />
         </svg>
-        Tiếp tục với Google
+        Đăng nhập bằng Google
       </Button>
 
       <div className="text-center text-sm">

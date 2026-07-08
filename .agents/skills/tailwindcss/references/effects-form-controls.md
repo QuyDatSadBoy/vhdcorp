@@ -44,8 +44,7 @@ Remove native form control styling for custom designs:
 Set the text input cursor color:
 
 ```html
-<textarea class="caret-pink-500">Focus to see caret</textarea>
-<input class="caret-blue-500" />
+<textarea class="caret-pink-500">Focus to see caret</textarea> <input class="caret-blue-500" />
 ```
 
 ### Resize

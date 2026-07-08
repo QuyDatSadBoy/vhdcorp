@@ -1,14 +1,18 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "@prisma/prisma.service";
-import { SlugService } from "@service/slug/slug.service";
-import { PostStatus, type Prisma } from "@vhd/prisma-client";
-import { CreatePostDto } from "./dto/create-post.dto";
-import { UpdatePostDto } from "./dto/update-post.dto";
-import { buildPaginationParams, toPaginated } from "@util/pagination";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '@prisma/prisma.service';
+import { SlugService } from '@service/slug/slug.service';
+import { PostStatus, type Prisma } from '@vhd/prisma-client';
+import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
+import { buildPaginationParams, toPaginated } from '@util/pagination';
 
 interface ListParams {
   pageNumber?: string | number;
   pageSize?: string | number;
+  /** Alias REST chuẩn cho `pageNumber`. */
+  page?: string | number;
+  /** Alias REST chuẩn cho `pageSize`. */
+  limit?: string | number;
   search?: string;
   tag?: string;
   status?: PostStatus;
@@ -23,7 +27,12 @@ export class PostService {
   ) {}
 
   async list(params: ListParams) {
-    const { page, limit, skip, take } = buildPaginationParams(params.pageNumber, params.pageSize);
+    const { page, limit, skip, take } = buildPaginationParams(
+      params.pageNumber,
+      params.pageSize,
+      params.page,
+      params.limit,
+    );
 
     const where: Prisma.PostWhereInput = { deletedAt: null };
     if (params.publishedOnly) {
@@ -34,8 +43,10 @@ export class PostService {
     }
     if (params.search) {
       where.OR = [
-        { title: { contains: params.search, mode: "insensitive" } },
-        { slug: { contains: params.search.toLowerCase(), mode: "insensitive" } },
+        { title: { contains: params.search, mode: 'insensitive' } },
+        {
+          slug: { contains: params.search.toLowerCase(), mode: 'insensitive' },
+        },
       ];
     }
     if (params.tag) where.tags = { has: params.tag };
@@ -45,7 +56,7 @@ export class PostService {
         where,
         skip,
         take,
-        orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+        orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
         include: { author: { select: { id: true, name: true, avatar: true } } },
       }),
       this.prisma.post.count({ where }),
@@ -58,21 +69,26 @@ export class PostService {
       where: { slug, deletedAt: null, status: PostStatus.PUBLISHED },
       include: { author: { select: { id: true, name: true, avatar: true } } },
     });
-    if (!post) throw new NotFoundException("Không tìm thấy bài viết");
+    if (!post) throw new NotFoundException('Không tìm thấy bài viết');
     return post;
   }
 
-  async findById(id: number) {
+  async findById(id: number, options: { includeDeleted?: boolean } = {}) {
+    const where: { id: number; deletedAt?: null } = { id };
+    if (!options.includeDeleted) where.deletedAt = null;
     const post = await this.prisma.post.findFirst({
-      where: { id, deletedAt: null },
+      where,
       include: { author: { select: { id: true, name: true, avatar: true } } },
     });
-    if (!post) throw new NotFoundException("Không tìm thấy bài viết");
+    if (!post) throw new NotFoundException('Không tìm thấy bài viết');
     return post;
   }
 
   async create(dto: CreatePostDto, authorId: number) {
-    const slug = await this.slug.generateUniqueSlug(dto.slug ?? dto.title, "post");
+    const slug = await this.slug.generateUniqueSlug(
+      dto.slug ?? dto.title,
+      'post',
+    );
     const status = dto.status ?? PostStatus.DRAFT;
     const publishedAt =
       status === PostStatus.PUBLISHED
@@ -102,10 +118,18 @@ export class PostService {
   }
 
   async update(id: number, dto: UpdatePostDto) {
-    await this.findById(id);
+    const current = await this.findById(id);
     let slug: string | undefined;
-    if (dto.slug) slug = await this.slug.generateUniqueSlug(dto.slug, "post", id);
-    else if (dto.title) slug = await this.slug.generateUniqueSlug(dto.title, "post", id);
+    if (dto.slug)
+      slug = await this.slug.generateUniqueSlug(dto.slug, 'post', id);
+    else if (dto.title)
+      slug = await this.slug.generateUniqueSlug(dto.title, 'post', id);
+
+    // Tự đóng dấu publishedAt khi chuyển DRAFT → PUBLISHED mà DTO không cung cấp
+    let publishedAt: Date | undefined;
+    if (dto.publishedAt) publishedAt = new Date(dto.publishedAt);
+    else if (dto.status === PostStatus.PUBLISHED && !current.publishedAt)
+      publishedAt = new Date();
 
     return this.prisma.post.update({
       where: { id },
@@ -116,7 +140,7 @@ export class PostService {
         excerpt: dto.excerpt,
         coverImage: dto.coverImage,
         status: dto.status,
-        publishedAt: dto.publishedAt ? new Date(dto.publishedAt) : undefined,
+        publishedAt,
         metaTitle: dto.metaTitle,
         metaDesc: dto.metaDesc,
         ogImage: dto.ogImage,
@@ -127,10 +151,16 @@ export class PostService {
 
   async softDelete(id: number) {
     await this.findById(id);
-    return this.prisma.post.update({ where: { id }, data: { deletedAt: new Date() } });
+    return this.prisma.post.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
   }
 
   async restore(id: number) {
-    return this.prisma.post.update({ where: { id }, data: { deletedAt: null } });
+    return this.prisma.post.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
   }
 }

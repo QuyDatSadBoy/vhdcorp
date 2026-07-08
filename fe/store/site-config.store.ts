@@ -50,6 +50,6 @@ export const useSiteConfigStore = create<SiteConfigState & SiteConfigActions>()(
         }
       },
     }),
-    { name: "SiteConfigStore" },
-  ),
+    { name: "SiteConfigStore" }
+  )
 );

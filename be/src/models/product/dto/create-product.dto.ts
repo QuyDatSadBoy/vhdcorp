@@ -9,8 +9,8 @@ import {
   MaxLength,
   Min,
   MinLength,
-} from "class-validator";
-import { ProductStatus } from "@vhd/prisma-client";
+} from 'class-validator';
+import { ProductStatus } from '@vhd/prisma-client';
 
 export class CreateProductDto {
   @IsString()

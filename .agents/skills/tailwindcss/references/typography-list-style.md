@@ -25,8 +25,12 @@ Utilities for controlling the marker style and position of list items.
 </ul>
 
 <!-- Custom value -->
-<ol class="list-[upper-roman]">Roman numerals</ol>
-<ul class="list-(--my-marker)">Custom property</ul>
+<ol class="list-[upper-roman]">
+  Roman numerals
+</ol>
+<ul class="list-(--my-marker)">
+  Custom property
+</ul>
 ```
 
 ### List style position
@@ -46,7 +50,9 @@ Utilities for controlling the marker style and position of list items.
 ### Responsive
 
 ```html
-<ul class="list-none md:list-disc md:list-outside">...</ul>
+<ul class="list-none md:list-disc md:list-outside">
+  ...
+</ul>
 ```
 
 ## Key Points

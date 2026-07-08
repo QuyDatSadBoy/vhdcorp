@@ -10,9 +10,9 @@ Strategies for optimizing React Hook Form performance.
 
 ```typescript
 const form = useForm({
-  mode: 'onSubmit', // Validate only on submit
+  mode: "onSubmit", // Validate only on submit
   resolver: zodResolver(schema),
-})
+});
 ```
 
 **Pros**: Minimal re-renders, best performance
@@ -22,9 +22,9 @@ const form = useForm({
 
 ```typescript
 const form = useForm({
-  mode: 'onBlur', // Validate when field loses focus
+  mode: "onBlur", // Validate when field loses focus
   resolver: zodResolver(schema),
-})
+});
 ```
 
 **Pros**: Good UX, reasonable performance
@@ -34,9 +34,9 @@ const form = useForm({
 
 ```typescript
 const form = useForm({
-  mode: 'onChange', // Validate on every change
+  mode: "onChange", // Validate on every change
   resolver: zodResolver(schema),
-})
+});
 ```
 
 **Pros**: Immediate feedback
@@ -46,9 +46,9 @@ const form = useForm({
 
 ```typescript
 const form = useForm({
-  mode: 'all', // Validate on blur, change, and submit
+  mode: "all", // Validate on blur, change, and submit
   resolver: zodResolver(schema),
-})
+});
 ```
 
 **Pros**: Most responsive
@@ -86,11 +86,11 @@ const form = useForm({
 
 ```typescript
 // BAD - Watches all fields, re-renders on any change
-const values = watch()
+const values = watch();
 
 // GOOD - Watch only what you need
-const email = watch('email')
-const [email, password] = watch(['email', 'password'])
+const email = watch("email");
+const [email, password] = watch(["email", "password"]);
 ```
 
 ### useWatch for Isolation
@@ -137,10 +137,11 @@ const debouncedValidation = useDebouncedCallback(
 ```typescript
 const form = useForm({
   shouldUnregister: false, // Keep field data when unmounted
-})
+});
 ```
 
 **Use When**:
+
 - Multi-step forms
 - Tabbed interfaces
 - Conditional fields that should persist
@@ -150,10 +151,11 @@ const form = useForm({
 ```typescript
 const form = useForm({
   shouldUnregister: true, // Remove field data when unmounted
-})
+});
 ```
 
 **Use When**:
+
 - Truly conditional fields
 - Dynamic forms
 - Want to clear data automatically
@@ -204,14 +206,14 @@ const FieldItem = React.memo(({ field, index, register, remove }) => (
 
 ```typescript
 // BAD - Subscribes to all formState changes
-const { formState } = useForm()
+const { formState } = useForm();
 
 // GOOD - Subscribe only to what you need
-const { isDirty, isValid } = useForm().formState
+const { isDirty, isValid } = useForm().formState;
 
 // BETTER - Use useFormState for isolation
-import { useFormState } from 'react-hook-form'
-const { isDirty } = useFormState({ control })
+import { useFormState } from "react-hook-form";
+const { isDirty } = useFormState({ control });
 ```
 
 ---
@@ -224,15 +226,15 @@ const { isDirty } = useFormState({ control })
 // BAD - New schema on every render
 const form = useForm({
   resolver: zodResolver(z.object({ email: z.string() })),
-})
+});
 
 // GOOD - Schema defined outside component
-const schema = z.object({ email: z.string() })
+const schema = z.object({ email: z.string() });
 
 function Form() {
   const form = useForm({
     resolver: zodResolver(schema),
-  })
+  });
 }
 ```
 
@@ -314,12 +316,12 @@ function VirtualizedFieldArray() {
 
 ## Performance Benchmarks
 
-| Optimization | Before | After | Improvement |
-|--------------|--------|-------|-------------|
-| mode: onSubmit vs onChange | 100ms | 20ms | 80% |
-| watch() all vs watch('field') | 50ms | 10ms | 80% |
-| field.id vs index key | 200ms | 50ms | 75% |
-| Memoized schema | 30ms | 5ms | 83% |
+| Optimization                  | Before | After | Improvement |
+| ----------------------------- | ------ | ----- | ----------- |
+| mode: onSubmit vs onChange    | 100ms  | 20ms  | 80%         |
+| watch() all vs watch('field') | 50ms   | 10ms  | 80%         |
+| field.id vs index key         | 200ms  | 50ms  | 75%         |
+| Memoized schema               | 30ms   | 5ms   | 83%         |
 
 ---
 
@@ -338,16 +340,16 @@ function VirtualizedFieldArray() {
 
 ```typescript
 const onSubmit = (data) => {
-  performance.mark('form-submit-start')
+  performance.mark("form-submit-start");
 
   // Submit logic
 
-  performance.mark('form-submit-end')
-  performance.measure('form-submit', 'form-submit-start', 'form-submit-end')
+  performance.mark("form-submit-end");
+  performance.measure("form-submit", "form-submit-start", "form-submit-end");
 
-  const measures = performance.getEntriesByName('form-submit')
-  console.log('Submit time:', measures[0].duration, 'ms')
-}
+  const measures = performance.getEntriesByName("form-submit");
+  console.log("Submit time:", measures[0].duration, "ms");
+};
 ```
 
 ---

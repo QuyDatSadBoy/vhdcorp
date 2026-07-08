@@ -7,8 +7,8 @@ import {
   IsString,
   MaxLength,
   MinLength,
-} from "class-validator";
-import { PostStatus } from "@vhd/prisma-client";
+} from 'class-validator';
+import { PostStatus } from '@vhd/prisma-client';
 
 export class CreatePostDto {
   @IsString()

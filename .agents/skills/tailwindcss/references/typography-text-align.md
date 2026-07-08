@@ -38,9 +38,7 @@ Use `text-start` and `text-end` for RTL-aware alignment:
 ### Responsive alignment
 
 ```html
-<p class="text-left md:text-center lg:text-right">
-  Responsive alignment
-</p>
+<p class="text-left md:text-center lg:text-right">Responsive alignment</p>
 ```
 
 ## Key Points

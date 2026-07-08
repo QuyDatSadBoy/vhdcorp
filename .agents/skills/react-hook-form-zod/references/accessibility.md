@@ -77,11 +77,11 @@ useEffect(() => {
 ```typescript
 const onSubmit = async (data) => {
   try {
-    await submitData(data)
+    await submitData(data);
   } catch (error) {
-    setFocus('email') // Focus field programmatically
+    setFocus("email"); // Focus field programmatically
   }
-}
+};
 ```
 
 ---
@@ -355,5 +355,6 @@ const onSubmit = async (data) => {
 ---
 
 **Resources**:
+
 - WCAG Guidelines: https://www.w3.org/WAI/WCAG21/quickref/
 - React Hook Form a11y: https://react-hook-form.com/advanced-usage#AccessibilityA11y

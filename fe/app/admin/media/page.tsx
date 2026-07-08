@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Loader2, Upload, Copy, Trash2, ImageOff } from "lucide-react";
 import { useMediaList, uploadToCloudinary, useDeleteMedia } from "@/services/media.service";
+import { useConfirm } from "@/components/admin/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -17,8 +18,7 @@ function MediaThumb({ src, alt }: { src: string; alt: string }) {
         src={src}
         alt={alt}
         className={
-          "absolute inset-0 h-full w-full object-cover transition-opacity " +
-          (errored ? "opacity-0" : "opacity-100")
+          "absolute inset-0 h-full w-full object-cover transition-opacity " + (errored ? "opacity-0" : "opacity-100")
         }
         onError={() => setErrored(true)}
       />
@@ -37,6 +37,7 @@ function MediaThumb({ src, alt }: { src: string; alt: string }) {
 export default function AdminMediaPage() {
   const { data, isLoading, refetch } = useMediaList({ pageSize: 100 });
   const del = useDeleteMedia();
+  const confirm = useConfirm();
   const [uploading, setUploading] = useState(false);
 
   async function onUpload(files: FileList | null) {
@@ -46,8 +47,11 @@ export default function AdminMediaPage() {
       await Promise.all(Array.from(files).map((f) => uploadToCloudinary(f, "library")));
       toast.success(`Đã tải ${files.length} ảnh`);
       refetch();
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Upload failed"); }
-    finally { setUploading(false); }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function copy(url: string) {
@@ -57,8 +61,16 @@ export default function AdminMediaPage() {
 
   return (
     <div>
-      <motion.div suppressHydrationWarning initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
-        <div><h1 className="text-2xl font-bold">Thư viện ảnh</h1><p className="text-sm text-muted-foreground">Tải lên và quản lý ảnh dùng chung</p></div>
+      <motion.div
+        suppressHydrationWarning
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between mb-6"
+      >
+        <div>
+          <h1 className="text-2xl font-bold">Thư viện ảnh</h1>
+          <p className="text-sm text-muted-foreground">Tải lên và quản lý ảnh dùng chung</p>
+        </div>
         <label className="cursor-pointer">
           <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => onUpload(e.target.files)} />
           <span className="inline-flex items-center gap-2 rounded-md bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90">
@@ -68,7 +80,9 @@ export default function AdminMediaPage() {
         </label>
       </motion.div>
 
-      {isLoading ? <p>Đang tải...</p> : (
+      {isLoading ? (
+        <p>Đang tải...</p>
+      ) : (
         <div className="grid grid-cols-3 gap-3 md:grid-cols-5 lg:grid-cols-6">
           {(data?.records ?? []).map((m) => (
             <Card key={m.id} className="group overflow-hidden">
@@ -76,12 +90,31 @@ export default function AdminMediaPage() {
                 <MediaThumb src={m.url} alt={m.publicId ?? ""} />
               </div>
               <CardContent className="p-2 flex gap-1">
-                <Button size="icon" variant="ghost" aria-label="Copy" onClick={() => copy(m.url)}><Copy className="h-3 w-3" /></Button>
-                <Button size="icon" variant="ghost" aria-label="Xóa" onClick={async () => {
-                  if (!confirm("Xóa ảnh?")) return;
-                  try { await del.mutateAsync(m.id); toast.success("Đã xóa"); }
-                  catch (e) { toast.error(e instanceof Error ? e.message : "Xóa thất bại"); }
-                }}><Trash2 className="h-3 w-3 text-red-500" /></Button>
+                <Button size="icon" variant="ghost" aria-label="Copy" onClick={() => copy(m.url)}>
+                  <Copy className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Xóa"
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: "Xóa ảnh?",
+                      description: "Ảnh sẽ bị xóa khỏi thư viện. Các trang đang dùng ảnh này có thể hiển thị thiếu.",
+                      confirmText: "Xóa",
+                      variant: "destructive",
+                    });
+                    if (!ok) return;
+                    try {
+                      await del.mutateAsync(m.id);
+                      toast.success("Đã xóa");
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Xóa thất bại");
+                    }
+                  }}
+                >
+                  <Trash2 className="h-3 w-3 text-red-500" />
+                </Button>
               </CardContent>
             </Card>
           ))}

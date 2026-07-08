@@ -1,11 +1,10 @@
-import { Module } from "@nestjs/common";
+import { Module } from '@nestjs/common';
 
-import { JwtProvider } from "@provider/jwt.provider";
-import { ThrottleProvider } from "@provider/throttle.provider";
+import { JwtProvider } from '@provider/jwt.provider';
+import { ThrottleProvider } from '@provider/throttle.provider';
 
 @Module({
   imports: [ThrottleProvider, JwtProvider],
-  exports: [ThrottleProvider, JwtProvider]
+  exports: [ThrottleProvider, JwtProvider],
 })
-export class ProviderModule {
-}
+export class ProviderModule {}

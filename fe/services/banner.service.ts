@@ -10,13 +10,11 @@ export const bannerKeys = {
 };
 
 export const bannerService = {
-  list: (position?: string) =>
-    axios.get<{ data: Banner[] }>("/banners", { params: { position } }).then(unwrap),
+  list: (position?: string) => axios.get<{ data: Banner[] }>("/banners", { params: { position } }).then(unwrap),
   adminList: (position?: string) =>
     axios.get<{ data: Banner[] }>("/banners/admin", { params: { position } }).then(unwrap),
   create: (payload: Partial<Banner>) => axios.post<{ data: Banner }>("/banners", payload).then(unwrap),
-  update: (id: number, payload: Partial<Banner>) =>
-    axios.put<{ data: Banner }>(`/banners/${id}`, payload).then(unwrap),
+  update: (id: number, payload: Partial<Banner>) => axios.put<{ data: Banner }>(`/banners/${id}`, payload).then(unwrap),
   remove: (id: number) => axios.delete(`/banners/${id}`).then(() => undefined),
 };
 
@@ -39,8 +37,7 @@ export function useCreateBanner() {
 export function useUpdateBanner() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<Banner> }) =>
-      bannerService.update(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: Partial<Banner> }) => bannerService.update(id, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: bannerKeys.all }),
   });
 }

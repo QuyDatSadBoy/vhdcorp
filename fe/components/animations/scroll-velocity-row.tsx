@@ -47,7 +47,7 @@ export function ScrollVelocityRow({
   });
 
   return (
-    <div className={`relative overflow-hidden whitespace-nowrap ${className ?? ""}`}>
+    <div className={`relative overflow-x-clip overflow-y-visible whitespace-nowrap ${className ?? ""}`}>
       <motion.div className="flex flex-nowrap whitespace-nowrap will-change-transform" style={{ x }}>
         {Array.from({ length: 4 }).map((_, i) => (
           <span key={i} className="mx-8 inline-block">

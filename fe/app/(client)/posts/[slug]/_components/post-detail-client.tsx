@@ -218,7 +218,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
         <section className="border-t border-foreground/8 bg-(--vhd-color-surface)/40 py-16">
           <div className="container mx-auto max-w-5xl px-4">
             <div className="mb-8">
-              <p className="type-eyebrow text-brand-accent">Có thể bạn quan tâm</p>
+              <p className="type-eyebrow text-brand-primary">Có thể bạn quan tâm</p>
               <h2 className="mt-2 type-display-md text-foreground">Bài viết liên quan</h2>
               <div className="mt-4 h-1 w-12 rounded-full bg-brand-highlight" />
             </div>

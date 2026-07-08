@@ -102,18 +102,12 @@ export default function ImageUploader({
           dragOver
             ? "border-primary bg-primary/5"
             : "border-muted-foreground/30 hover:border-primary/60 hover:bg-muted/40",
-          uploading && "pointer-events-none opacity-70",
+          uploading && "pointer-events-none opacity-70"
         )}
       >
         {value ? (
           <>
-            <Image
-              src={value}
-              alt={label}
-              fill
-              sizes="(max-width: 768px) 100vw, 400px"
-              className="object-cover"
-            />
+            <Image src={value} alt={label} fill sizes="(max-width: 768px) 100vw, 400px" className="object-cover" />
             <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100">
               <button
                 type="button"
@@ -139,14 +133,8 @@ export default function ImageUploader({
           </>
         ) : (
           <div className="flex flex-col items-center gap-2 p-4 text-center text-muted-foreground">
-            {uploading ? (
-              <Loader2 className="h-8 w-8 animate-spin" />
-            ) : (
-              <Upload className="h-8 w-8" />
-            )}
-            <p className="text-sm font-medium">
-              {uploading ? "Đang tải..." : `Kéo & thả hoặc bấm để chọn ${label}`}
-            </p>
+            {uploading ? <Loader2 className="h-8 w-8 animate-spin" /> : <Upload className="h-8 w-8" />}
+            <p className="text-sm font-medium">{uploading ? "Đang tải..." : `Kéo & thả hoặc bấm để chọn ${label}`}</p>
             <p className="text-xs">PNG, JPG, WEBP, GIF — tối đa {Math.round(maxBytes / 1024 / 1024)}MB</p>
           </div>
         )}

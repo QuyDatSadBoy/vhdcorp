@@ -35,9 +35,7 @@ Use `translate-<fraction>` to translate by percentage of element size:
 Common pattern for centering absolutely positioned elements:
 
 ```html
-<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-  Centered
-</div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">Centered</div>
 ```
 
 ### Z-axis translation

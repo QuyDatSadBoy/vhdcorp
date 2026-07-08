@@ -2,11 +2,12 @@
   "name": "vhdcorp",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "yarn@1.22.22",
   "description": "VHD Corp — Next.js 16 (fe) + NestJS 11 (be) monorepo",
   "scripts": {
     "prepare": "husky",
-    "lint:fe": "yarn --cwd fe lint",
-    "lint:be": "yarn --cwd be lint",
+    "lint:fe": "corepack yarn --cwd fe lint",
+    "lint:be": "corepack yarn --cwd be lint",
     "format": "prettier --write \"{fe,be,docs}/**/*.{ts,tsx,js,json,md,css}\"",
     "format:check": "prettier --check \"{fe,be,docs}/**/*.{ts,tsx,js,json,md,css}\""
   },
@@ -17,7 +18,7 @@
   },
   "lint-staged": {
     "fe/**/*.{ts,tsx}": [
-      "yarn --cwd fe lint --fix",
+      "corepack yarn --cwd fe lint --fix",
       "prettier --write"
     ],
     "be/**/*.ts": [

@@ -1,36 +1,39 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "@prisma/prisma.service";
-import { ConfigStatus, type Prisma } from "@vhd/prisma-client";
-import { UpdateSiteConfigDto } from "./dto/site-config.dto";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '@prisma/prisma.service';
+import { ConfigStatus, type Prisma } from '@vhd/prisma-client';
+import { UpdateSiteConfigDto } from './dto/site-config.dto';
 
 @Injectable()
 export class SiteConfigService {
   constructor(private prisma: PrismaService) {}
 
   /** Public: chỉ trả PUBLISHED */
-  async getPublished(key = "main") {
+  async getPublished(key = 'main') {
     const config = await this.prisma.siteConfig.findFirst({
       where: { key, status: ConfigStatus.PUBLISHED },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { updatedAt: 'desc' },
     });
-    if (!config) throw new NotFoundException(`SiteConfig "${key}" chưa được publish`);
+    if (!config)
+      throw new NotFoundException(`SiteConfig "${key}" chưa được publish`);
     return config;
   }
 
   /** Admin: lấy bản đang chỉnh sửa (DRAFT) hoặc tạo từ PUBLISHED */
-  async getDraft(key = "main", userId: number) {
+  async getDraft(key = 'main', userId: number) {
     let draft = await this.prisma.siteConfig.findFirst({
       where: { key, status: ConfigStatus.DRAFT },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { updatedAt: 'desc' },
     });
     if (draft) return draft;
 
     const published = await this.prisma.siteConfig.findFirst({
       where: { key, status: ConfigStatus.PUBLISHED },
-      orderBy: { version: "desc" },
+      orderBy: { version: 'desc' },
     });
     if (!published) {
-      throw new NotFoundException(`SiteConfig "${key}" chưa tồn tại — chạy seed`);
+      throw new NotFoundException(
+        `SiteConfig "${key}" chưa tồn tại — chạy seed`,
+      );
     }
     draft = await this.prisma.siteConfig.create({
       data: {
@@ -57,7 +60,7 @@ export class SiteConfigService {
     }
     const latest = await this.prisma.siteConfig.findFirst({
       where: { key },
-      orderBy: { version: "desc" },
+      orderBy: { version: 'desc' },
     });
     return this.prisma.siteConfig.create({
       data: {
@@ -74,9 +77,9 @@ export class SiteConfigService {
   async publish(key: string, userId: number) {
     const draft = await this.prisma.siteConfig.findFirst({
       where: { key, status: ConfigStatus.DRAFT },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { updatedAt: 'desc' },
     });
-    if (!draft) throw new NotFoundException("Không có DRAFT để publish");
+    if (!draft) throw new NotFoundException('Không có DRAFT để publish');
 
     return this.prisma.$transaction(async (tx) => {
       // SiteConfig có @@unique([key, status]) nên không thể có 2 bản DRAFT/PUBLISHED.
@@ -119,18 +122,22 @@ export class SiteConfigService {
     if (!config) return [];
     return this.prisma.siteConfigHistory.findMany({
       where: { configId: config.id },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       take: 50,
     });
   }
 
   /** Rollback về 1 phiên bản history */
   async rollback(historyId: number, userId: number) {
-    const history = await this.prisma.siteConfigHistory.findUnique({ where: { id: historyId } });
-    if (!history) throw new NotFoundException("Không tìm thấy phiên bản");
+    const history = await this.prisma.siteConfigHistory.findUnique({
+      where: { id: historyId },
+    });
+    if (!history) throw new NotFoundException('Không tìm thấy phiên bản');
 
-    const config = await this.prisma.siteConfig.findUnique({ where: { id: history.configId } });
-    if (!config) throw new NotFoundException("Config gốc không tồn tại");
+    const config = await this.prisma.siteConfig.findUnique({
+      where: { id: history.configId },
+    });
+    if (!config) throw new NotFoundException('Config gốc không tồn tại');
 
     return this.saveDraft(config.key, userId, {
       value: history.snapshot as Record<string, unknown>,

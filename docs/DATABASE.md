@@ -7,17 +7,17 @@
 
 ## 1. Tổng quan — 9 Models
 
-| Model | Mô tả | Soft delete |
-| --- | --- | --- |
-| `User` | Tài khoản (customer / staff / admin), hỗ trợ email+password và Google OAuth | ✅ |
-| `Product` | Sản phẩm — có slug, ảnh Cloudinary, SEO meta | ✅ |
-| `Category` | Danh mục cây đa cấp (self-relation) | ❌ |
-| `Post` | Bài viết — draft/published/scheduled, Tiptap rich-text | ✅ |
-| `Review` | Đánh giá sản phẩm — phải duyệt trước khi hiện | ❌ |
-| `Banner` | Banner quảng cáo — admin quản lý, page builder dùng để chọn | ❌ |
-| `Media` | Metadata ảnh Cloudinary — media browser trong admin | ❌ |
-| `SiteConfig` | Cấu hình giao diện toàn site — JSONB | ❌ |
-| `SiteConfigHistory` | Lịch sử snapshot SiteConfig để rollback | ❌ |
+| Model               | Mô tả                                                                       | Soft delete |
+| ------------------- | --------------------------------------------------------------------------- | ----------- |
+| `User`              | Tài khoản (customer / staff / admin), hỗ trợ email+password và Google OAuth | ✅          |
+| `Product`           | Sản phẩm — có slug, ảnh Cloudinary, SEO meta                                | ✅          |
+| `Category`          | Danh mục cây đa cấp (self-relation)                                         | ❌          |
+| `Post`              | Bài viết — draft/published/scheduled, Tiptap rich-text                      | ✅          |
+| `Review`            | Đánh giá sản phẩm — phải duyệt trước khi hiện                               | ❌          |
+| `Banner`            | Banner quảng cáo — admin quản lý, page builder dùng để chọn                 | ❌          |
+| `Media`             | Metadata ảnh Cloudinary — media browser trong admin                         | ❌          |
+| `SiteConfig`        | Cấu hình giao diện toàn site — JSONB                                        | ❌          |
+| `SiteConfigHistory` | Lịch sử snapshot SiteConfig để rollback                                     | ❌          |
 
 ---
 
@@ -43,14 +43,14 @@ User ──< Review >── Product ──> Category
 SiteConfig ──< SiteConfigHistory
 ```
 
-| Quan hệ | Kiểu |
-| --- | --- |
-| User → Review | 1 – n |
-| User → Post | 1 – n (author) |
-| Product → Category | n – 1 |
-| Category → Category | self-referential (cây đa cấp) |
-| Review → Product | n – 1 |
-| SiteConfig → SiteConfigHistory | 1 – n |
+| Quan hệ                        | Kiểu                          |
+| ------------------------------ | ----------------------------- |
+| User → Review                  | 1 – n                         |
+| User → Post                    | 1 – n (author)                |
+| Product → Category             | n – 1                         |
+| Category → Category            | self-referential (cây đa cấp) |
+| Review → Product               | n – 1                         |
+| SiteConfig → SiteConfigHistory | 1 – n                         |
 
 ---
 
@@ -249,21 +249,21 @@ model SiteConfigHistory {
 
 ## 5. Index Strategy
 
-| Table | Index | Lý do |
-| --- | --- | --- |
-| `users` | `email` (unique), `googleId` (unique) | Lookup auth |
-| `users` | `deletedAt` | Filter soft-deleted |
-| `products` | `slug` (unique) | SEO URL lookup |
-| `products` | `categoryId`, `status`, `deletedAt`, `createdAt` | Filter + sort |
-| `categories` | `slug` (unique), `parentId` | URL + tree traversal |
-| `posts` | `slug` (unique) | SEO URL lookup |
-| `posts` | `status`, `publishedAt`, `deletedAt` | Filter + sort |
-| `reviews` | `productId, userId` (unique) | Prevent duplicate + filter |
-| `reviews` | `status` | Admin moderate |
-| `banners` | `position, active` | Composite — load active banner by position |
-| `media` | `publicId` (unique), `folder` | Cloudinary lookup + browser filter |
-| `site_configs` | `key, status` | Load published config |
-| `site_config_histories` | `configId` | Load history by config |
+| Table                   | Index                                            | Lý do                                      |
+| ----------------------- | ------------------------------------------------ | ------------------------------------------ |
+| `users`                 | `email` (unique), `googleId` (unique)            | Lookup auth                                |
+| `users`                 | `deletedAt`                                      | Filter soft-deleted                        |
+| `products`              | `slug` (unique)                                  | SEO URL lookup                             |
+| `products`              | `categoryId`, `status`, `deletedAt`, `createdAt` | Filter + sort                              |
+| `categories`            | `slug` (unique), `parentId`                      | URL + tree traversal                       |
+| `posts`                 | `slug` (unique)                                  | SEO URL lookup                             |
+| `posts`                 | `status`, `publishedAt`, `deletedAt`             | Filter + sort                              |
+| `reviews`               | `productId, userId` (unique)                     | Prevent duplicate + filter                 |
+| `reviews`               | `status`                                         | Admin moderate                             |
+| `banners`               | `position, active`                               | Composite — load active banner by position |
+| `media`                 | `publicId` (unique), `folder`                    | Cloudinary lookup + browser filter         |
+| `site_configs`          | `key, status`                                    | Load published config                      |
+| `site_config_histories` | `configId`                                       | Load history by config                     |
 
 **Full-text search** (thêm qua raw SQL migration):
 
@@ -279,13 +279,13 @@ CREATE INDEX posts_title_fts ON posts USING GIN (to_tsvector('simple', title));
 
 ## 6. Design Decisions
 
-| Quyết định | Lý do |
-| --- | --- |
-| `password` nullable trên User | Hỗ trợ Google OAuth — user có thể không có password |
-| `googleId` nullable & unique | User có thể link Google sau, mỗi Google account chỉ 1 user |
-| `refreshTokenHash` bcrypt | Token bị đánh cắp từ DB không dùng được — phải có token gốc |
-| `@@unique([productId, userId])` trên Review | 1 user chỉ được đánh giá 1 sản phẩm 1 lần |
-| `SiteConfig.key = "main"` | Chỉ có 1 config toàn site — key đảm bảo idempotent upsert |
-| `Media.uploadedBy`, `SiteConfig.updatedBy` là `Int` (không relation) | Không cần navigate ngược User → Media/SiteConfig trong ORM |
-| `@@map` snake_case | PostgreSQL convention cho table name |
-| Soft delete chỉ trên User/Product/Post | Review là dữ liệu lịch sử, không xóa — chỉ đổi status |
+| Quyết định                                                           | Lý do                                                       |
+| -------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `password` nullable trên User                                        | Hỗ trợ Google OAuth — user có thể không có password         |
+| `googleId` nullable & unique                                         | User có thể link Google sau, mỗi Google account chỉ 1 user  |
+| `refreshTokenHash` bcrypt                                            | Token bị đánh cắp từ DB không dùng được — phải có token gốc |
+| `@@unique([productId, userId])` trên Review                          | 1 user chỉ được đánh giá 1 sản phẩm 1 lần                   |
+| `SiteConfig.key = "main"`                                            | Chỉ có 1 config toàn site — key đảm bảo idempotent upsert   |
+| `Media.uploadedBy`, `SiteConfig.updatedBy` là `Int` (không relation) | Không cần navigate ngược User → Media/SiteConfig trong ORM  |
+| `@@map` snake_case                                                   | PostgreSQL convention cho table name                        |
+| Soft delete chỉ trên User/Product/Post                               | Review là dữ liệu lịch sử, không xóa — chỉ đổi status       |

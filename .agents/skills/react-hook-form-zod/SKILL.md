@@ -26,6 +26,7 @@ npm install react-hook-form@7.66.1 zod@4.1.12 @hookform/resolvers@5.2.2
 ```
 
 **Why These Packages**:
+
 - **react-hook-form**: Performant, flexible form library with minimal re-renders
 - **zod**: TypeScript-first schema validation with type inference
 - **@hookform/resolvers**: Adapter to connect Zod (and other validators) to React Hook Form
@@ -98,6 +99,7 @@ function LoginForm() {
 ```
 
 **CRITICAL**:
+
 - Always set `defaultValues` to prevent "uncontrolled to controlled" warnings
 - Use `zodResolver(schema)` to connect Zod validation
 - Type form with `z.infer<typeof schema>` for full type safety
@@ -107,33 +109,34 @@ function LoginForm() {
 
 ```typescript
 // server/api/login.ts
-import { z } from 'zod'
+import { z } from "zod";
 
 // SAME schema on server
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-})
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
 
 export async function loginHandler(req: Request) {
   try {
     // Parse and validate request body
-    const data = loginSchema.parse(await req.json())
+    const data = loginSchema.parse(await req.json());
 
     // Data is type-safe and validated
     // Proceed with authentication logic
-    return { success: true }
+    return { success: true };
   } catch (error) {
     if (error instanceof z.ZodError) {
       // Return validation errors to client
-      return { success: false, errors: error.flatten().fieldErrors }
+      return { success: false, errors: error.flatten().fieldErrors };
     }
-    throw error
+    throw error;
   }
 }
 ```
 
 **Why Server Validation**:
+
 - Client validation can be bypassed (inspect element, Postman, curl)
 - Server validation is your security layer
 - Same Zod schema = single source of truth
@@ -147,34 +150,35 @@ export async function loginHandler(req: Request) {
 
 ```typescript
 const {
-  register,           // Register input fields
-  handleSubmit,       // Wrap onSubmit handler
-  watch,              // Watch field values
-  formState,          // Form state (errors, isValid, isDirty, etc.)
-  setValue,           // Set field value programmatically
-  getValues,          // Get current form values
-  reset,              // Reset form to defaults
-  trigger,            // Trigger validation manually
-  control,            // Control object for Controller/useController
+  register, // Register input fields
+  handleSubmit, // Wrap onSubmit handler
+  watch, // Watch field values
+  formState, // Form state (errors, isValid, isDirty, etc.)
+  setValue, // Set field value programmatically
+  getValues, // Get current form values
+  reset, // Reset form to defaults
+  trigger, // Trigger validation manually
+  control, // Control object for Controller/useController
 } = useForm<FormData>({
-  resolver: zodResolver(schema),  // Validation resolver
-  mode: 'onSubmit',               // When to validate (onSubmit, onChange, onBlur, all)
-  defaultValues: {},              // Initial values (REQUIRED for controlled inputs)
-})
+  resolver: zodResolver(schema), // Validation resolver
+  mode: "onSubmit", // When to validate (onSubmit, onChange, onBlur, all)
+  defaultValues: {}, // Initial values (REQUIRED for controlled inputs)
+});
 ```
 
 **useForm Options**:
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `resolver` | Validation resolver (e.g., zodResolver) | undefined |
-| `mode` | When to validate ('onSubmit', 'onChange', 'onBlur', 'all') | 'onSubmit' |
-| `reValidateMode` | When to re-validate after error | 'onChange' |
-| `defaultValues` | Initial form values | {} |
-| `shouldUnregister` | Unregister inputs when unmounted | false |
-| `criteriaMode` | Return all errors or first error only | 'firstError' |
+| Option             | Description                                                | Default      |
+| ------------------ | ---------------------------------------------------------- | ------------ |
+| `resolver`         | Validation resolver (e.g., zodResolver)                    | undefined    |
+| `mode`             | When to validate ('onSubmit', 'onChange', 'onBlur', 'all') | 'onSubmit'   |
+| `reValidateMode`   | When to re-validate after error                            | 'onChange'   |
+| `defaultValues`    | Initial form values                                        | {}           |
+| `shouldUnregister` | Unregister inputs when unmounted                           | false        |
+| `criteriaMode`     | Return all errors or first error only                      | 'firstError' |
 
 **Form Validation Modes**:
+
 - `onSubmit` - Validate on submit (best performance, less responsive)
 - `onChange` - Validate on every change (live feedback, more re-renders)
 - `onBlur` - Validate when field loses focus (good balance)
@@ -183,75 +187,77 @@ const {
 ### Zod Schema Definition
 
 ```typescript
-import { z } from 'zod'
+import { z } from "zod";
 
 // Primitives
-const stringSchema = z.string()
-const numberSchema = z.number()
-const booleanSchema = z.boolean()
-const dateSchema = z.date()
+const stringSchema = z.string();
+const numberSchema = z.number();
+const booleanSchema = z.boolean();
+const dateSchema = z.date();
 
 // With validation
-const emailSchema = z.string().email('Invalid email')
-const ageSchema = z.number().min(18, 'Must be 18+').max(120, 'Invalid age')
-const usernameSchema = z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/)
+const emailSchema = z.string().email("Invalid email");
+const ageSchema = z.number().min(18, "Must be 18+").max(120, "Invalid age");
+const usernameSchema = z
+  .string()
+  .min(3)
+  .max(20)
+  .regex(/^[a-zA-Z0-9_]+$/);
 
 // Objects
 const userSchema = z.object({
   name: z.string(),
   email: z.string().email(),
   age: z.number().int().positive(),
-})
+});
 
 // Arrays
-const tagsSchema = z.array(z.string())
-const usersSchema = z.array(userSchema)
+const tagsSchema = z.array(z.string());
+const usersSchema = z.array(userSchema);
 
 // Optional and Nullable
-const optionalField = z.string().optional()       // string | undefined
-const nullableField = z.string().nullable()       // string | null
-const nullishField = z.string().nullish()         // string | null | undefined
+const optionalField = z.string().optional(); // string | undefined
+const nullableField = z.string().nullable(); // string | null
+const nullishField = z.string().nullish(); // string | null | undefined
 
 // Default values
-const withDefault = z.string().default('default value')
+const withDefault = z.string().default("default value");
 
 // Unions
-const statusSchema = z.union([
-  z.literal('active'),
-  z.literal('inactive'),
-  z.literal('pending'),
-])
+const statusSchema = z.union([z.literal("active"), z.literal("inactive"), z.literal("pending")]);
 // Shorthand for literals
-const statusEnum = z.enum(['active', 'inactive', 'pending'])
+const statusEnum = z.enum(["active", "inactive", "pending"]);
 
 // Nested objects
 const addressSchema = z.object({
   street: z.string(),
   city: z.string(),
   zipCode: z.string().regex(/^\d{5}$/),
-})
+});
 
 const profileSchema = z.object({
   name: z.string(),
-  address: addressSchema,  // Nested object
-})
+  address: addressSchema, // Nested object
+});
 
 // Custom error messages
-const passwordSchema = z.string()
-  .min(8, { message: 'Password must be at least 8 characters' })
-  .regex(/[A-Z]/, { message: 'Password must contain uppercase letter' })
-  .regex(/[0-9]/, { message: 'Password must contain number' })
+const passwordSchema = z
+  .string()
+  .min(8, { message: "Password must be at least 8 characters" })
+  .regex(/[A-Z]/, { message: "Password must contain uppercase letter" })
+  .regex(/[0-9]/, { message: "Password must contain number" });
 ```
 
 **Type Inference**:
+
 ```typescript
 const userSchema = z.object({
   name: z.string(),
   age: z.number(),
-})
+});
 
 // Automatically infer TypeScript type
-type User = z.infer<typeof userSchema>
+type User = z.infer<typeof userSchema>;
 // Result: { name: string; age: number }
 ```
 
@@ -259,79 +265,90 @@ type User = z.infer<typeof userSchema>
 
 ```typescript
 // Simple refinement
-const passwordConfirmSchema = z.object({
-  password: z.string().min(8),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'], // Error will appear on confirmPassword field
-})
+const passwordConfirmSchema = z
+  .object({
+    password: z.string().min(8),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"], // Error will appear on confirmPassword field
+  });
 
 // Multiple refinements
-const signupSchema = z.object({
-  username: z.string(),
-  email: z.string().email(),
-  age: z.number(),
-})
-  .refine((data) => data.username !== data.email.split('@')[0], {
-    message: 'Username cannot be your email prefix',
-    path: ['username'],
+const signupSchema = z
+  .object({
+    username: z.string(),
+    email: z.string().email(),
+    age: z.number(),
+  })
+  .refine((data) => data.username !== data.email.split("@")[0], {
+    message: "Username cannot be your email prefix",
+    path: ["username"],
   })
   .refine((data) => data.age >= 18, {
-    message: 'Must be 18 or older',
-    path: ['age'],
-  })
+    message: "Must be 18 or older",
+    path: ["age"],
+  });
 
 // Async refinement (for API checks)
-const usernameSchema = z.string().refine(async (username) => {
-  // Check if username is available via API
-  const response = await fetch(`/api/check-username?username=${username}`)
-  const { available } = await response.json()
-  return available
-}, {
-  message: 'Username is already taken',
-})
+const usernameSchema = z.string().refine(
+  async (username) => {
+    // Check if username is available via API
+    const response = await fetch(`/api/check-username?username=${username}`);
+    const { available } = await response.json();
+    return available;
+  },
+  {
+    message: "Username is already taken",
+  }
+);
 ```
 
 ### Zod Transforms (Data Manipulation)
 
 ```typescript
 // Transform string to number
-const ageSchema = z.string().transform((val) => parseInt(val, 10))
+const ageSchema = z.string().transform((val) => parseInt(val, 10));
 
 // Transform to uppercase
-const uppercaseSchema = z.string().transform((val) => val.toUpperCase())
+const uppercaseSchema = z.string().transform((val) => val.toUpperCase());
 
 // Transform date string to Date object
-const dateSchema = z.string().transform((val) => new Date(val))
+const dateSchema = z.string().transform((val) => new Date(val));
 
 // Trim whitespace
-const trimmedSchema = z.string().transform((val) => val.trim())
+const trimmedSchema = z.string().transform((val) => val.trim());
 
 // Complex transform
 const userInputSchema = z.object({
-  email: z.string().email().transform((val) => val.toLowerCase()),
-  tags: z.string().transform((val) => val.split(',').map(tag => tag.trim())),
-})
+  email: z
+    .string()
+    .email()
+    .transform((val) => val.toLowerCase()),
+  tags: z.string().transform((val) => val.split(",").map((tag) => tag.trim())),
+});
 
 // Chain transform and refine
-const positiveNumberSchema = z.string()
+const positiveNumberSchema = z
+  .string()
   .transform((val) => parseFloat(val))
-  .refine((val) => !isNaN(val), { message: 'Must be a number' })
-  .refine((val) => val > 0, { message: 'Must be positive' })
+  .refine((val) => !isNaN(val), { message: "Must be a number" })
+  .refine((val) => val > 0, { message: "Must be positive" });
 ```
 
 ### zodResolver Integration
 
 ```typescript
-import { zodResolver } from '@hookform/resolvers/zod'
+import { zodResolver } from "@hookform/resolvers/zod";
 
 const form = useForm<FormData>({
   resolver: zodResolver(schema),
-})
+});
 ```
 
 **What zodResolver Does**:
+
 1. Takes your Zod schema
 2. Converts it to a format React Hook Form understands
 3. Provides validation function that runs on form submission
@@ -339,16 +356,17 @@ const form = useForm<FormData>({
 5. Preserves type safety with TypeScript inference
 
 **zodResolver Options**:
+
 ```typescript
-import { zodResolver } from '@hookform/resolvers/zod'
+import { zodResolver } from "@hookform/resolvers/zod";
 
 // With options
 const form = useForm({
   resolver: zodResolver(schema, {
-    async: false,     // Use async validation
-    raw: false,       // Return raw Zod error
+    async: false, // Use async validation
+    raw: false, // Return raw Zod error
   }),
-})
+});
 ```
 
 ---
@@ -381,6 +399,7 @@ function BasicForm() {
 ```
 
 **What `register()` Returns**:
+
 ```typescript
 {
   onChange: (e) => void,
@@ -438,12 +457,14 @@ function FormWithCustomInput() {
 ```
 
 **When to Use Controller**:
+
 - ✅ Third-party UI libraries (React Select, Material-UI, Ant Design, etc.)
 - ✅ Custom components that don't expose ref
 - ✅ Components that don't use onChange (like checkboxes with custom handlers)
 - ✅ Need fine-grained control over field behavior
 
 **When NOT to Use Controller**:
+
 - ❌ Standard HTML inputs (use `register` instead - it's simpler and faster)
 - ❌ When performance is critical (Controller adds minimal overhead)
 
@@ -553,22 +574,26 @@ function FormWithErrors() {
 ### Form-Level Validation Errors
 
 ```typescript
-const schema = z.object({
-  password: z.string().min(8),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'], // Attach error to confirmPassword field
-})
+const schema = z
+  .object({
+    password: z.string().min(8),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"], // Attach error to confirmPassword field
+  })
 
-// Without path - creates root error
-.refine((data) => someCondition, {
-  message: 'Form validation failed',
-})
+  // Without path - creates root error
+  .refine((data) => someCondition, {
+    message: "Form validation failed",
+  });
 
 // Access root errors
-const { formState: { errors } } = useForm()
-errors.root?.message // Root-level error
+const {
+  formState: { errors },
+} = useForm();
+errors.root?.message; // Root-level error
 ```
 
 ### Server Errors Integration
@@ -694,6 +719,7 @@ function ContactListForm() {
 ```
 
 **useFieldArray API**:
+
 - `fields` - Array of field items with unique IDs
 - `append(value)` - Add new item to end
 - `prepend(value)` - Add new item to beginning
@@ -871,35 +897,40 @@ function MultiStepForm() {
 ### Conditional Validation
 
 ```typescript
-import { z } from 'zod'
+import { z } from "zod";
 
 // Schema with conditional validation
-const formSchema = z.discriminatedUnion('accountType', [
+const formSchema = z.discriminatedUnion("accountType", [
   z.object({
-    accountType: z.literal('personal'),
+    accountType: z.literal("personal"),
     name: z.string().min(1),
   }),
   z.object({
-    accountType: z.literal('business'),
+    accountType: z.literal("business"),
     companyName: z.string().min(1),
     taxId: z.string().regex(/^\d{9}$/),
   }),
-])
+]);
 
 // Alternative: Using refine
-const conditionalSchema = z.object({
-  hasDiscount: z.boolean(),
-  discountCode: z.string().optional(),
-}).refine((data) => {
-  // If hasDiscount is true, discountCode is required
-  if (data.hasDiscount && !data.discountCode) {
-    return false
-  }
-  return true
-}, {
-  message: 'Discount code is required when discount is enabled',
-  path: ['discountCode'],
-})
+const conditionalSchema = z
+  .object({
+    hasDiscount: z.boolean(),
+    discountCode: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // If hasDiscount is true, discountCode is required
+      if (data.hasDiscount && !data.discountCode) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Discount code is required when discount is enabled",
+      path: ["discountCode"],
+    }
+  );
 ```
 
 ---
@@ -993,27 +1024,27 @@ Check shadcn/ui documentation for the latest Field component API as it's the act
 ```typescript
 // Best performance - validate only on submit
 const form = useForm({
-  mode: 'onSubmit',
+  mode: "onSubmit",
   resolver: zodResolver(schema),
-})
+});
 
 // Good balance - validate on blur
 const form = useForm({
-  mode: 'onBlur',
+  mode: "onBlur",
   resolver: zodResolver(schema),
-})
+});
 
 // Live feedback - validate on every change
 const form = useForm({
-  mode: 'onChange',
+  mode: "onChange",
   resolver: zodResolver(schema),
-})
+});
 
 // Maximum validation - all events
 const form = useForm({
-  mode: 'all',
+  mode: "all",
   resolver: zodResolver(schema),
-})
+});
 ```
 
 ### Controlled vs Uncontrolled Inputs
@@ -1058,15 +1089,17 @@ function GoodForm() {
 const form = useForm({
   resolver: zodResolver(schema),
   shouldUnregister: true, // Remove field data when unmounted
-})
+});
 ```
 
 **When to use**:
+
 - ✅ Multi-step forms where steps have different fields
 - ✅ Conditional fields that should not persist
 - ✅ Want to clear data when component unmounts
 
 **When NOT to use**:
+
 - ❌ Want to preserve form data when toggling visibility
 - ❌ Navigating between form sections (tabs, accordions)
 
@@ -1172,39 +1205,45 @@ function FormWithFocus() {
 ### Always Do
 
 ✅ **Set defaultValues** to prevent "uncontrolled to controlled" warnings
+
 ```typescript
 const form = useForm({
-  defaultValues: { email: '', password: '' }, // ALWAYS set defaults
-})
+  defaultValues: { email: "", password: "" }, // ALWAYS set defaults
+});
 ```
 
 ✅ **Use zodResolver** for Zod integration
+
 ```typescript
 const form = useForm({
   resolver: zodResolver(schema), // Required for Zod validation
-})
+});
 ```
 
 ✅ **Type forms with z.infer**
+
 ```typescript
-type FormData = z.infer<typeof schema> // Automatic type inference
+type FormData = z.infer<typeof schema>; // Automatic type inference
 ```
 
 ✅ **Validate on both client AND server**
+
 ```typescript
 // Client
-const form = useForm({ resolver: zodResolver(schema) })
+const form = useForm({ resolver: zodResolver(schema) });
 
 // Server
-const data = schema.parse(await req.json()) // SAME schema
+const data = schema.parse(await req.json()); // SAME schema
 ```
 
 ✅ **Use formState.errors for error display**
+
 ```typescript
 {errors.email && <span role="alert">{errors.email.message}</span>}
 ```
 
 ✅ **Add ARIA attributes for accessibility**
+
 ```typescript
 <input
   {...register('email')}
@@ -1214,35 +1253,40 @@ const data = schema.parse(await req.json()) // SAME schema
 ```
 
 ✅ **Use field.id for useFieldArray keys**
+
 ```typescript
 {fields.map((field) => <div key={field.id}>{/* ... */}</div>)}
 ```
 
 ✅ **Debounce async validation**
+
 ```typescript
-const debouncedValidation = useDebouncedCallback(() => trigger('username'), 500)
+const debouncedValidation = useDebouncedCallback(() => trigger("username"), 500);
 ```
 
 ### Never Do
 
 ❌ **Skip server-side validation** (security vulnerability!)
+
 ```typescript
 // BAD: Only client validation
-const form = useForm({ resolver: zodResolver(schema) })
+const form = useForm({ resolver: zodResolver(schema) });
 // API endpoint has no validation
 
 // GOOD: Validate on both client and server
-const form = useForm({ resolver: zodResolver(schema) })
+const form = useForm({ resolver: zodResolver(schema) });
 // API: schema.parse(data) on server too
 ```
 
 ❌ **Use Zod v4 without checking type inference**
+
 ```typescript
 // Issue #13109: Zod v4 has type inference changes
 // Test your types carefully when upgrading
 ```
 
 ❌ **Forget to spread {...field} in Controller**
+
 ```typescript
 // BAD
 <Controller render={({ field }) => <Input value={field.value} />} />
@@ -1252,25 +1296,28 @@ const form = useForm({ resolver: zodResolver(schema) })
 ```
 
 ❌ **Mutate form values directly**
+
 ```typescript
 // BAD
-const values = getValues()
-values.email = 'new@email.com' // Direct mutation
+const values = getValues();
+values.email = "new@email.com"; // Direct mutation
 
 // GOOD
-setValue('email', 'new@email.com') // Use setValue
+setValue("email", "new@email.com"); // Use setValue
 ```
 
 ❌ **Use inline validation without debouncing**
+
 ```typescript
 // BAD: Validates on every keystroke
-const form = useForm({ mode: 'onChange' })
+const form = useForm({ mode: "onChange" });
 
 // GOOD: Debounce async validation
-const debouncedTrigger = useDebouncedCallback(() => trigger(), 500)
+const debouncedTrigger = useDebouncedCallback(() => trigger(), 500);
 ```
 
 ❌ **Mix controlled and uncontrolled inputs**
+
 ```typescript
 // BAD: Mixing patterns
 <input {...register('email')} value={email} onChange={setEmail} />
@@ -1282,6 +1329,7 @@ const debouncedTrigger = useDebouncedCallback(() => trigger(), 500)
 ```
 
 ❌ **Use index as key in useFieldArray**
+
 ```typescript
 // BAD
 {fields.map((field, index) => <div key={index}>{/* ... */}</div>)}
@@ -1291,17 +1339,18 @@ const debouncedTrigger = useDebouncedCallback(() => trigger(), 500)
 ```
 
 ❌ **Forget defaultValues for all fields**
+
 ```typescript
 // BAD: Missing defaults causes warnings
 const form = useForm({
   resolver: zodResolver(schema),
-})
+});
 
 // GOOD: Set defaults for all fields
 const form = useForm({
   resolver: zodResolver(schema),
-  defaultValues: { email: '', password: '', remember: false },
-})
+  defaultValues: { email: "", password: "", remember: false },
+});
 ```
 
 ---
@@ -1311,6 +1360,7 @@ const form = useForm({
 This skill prevents **12** documented issues:
 
 ### Issue #1: Zod v4 Type Inference Errors
+
 **Error**: Type inference doesn't work correctly with Zod v4
 **Source**: [GitHub Issue #13109](https://github.com/react-hook-form/react-hook-form/issues/13109) (Closed 2025-11-01)
 **Why It Happens**: Zod v4 changed how types are inferred
@@ -1318,66 +1368,77 @@ This skill prevents **12** documented issues:
 **Note**: Resolved in react-hook-form v7.66.x+. Upgrade to latest version to avoid this issue.
 
 ### Issue #2: Uncontrolled to Controlled Warning
+
 **Error**: "A component is changing an uncontrolled input to be controlled"
 **Source**: React documentation
 **Why It Happens**: Not setting defaultValues causes undefined -> value transition
 **Prevention**: Always set defaultValues for all fields
 
 ### Issue #3: Nested Object Validation Errors
+
 **Error**: Errors for nested fields don't display correctly
 **Source**: Common React Hook Form issue
 **Why It Happens**: Accessing nested errors incorrectly
 **Prevention**: Use optional chaining: `errors.address?.street?.message`
 
 ### Issue #4: Array Field Re-renders
+
 **Error**: Form re-renders excessively with array fields
 **Source**: Performance issue
 **Why It Happens**: Not using field.id as key
 **Prevention**: Use `key={field.id}` in useFieldArray map
 
 ### Issue #5: Async Validation Race Conditions
+
 **Error**: Multiple validation requests cause conflicting results
 **Source**: Common async pattern issue
 **Why It Happens**: No debouncing or request cancellation
 **Prevention**: Debounce validation and cancel pending requests
 
 ### Issue #6: Server Error Mapping
+
 **Error**: Server validation errors don't map to form fields
 **Source**: Integration issue
 **Why It Happens**: Server error format doesn't match React Hook Form format
 **Prevention**: Use setError() to map server errors to fields
 
 ### Issue #7: Default Values Not Applied
+
 **Error**: Form fields don't show default values
 **Source**: Common mistake
 **Why It Happens**: defaultValues set after form initialization
 **Prevention**: Set defaultValues in useForm options, not useState
 
 ### Issue #8: Controller Field Not Updating
+
 **Error**: Custom component doesn't update when value changes
 **Source**: Common Controller issue
 **Why It Happens**: Not spreading {...field} in render function
 **Prevention**: Always spread {...field} to custom component
 
 ### Issue #9: useFieldArray Key Warnings
+
 **Error**: React warning about duplicate keys in list
 **Source**: React list rendering
 **Why It Happens**: Using array index as key instead of field.id
 **Prevention**: Use field.id: `key={field.id}`
 
 ### Issue #10: Schema Refinement Error Paths
+
 **Error**: Custom validation errors appear at wrong field
 **Source**: Zod refinement behavior
 **Why It Happens**: Not specifying path in refinement options
 **Prevention**: Add path option: `refine(..., { message: '...', path: ['fieldName'] })`
 
 ### Issue #11: Transform vs Preprocess Confusion
+
 **Error**: Data transformation doesn't work as expected
 **Source**: Zod API confusion
 **Why It Happens**: Using wrong method for use case
 **Prevention**: Use transform for output transformation, preprocess for input transformation
 
 ### Issue #12: Multiple Resolver Conflicts
+
 **Error**: Form validation doesn't work with multiple resolvers
 **Source**: Configuration error
 **Why It Happens**: Trying to use multiple validation libraries

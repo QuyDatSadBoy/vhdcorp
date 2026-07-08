@@ -18,5 +18,10 @@ export default function AdminEditPostPage({ params }: { params: Promise<{ id: st
   if (isLoading) return <Skeleton className="h-96" />;
   if (!data) return <p>Không tìm thấy.</p>;
 
-  return <div><h1 className="mb-4 text-2xl font-bold">Sửa: {data.title}</h1><PostForm initial={data} /></div>;
+  return (
+    <div>
+      <h1 className="mb-4 text-2xl font-bold">Sửa: {data.title}</h1>
+      <PostForm initial={data} />
+    </div>
+  );
 }

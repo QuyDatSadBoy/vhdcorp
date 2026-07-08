@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { useAdminUsers, useUpdateUserRole, useSoftDeleteUser } from "@/services/user.service";
 import { AdminTable } from "@/components/admin/admin-table";
+import { useConfirm } from "@/components/admin/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { AdminUser } from "@/types/domain";
@@ -14,6 +15,7 @@ export default function AdminUsersPage() {
   const { data, isLoading } = useAdminUsers();
   const updateRole = useUpdateUserRole();
   const softDelete = useSoftDeleteUser();
+  const confirm = useConfirm();
   const rows = data?.records ?? [];
 
   return (
@@ -42,10 +44,14 @@ export default function AdminUsersPage() {
                 }
               }}
             >
-              <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {ROLES.map((r) => (
-                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -62,7 +68,13 @@ export default function AdminUsersPage() {
               variant="ghost"
               aria-label="Xóa"
               onClick={async () => {
-                if (!confirm(`Soft-delete "${u.email}"?`)) return;
+                const ok = await confirm({
+                  title: "Xóa tài khoản?",
+                  description: `Soft-delete tài khoản "${u.email}". Tài khoản có thể được khôi phục thủ công sau.`,
+                  confirmText: "Xóa tài khoản",
+                  variant: "destructive",
+                });
+                if (!ok) return;
                 try {
                   await softDelete.mutateAsync(u.id);
                   toast.success("Đã xóa");

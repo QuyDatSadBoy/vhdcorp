@@ -20,8 +20,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const [products, posts, categories] = await Promise.all([
-      api.get<{ data: PaginatedResult<Product> }>("/products", { params: { pageSize: 500 } }).then((r) => r.data.data?.records ?? []),
-      api.get<{ data: PaginatedResult<Post> }>("/posts", { params: { pageSize: 500 } }).then((r) => r.data.data?.records ?? []),
+      api
+        .get<{ data: PaginatedResult<Product> }>("/products", { params: { pageSize: 500 } })
+        .then((r) => r.data.data?.records ?? []),
+      api
+        .get<{ data: PaginatedResult<Post> }>("/posts", { params: { pageSize: 500 } })
+        .then((r) => r.data.data?.records ?? []),
       api.get<{ data: Category[] }>("/categories").then((r) => r.data.data ?? []),
     ]);
 

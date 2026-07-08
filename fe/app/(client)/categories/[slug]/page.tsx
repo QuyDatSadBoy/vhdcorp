@@ -1,48 +1,65 @@
-"use client";
-
-import { use } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
-import { useCategoryBySlug } from "@/services/category.service";
-import { useProducts } from "@/services/product.service";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
-import { ImageFallback } from "@/components/client/image-fallback";
+import { notFound } from "next/navigation";
+import { buildMetadata } from "@/lib/seo";
+import { serverApi } from "@/lib/server-api";
+import { JsonLd, SITE_URL } from "@/components/seo/json-ld";
 import { PageHero } from "@/components/client/page-hero";
+import { CategoryProductsClient } from "./_components/category-products-client";
 
-export default function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params);
-  const { data: category, isLoading: catLoading } = useCategoryBySlug(slug);
-  const { data: products, isLoading: prodLoading } = useProducts({ categorySlug: slug, pageSize: 24 });
+export const dynamic = "force-dynamic";
 
-  if (catLoading) {
-    return (
-      <div className="container mx-auto space-y-4 px-4 py-12">
-        <Skeleton className="h-12 w-1/2" />
-        <Skeleton className="h-32" />
-      </div>
-    );
+interface Params {
+  slug: string;
+}
+
+export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
+  const { slug } = await params;
+  const category = await serverApi.categoryBySlug(slug);
+  if (!category) {
+    return buildMetadata({ title: "Không tìm thấy danh mục", noindex: true });
   }
+  return buildMetadata({
+    title: category.name,
+    description:
+      category.description?.trim() || `Khám phá toàn bộ sản phẩm thuộc danh mục ${category.name} của VHD Corp.`,
+    canonical: `${SITE_URL}/categories/${category.slug}`,
+    image: category.image ?? undefined,
+  });
+}
+
+export default async function CategoryPage({ params }: { params: Promise<Params> }) {
+  const { slug } = await params;
+  const [category, productsResult] = await Promise.all([
+    serverApi.categoryBySlug(slug),
+    serverApi.productsByCategorySlug(slug, 24),
+  ]);
 
   if (!category) {
-    return (
-      <div className="container mx-auto px-4 py-24 text-center">
-        <h1 className="font-heading text-2xl font-bold">Không tìm thấy danh mục</h1>
-        <p className="mt-2 text-foreground/55">Danh mục bạn yêu cầu không tồn tại hoặc đã bị xoá.</p>
-        <Link
-          href="/products"
-          className="mt-6 inline-flex h-11 items-center rounded-full bg-brand-primary px-6 text-sm font-semibold text-white"
-        >
-          ← Quay về Sản phẩm
-        </Link>
-      </div>
-    );
+    // 404 server-side để crawler/Slack/FB nhận đúng status
+    notFound();
   }
 
-  const list = products?.records ?? [];
+  const initialProducts = productsResult?.records ?? [];
+
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Sản phẩm", item: `${SITE_URL}/products` },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: category.name,
+        item: `${SITE_URL}/categories/${category.slug}`,
+      },
+    ],
+  };
 
   return (
     <>
+      <JsonLd id="category-breadcrumb" data={breadcrumbLd} />
       <PageHero
         eyebrow="Danh mục sản phẩm"
         title={category.name}
@@ -54,47 +71,15 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
         ]}
       />
       <div className="container mx-auto px-4 py-12">
-        {prodLoading ? (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-square" />
-            ))}
-          </div>
-        ) : list.length === 0 ? (
-          <p className="rounded-2xl border border-dashed bg-card p-12 text-center text-foreground/60">
-            Hiện chưa có sản phẩm trong danh mục này. Vui lòng quay lại sau.
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {list.map((p) => (
-              <Link key={p.id} href={`/products/${p.slug}`}>
-                <Card className="group h-full overflow-hidden border-foreground/8 transition-all hover:-translate-y-1 hover:border-brand-primary/30 hover:shadow-md">
-                  <div className="relative aspect-square bg-muted">
-                    {p.images?.[0] ? (
-                      <Image
-                        src={p.images[0]}
-                        alt={p.name}
-                        fill
-                        sizes="(max-width:768px) 50vw, 25vw"
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <ImageFallback />
-                    )}
-                  </div>
-                  <CardContent className="p-4 space-y-1.5">
-                    <h3 className="line-clamp-2 text-sm font-semibold transition-colors group-hover:text-brand-primary">
-                      {p.name}
-                    </h3>
-                    {Number(p.price) > 0 && (
-                      <p className="font-bold text-brand-primary">{Number(p.price).toLocaleString("vi-VN")} ₫</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )}
+        <CategoryProductsClient slug={slug} initialProducts={initialProducts} />
+        <div className="mt-12 flex justify-center">
+          <Link
+            href="/categories"
+            className="text-sm font-semibold text-brand-primary underline-offset-4 hover:underline"
+          >
+            ← Xem tất cả danh mục
+          </Link>
+        </div>
       </div>
     </>
   );

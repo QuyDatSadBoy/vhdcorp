@@ -1,17 +1,18 @@
-import { Module } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
-import { ProviderModule } from "@provider/provider.module";
-import { ModelModule } from "@model/model.module";
-import { SlugModule } from "@service/slug/slug.module";
-import { CloudinaryModule } from "@service/cloudinary/cloudinary.module";
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
-import { HttpExceptionFilter } from "./common/exceptions/http-exception.filter";
-import { ValidationPipe } from "@pipe/validation.pipe";
-import { TransformInterceptor } from "@interceptor/transform.interceptor";
-import { AuthenticationModule } from "@authentication/authentication.module";
-import { SanitizeHtmlInterceptor } from "@interceptor/sanitize-html.interceptor";
-import { ThrottlerGuard } from "@nestjs/throttler";
-import { HealthModule } from "./health/health.module";
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { ProviderModule } from '@provider/provider.module';
+import { ModelModule } from '@model/model.module';
+import { SlugModule } from '@service/slug/slug.module';
+import { CloudinaryModule } from '@service/cloudinary/cloudinary.module';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
+import { PrismaExceptionFilter } from './common/exceptions/prisma-exception.filter';
+import { ValidationPipe } from '@pipe/validation.pipe';
+import { TransformInterceptor } from '@interceptor/transform.interceptor';
+import { AuthenticationModule } from '@authentication/authentication.module';
+import { SanitizeHtmlInterceptor } from '@interceptor/sanitize-html.interceptor';
+import { ThrottlerGuard } from '@nestjs/throttler';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -27,25 +28,30 @@ import { HealthModule } from "./health/health.module";
   providers: [
     {
       provide: APP_FILTER,
-      useClass: HttpExceptionFilter
+      useClass: HttpExceptionFilter,
+    },
+    {
+      // Map Prisma known errors (P2025/P2002/P2003) sang HTTP status đúng,
+      // tránh leak 500 khi xoá/cập nhật record không tồn tại.
+      provide: APP_FILTER,
+      useClass: PrismaExceptionFilter,
     },
     {
       provide: APP_PIPE,
-      useClass: ValidationPipe
+      useClass: ValidationPipe,
     },
     {
       provide: APP_INTERCEPTOR,
-      useClass: TransformInterceptor
+      useClass: TransformInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,
-      useClass: SanitizeHtmlInterceptor
+      useClass: SanitizeHtmlInterceptor,
     },
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard
-    }
-  ]
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
-export class AppModule {
-}
+export class AppModule {}

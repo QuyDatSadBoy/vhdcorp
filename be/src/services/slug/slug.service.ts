@@ -1,8 +1,8 @@
-import { Injectable } from "@nestjs/common";
-import slugify from "slugify";
-import { PrismaService } from "@prisma/prisma.service";
+import { Injectable } from '@nestjs/common';
+import slugify from 'slugify';
+import { PrismaService } from '@prisma/prisma.service';
 
-type SluggableModel = "category" | "product" | "post";
+type SluggableModel = 'category' | 'product' | 'post';
 
 /**
  * SlugService — sinh slug duy nhất theo domain.
@@ -17,8 +17,8 @@ export class SlugService {
     model: SluggableModel,
     currentId?: number,
   ): Promise<string> {
-    const base = slugify(text, { lower: true, strict: true, locale: "vi" });
-    let candidate = base || "item";
+    const base = slugify(text, { lower: true, strict: true, locale: 'vi' });
+    let candidate = base || 'item';
     let counter = 2;
 
     while (await this.exists(model, candidate, currentId)) {
@@ -35,9 +35,9 @@ export class SlugService {
   ): Promise<boolean> {
     const where = currentId ? { slug, NOT: { id: currentId } } : { slug };
     const found =
-      model === "category"
+      model === 'category'
         ? await this.prisma.category.findFirst({ where })
-        : model === "product"
+        : model === 'product'
           ? await this.prisma.product.findFirst({ where })
           : await this.prisma.post.findFirst({ where });
     return found !== null;

@@ -20,7 +20,8 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const description = (
     product.metaDesc?.trim() ||
     product.shortDescription?.trim() ||
-    stripHtml(product.description ?? "")
+    stripHtml(product.description ?? "").trim() ||
+    `${product.name} — sản phẩm chính hãng từ VHD Corp, đối tác sản xuất nhựa – cao su – cơ khí công nghiệp uy tín tại Việt Nam.`
   ).slice(0, 160);
   const ogImage = product.ogImage ?? product.images?.[0];
   return {
@@ -42,33 +43,54 @@ export default async function ProductDetailRoute({ params }: { params: Promise<P
   const { slug } = await params;
   const product = await serverApi.productBySlug(slug);
 
-  const productLd = product ? {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.name,
-    description: product.shortDescription ?? product.description,
-    image: (product.images ?? []).map((src) => (src.startsWith("http") ? src : `${SITE_URL}${src}`)),
-    sku: String(product.id),
-    category: product.category?.name,
-    offers: Number(product.price) > 0 ? {
-      "@type": "Offer",
-      priceCurrency: "VND",
-      price: Number(product.price),
-      availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-      url: `${SITE_URL}/products/${product.slug}`,
-    } : undefined,
-  } : null;
+  const productLd = product
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: product.name,
+        description: product.shortDescription ?? product.description,
+        image: (product.images ?? []).map((src) => (src.startsWith("http") ? src : `${SITE_URL}${src}`)),
+        sku: String(product.id),
+        category: product.category?.name,
+        offers:
+          Number(product.price) > 0
+            ? {
+                "@type": "Offer",
+                priceCurrency: "VND",
+                price: Number(product.price),
+                availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+                url: `${SITE_URL}/products/${product.slug}`,
+              }
+            : undefined,
+      }
+    : null;
 
-  const breadcrumbLd = product ? {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE_URL },
-      { "@type": "ListItem", position: 2, name: "Sản phẩm", item: `${SITE_URL}/products` },
-      ...(product.category ? [{ "@type": "ListItem", position: 3, name: product.category.name, item: `${SITE_URL}/categories/${product.category.slug}` }] : []),
-      { "@type": "ListItem", position: product.category ? 4 : 3, name: product.name, item: `${SITE_URL}/products/${product.slug}` },
-    ],
-  } : null;
+  const breadcrumbLd = product
+    ? {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE_URL },
+          { "@type": "ListItem", position: 2, name: "Sản phẩm", item: `${SITE_URL}/products` },
+          ...(product.category
+            ? [
+                {
+                  "@type": "ListItem",
+                  position: 3,
+                  name: product.category.name,
+                  item: `${SITE_URL}/categories/${product.category.slug}`,
+                },
+              ]
+            : []),
+          {
+            "@type": "ListItem",
+            position: product.category ? 4 : 3,
+            name: product.name,
+            item: `${SITE_URL}/products/${product.slug}`,
+          },
+        ],
+      }
+    : null;
 
   return (
     <>

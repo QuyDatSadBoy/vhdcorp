@@ -1,12 +1,12 @@
-import { IsEmail, IsString, MaxLength, MinLength } from "class-validator";
+import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class RegisterDto {
-  @IsEmail({}, { message: "Email không hợp lệ" })
+  @IsEmail({}, { message: 'Email không hợp lệ' })
   email!: string;
 
   @IsString()
-  @MinLength(6, { message: "Mật khẩu tối thiểu 6 ký tự" })
-  @MaxLength(72, { message: "Mật khẩu tối đa 72 ký tự" })
+  @MinLength(6, { message: 'Mật khẩu tối thiểu 6 ký tự' })
+  @MaxLength(72, { message: 'Mật khẩu tối đa 72 ký tự' })
   password!: string;
 
   @IsString()

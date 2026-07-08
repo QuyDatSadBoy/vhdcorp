@@ -1,14 +1,18 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "@prisma/prisma.service";
-import { SlugService } from "@service/slug/slug.service";
-import { ProductStatus, type Prisma } from "@vhd/prisma-client";
-import { CreateProductDto } from "./dto/create-product.dto";
-import { UpdateProductDto } from "./dto/update-product.dto";
-import { buildPaginationParams, toPaginated } from "@util/pagination";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '@prisma/prisma.service';
+import { SlugService } from '@service/slug/slug.service';
+import { ProductStatus, type Prisma } from '@vhd/prisma-client';
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
+import { buildPaginationParams, toPaginated } from '@util/pagination';
 
 interface ListParams {
   pageNumber?: string | number;
   pageSize?: string | number;
+  /** Alias REST chuẩn cho `pageNumber`. */
+  page?: string | number;
+  /** Alias REST chuẩn cho `pageSize`. */
+  limit?: string | number;
   search?: string;
   categorySlug?: string;
   categoryId?: number;
@@ -16,7 +20,7 @@ interface ListParams {
   publishedOnly?: boolean;
   minPrice?: number;
   maxPrice?: number;
-  sort?: "newest" | "price_asc" | "price_desc" | "name";
+  sort?: 'newest' | 'price_asc' | 'price_desc' | 'name';
 }
 
 @Injectable()
@@ -27,7 +31,12 @@ export class ProductService {
   ) {}
 
   async list(params: ListParams) {
-    const { page, limit, skip, take } = buildPaginationParams(params.pageNumber, params.pageSize);
+    const { page, limit, skip, take } = buildPaginationParams(
+      params.pageNumber,
+      params.pageSize,
+      params.page,
+      params.limit,
+    );
 
     const where: Prisma.ProductWhereInput = { deletedAt: null };
     if (params.publishedOnly) where.status = ProductStatus.PUBLISHED;
@@ -35,26 +44,30 @@ export class ProductService {
     if (params.search) {
       // Match cả name (có dấu) và slug (đã bỏ dấu) — hỗ trợ tìm kiếm tiếng Việt không dấu
       where.OR = [
-        { name: { contains: params.search, mode: "insensitive" } },
-        { slug: { contains: params.search.toLowerCase(), mode: "insensitive" } },
+        { name: { contains: params.search, mode: 'insensitive' } },
+        {
+          slug: { contains: params.search.toLowerCase(), mode: 'insensitive' },
+        },
       ];
     }
     if (params.categoryId) where.categoryId = params.categoryId;
     if (params.categorySlug) where.category = { slug: params.categorySlug };
     if (params.minPrice !== undefined || params.maxPrice !== undefined) {
       where.price = {};
-      if (params.minPrice !== undefined) (where.price as Prisma.DecimalFilter).gte = params.minPrice;
-      if (params.maxPrice !== undefined) (where.price as Prisma.DecimalFilter).lte = params.maxPrice;
+      if (params.minPrice !== undefined)
+        (where.price as Prisma.DecimalFilter).gte = params.minPrice;
+      if (params.maxPrice !== undefined)
+        (where.price as Prisma.DecimalFilter).lte = params.maxPrice;
     }
 
     const orderBy: Prisma.ProductOrderByWithRelationInput =
-      params.sort === "price_asc"
-        ? { price: "asc" }
-        : params.sort === "price_desc"
-          ? { price: "desc" }
-          : params.sort === "name"
-            ? { name: "asc" }
-            : { createdAt: "desc" };
+      params.sort === 'price_asc'
+        ? { price: 'asc' }
+        : params.sort === 'price_desc'
+          ? { price: 'desc' }
+          : params.sort === 'name'
+            ? { name: 'asc' }
+            : { createdAt: 'desc' };
 
     const [records, totalItems] = await this.prisma.$transaction([
       this.prisma.product.findMany({
@@ -76,23 +89,25 @@ export class ProductService {
       include: {
         category: true,
         reviews: {
-          where: { status: "APPROVED" },
+          where: { status: 'APPROVED' },
           include: { user: { select: { id: true, name: true, avatar: true } } },
-          orderBy: { createdAt: "desc" },
+          orderBy: { createdAt: 'desc' },
           take: 20,
         },
       },
     });
-    if (!product) throw new NotFoundException("Không tìm thấy sản phẩm");
+    if (!product) throw new NotFoundException('Không tìm thấy sản phẩm');
     return product;
   }
 
-  async findById(id: number) {
+  async findById(id: number, options: { includeDeleted?: boolean } = {}) {
+    const where: { id: number; deletedAt?: null } = { id };
+    if (!options.includeDeleted) where.deletedAt = null;
     const product = await this.prisma.product.findFirst({
-      where: { id, deletedAt: null },
+      where,
       include: { category: true },
     });
-    if (!product) throw new NotFoundException("Không tìm thấy sản phẩm");
+    if (!product) throw new NotFoundException('Không tìm thấy sản phẩm');
     return product;
   }
 
@@ -107,13 +122,16 @@ export class ProductService {
         status: ProductStatus.PUBLISHED,
       },
       take,
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       include: { category: { select: { id: true, name: true, slug: true } } },
     });
   }
 
   async create(dto: CreateProductDto) {
-    const slug = await this.slug.generateUniqueSlug(dto.slug ?? dto.name, "product");
+    const slug = await this.slug.generateUniqueSlug(
+      dto.slug ?? dto.name,
+      'product',
+    );
     return this.prisma.product.create({
       data: {
         name: dto.name,
@@ -134,8 +152,10 @@ export class ProductService {
   async update(id: number, dto: UpdateProductDto) {
     await this.findById(id);
     let slug: string | undefined;
-    if (dto.slug) slug = await this.slug.generateUniqueSlug(dto.slug, "product", id);
-    else if (dto.name) slug = await this.slug.generateUniqueSlug(dto.name, "product", id);
+    if (dto.slug)
+      slug = await this.slug.generateUniqueSlug(dto.slug, 'product', id);
+    else if (dto.name)
+      slug = await this.slug.generateUniqueSlug(dto.name, 'product', id);
 
     return this.prisma.product.update({
       where: { id },
@@ -157,10 +177,16 @@ export class ProductService {
 
   async softDelete(id: number) {
     await this.findById(id);
-    return this.prisma.product.update({ where: { id }, data: { deletedAt: new Date() } });
+    return this.prisma.product.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
   }
 
   async restore(id: number) {
-    return this.prisma.product.update({ where: { id }, data: { deletedAt: null } });
+    return this.prisma.product.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
   }
 }

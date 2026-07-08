@@ -175,7 +175,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
         </div>
 
         <div>
-          {product.category?.name && <p className="type-eyebrow text-brand-accent">{product.category.name}</p>}
+          {product.category?.name && <p className="type-eyebrow text-brand-primary">{product.category.name}</p>}
           <motion.h1
             suppressHydrationWarning
             initial={{ opacity: 0, y: 16 }}

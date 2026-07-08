@@ -9,19 +9,19 @@ import {
   Put,
   Query,
   UseGuards,
-} from "@nestjs/common";
-import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { ProductService } from "./product.service";
-import { CreateProductDto } from "./dto/create-product.dto";
-import { UpdateProductDto } from "./dto/update-product.dto";
-import { JwtAuthGuard } from "@guard/jwt-auth.guard";
-import { RolesGuard } from "@guard/roles.guard";
-import { Roles } from "@decorator/roles.decorator";
-import { Public } from "@decorator/public.decorator";
-import { ProductStatus, Role } from "@vhd/prisma-client";
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ProductService } from './product.service';
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
+import { JwtAuthGuard } from '@guard/jwt-auth.guard';
+import { RolesGuard } from '@guard/roles.guard';
+import { Roles } from '@decorator/roles.decorator';
+import { Public } from '@decorator/public.decorator';
+import { ProductStatus, Role } from '@vhd/prisma-client';
 
-@Controller("products")
-@ApiTags("Product")
+@Controller('products')
+@ApiTags('Product')
 export class ProductController {
   constructor(private readonly service: ProductService) {}
 
@@ -29,17 +29,21 @@ export class ProductController {
   @Get()
   @Public()
   list(
-    @Query("pageNumber") pageNumber?: string,
-    @Query("pageSize") pageSize?: string,
-    @Query("search") search?: string,
-    @Query("categorySlug") categorySlug?: string,
-    @Query("minPrice") minPrice?: string,
-    @Query("maxPrice") maxPrice?: string,
-    @Query("sort") sort?: "newest" | "price_asc" | "price_desc" | "name",
+    @Query('pageNumber') pageNumber?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('categorySlug') categorySlug?: string,
+    @Query('minPrice') minPrice?: string,
+    @Query('maxPrice') maxPrice?: string,
+    @Query('sort') sort?: 'newest' | 'price_asc' | 'price_desc' | 'name',
   ) {
     return this.service.list({
       pageNumber,
       pageSize,
+      page,
+      limit,
       search,
       categorySlug,
       minPrice: minPrice ? Number(minPrice) : undefined,
@@ -50,44 +54,48 @@ export class ProductController {
   }
 
   /** Admin/Staff list — bao gồm DRAFT */
-  @Get("admin")
+  @Get('admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   adminList(
-    @Query("pageNumber") pageNumber?: string,
-    @Query("pageSize") pageSize?: string,
-    @Query("search") search?: string,
-    @Query("status") status?: ProductStatus,
-    @Query("categoryId") categoryId?: string,
+    @Query('pageNumber') pageNumber?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: ProductStatus,
+    @Query('categoryId') categoryId?: string,
   ) {
     return this.service.list({
       pageNumber,
       pageSize,
+      page,
+      limit,
       search,
       status,
       categoryId: categoryId ? Number(categoryId) : undefined,
     });
   }
 
-  @Get("slug/:slug")
+  @Get('slug/:slug')
   @Public()
-  bySlug(@Param("slug") slug: string) {
+  bySlug(@Param('slug') slug: string) {
     return this.service.findBySlug(slug);
   }
 
-  @Get(":id/related")
+  @Get(':id/related')
   @Public()
-  related(@Param("id", ParseIntPipe) id: number) {
+  related(@Param('id', ParseIntPipe) id: number) {
     return this.service.related(id);
   }
 
-  @Get(":id")
+  @Get(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.STAFF)
-  byId(@Param("id", ParseIntPipe) id: number) {
-    return this.service.findById(id);
+  byId(@Param('id', ParseIntPipe) id: number) {
+    return this.service.findById(id, { includeDeleted: true });
   }
 
   @Post()
@@ -98,27 +106,27 @@ export class ProductController {
     return this.service.create(dto);
   }
 
-  @Put(":id")
+  @Put(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.STAFF)
-  update(@Param("id", ParseIntPipe) id: number, @Body() dto: UpdateProductDto) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateProductDto) {
     return this.service.update(id, dto);
   }
 
-  @Delete(":id")
+  @Delete(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  softDelete(@Param("id", ParseIntPipe) id: number) {
+  softDelete(@Param('id', ParseIntPipe) id: number) {
     return this.service.softDelete(id);
   }
 
-  @Post(":id/restore")
+  @Post(':id/restore')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  restore(@Param("id", ParseIntPipe) id: number) {
+  restore(@Param('id', ParseIntPipe) id: number) {
     return this.service.restore(id);
   }
 }

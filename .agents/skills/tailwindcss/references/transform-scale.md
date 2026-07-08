@@ -44,9 +44,7 @@ Use negative values to mirror and scale:
 Common pattern for interactive scaling:
 
 ```html
-<div class="scale-95 hover:scale-100 transition-transform">
-  Grows on hover
-</div>
+<div class="scale-95 hover:scale-100 transition-transform">Grows on hover</div>
 ```
 
 ### Removing scale

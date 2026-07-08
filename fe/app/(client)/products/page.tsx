@@ -49,79 +49,99 @@ function ProductsContent() {
         breadcrumbs={[{ label: "Trang chủ", href: "/" }, { label: "Sản phẩm" }]}
       />
       <div className="container mx-auto px-4 py-12">
+        <div className="mb-8 grid gap-3 md:grid-cols-[1fr_240px_200px]">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setQuery("search", search || undefined);
+            }}
+          >
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm sản phẩm..." />
+          </form>
 
-      <div className="mb-8 grid gap-3 md:grid-cols-[1fr_240px_200px]">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setQuery("search", search || undefined);
-          }}
-        >
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm sản phẩm..." />
-        </form>
+          <Select
+            value={categorySlug ?? "all"}
+            onValueChange={(v) => setQuery("category", v === "all" ? undefined : v)}
+          >
+            <SelectTrigger aria-label="Lọc theo danh mục">
+              <SelectValue placeholder="Tất cả danh mục" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả danh mục</SelectItem>
+              {(categories ?? []).map((c) => (
+                <SelectItem key={c.id} value={c.slug}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select value={categorySlug ?? "all"} onValueChange={(v) => setQuery("category", v === "all" ? undefined : v)}>
-          <SelectTrigger><SelectValue placeholder="Tất cả danh mục" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả danh mục</SelectItem>
-            {(categories ?? []).map((c) => (
-              <SelectItem key={c.id} value={c.slug}>{c.name}</SelectItem>
+          <Select value={sort} onValueChange={(v) => setQuery("sort", v)}>
+            <SelectTrigger aria-label="Sắp xếp sản phẩm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Mới nhất</SelectItem>
+              <SelectItem value="price_asc">Giá tăng dần</SelectItem>
+              <SelectItem value="price_desc">Giá giảm dần</SelectItem>
+              <SelectItem value="name">Tên A-Z</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <h2 className="sr-only">Danh sách sản phẩm</h2>
+
+        {isLoading ? (
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-square" />
             ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={sort} onValueChange={(v) => setQuery("sort", v)}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">Mới nhất</SelectItem>
-            <SelectItem value="price_asc">Giá tăng dần</SelectItem>
-            <SelectItem value="price_desc">Giá giảm dần</SelectItem>
-            <SelectItem value="name">Tên A-Z</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {isLoading ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="aspect-square" />)}
-        </div>
-      ) : products.length === 0 ? (
-        <div className="rounded-xl border border-dashed bg-card p-12 text-center text-muted-foreground">
-          Không tìm thấy sản phẩm phù hợp.
-          <div className="mt-4">
-            <Button variant="outline" onClick={() => router.replace("/products")}>Xóa bộ lọc</Button>
           </div>
-        </div>
-      ) : (
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
-          className="grid grid-cols-2 gap-4 md:grid-cols-4"
-        >
-          {products.map((p) => (
-            <motion.div key={p.id} variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}>
-              <Link href={`/products/${p.slug}`}>
-                <Card className="group h-full overflow-hidden border-transparent transition-all hover:-translate-y-1 hover:border-brand-primary/40 hover:shadow-lg">
-                  <div className="relative aspect-square overflow-hidden bg-muted">
-                    {p.images?.[0] ? (
-                      <Image src={p.images[0]} alt={p.name} fill sizes="(max-width:768px) 50vw, 25vw" className="object-cover transition-transform duration-500 group-hover:scale-110" />
-                    ) : (
-                      <ImageFallback />
-                    )}
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="line-clamp-2 text-sm font-semibold">{p.name}</h3>
-                    {Number(p.price) > 0 && (
-                      <p className="mt-2 font-bold text-brand-primary">{Number(p.price).toLocaleString("vi-VN")} ₫</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
-            </motion.div>
-          ))}
-        </motion.div>
-      )}
+        ) : products.length === 0 ? (
+          <div className="rounded-xl border border-dashed bg-card p-12 text-center text-muted-foreground">
+            Không tìm thấy sản phẩm phù hợp.
+            <div className="mt-4">
+              <Button variant="outline" onClick={() => router.replace("/products")}>
+                Xóa bộ lọc
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
+            className="grid grid-cols-2 gap-4 md:grid-cols-4"
+          >
+            {products.map((p) => (
+              <motion.div key={p.id} variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}>
+                <Link href={`/products/${p.slug}`}>
+                  <Card className="group h-full overflow-hidden border-transparent transition-all hover:-translate-y-1 hover:border-brand-primary/40 hover:shadow-lg">
+                    <div className="relative aspect-square overflow-hidden bg-muted">
+                      {p.images?.[0] ? (
+                        <Image
+                          src={p.images[0]}
+                          alt={p.name}
+                          fill
+                          sizes="(max-width:768px) 50vw, 25vw"
+                          className="object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                      ) : (
+                        <ImageFallback />
+                      )}
+                    </div>
+                    <CardContent className="p-4">
+                      <h3 className="line-clamp-2 text-sm font-semibold">{p.name}</h3>
+                      {Number(p.price) > 0 && (
+                        <p className="mt-2 font-bold text-brand-primary">{Number(p.price).toLocaleString("vi-VN")} ₫</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
       </div>
     </>
   );
@@ -129,5 +149,9 @@ function ProductsContent() {
 
 import { Suspense } from "react";
 export default function ProductsPage() {
-  return <Suspense><ProductsContent /></Suspense>;
+  return (
+    <Suspense>
+      <ProductsContent />
+    </Suspense>
+  );
 }

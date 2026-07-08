@@ -4,11 +4,11 @@ import {
   InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
-} from "@nestjs/common";
-import * as bcrypt from "bcrypt";
-import { PrismaService } from "@prisma/prisma.service";
-import type { Prisma, User } from "@vhd/prisma-client";
-import { Role } from "@vhd/prisma-client";
+} from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
+import { PrismaService } from '@prisma/prisma.service';
+import type { Prisma, User } from '@vhd/prisma-client';
+import { Role } from '@vhd/prisma-client';
 
 const SAFE_USER_SELECT = {
   id: true,
@@ -86,13 +86,16 @@ export class UserService {
   /** Admin đổi role — chặn admin tự hạ quyền chính mình để không khóa hệ thống */
   async updateRole(currentUserId: number, targetUserId: number, role: Role) {
     if (!Object.values(Role).includes(role)) {
-      throw new BadRequestException("Role không hợp lệ");
+      throw new BadRequestException('Role không hợp lệ');
     }
     if (currentUserId === targetUserId) {
-      throw new BadRequestException("Không thể tự đổi role của chính mình");
+      throw new BadRequestException('Không thể tự đổi role của chính mình');
     }
-    const target = await this.prisma.user.findUnique({ where: { id: targetUserId } });
-    if (!target || target.deletedAt) throw new NotFoundException("Người dùng không tồn tại");
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+    });
+    if (!target || target.deletedAt)
+      throw new NotFoundException('Người dùng không tồn tại');
     return this.prisma.user.update({
       where: { id: targetUserId },
       data: { role },
@@ -103,7 +106,8 @@ export class UserService {
   /** Cập nhật hồ sơ chính chủ — name + avatar */
   async updateMe(userId: number, data: { name?: string; avatar?: string }) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user || user.deletedAt) throw new NotFoundException("Người dùng không tồn tại");
+    if (!user || user.deletedAt)
+      throw new NotFoundException('Người dùng không tồn tại');
     return this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -115,24 +119,29 @@ export class UserService {
   }
 
   /** Đổi mật khẩu chính chủ — yêu cầu mật khẩu hiện tại */
-  async changePassword(userId: number, currentPassword: string, newPassword: string) {
+  async changePassword(
+    userId: number,
+    currentPassword: string,
+    newPassword: string,
+  ) {
     if (!newPassword || newPassword.length < 6) {
-      throw new BadRequestException("Mật khẩu mới tối thiểu 6 ký tự");
+      throw new BadRequestException('Mật khẩu mới tối thiểu 6 ký tự');
     }
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user || user.deletedAt) throw new NotFoundException("Người dùng không tồn tại");
+    if (!user || user.deletedAt)
+      throw new NotFoundException('Người dùng không tồn tại');
     if (!user.password) {
       throw new BadRequestException(
-        "Tài khoản đăng nhập bằng Google — không có mật khẩu để đổi",
+        'Tài khoản đăng nhập bằng Google — không có mật khẩu để đổi',
       );
     }
     const ok = await bcrypt.compare(currentPassword, user.password);
-    if (!ok) throw new UnauthorizedException("Mật khẩu hiện tại không đúng");
+    if (!ok) throw new UnauthorizedException('Mật khẩu hiện tại không đúng');
     const hash = await bcrypt.hash(newPassword, 10);
     await this.prisma.user.update({
       where: { id: userId },
       data: { password: hash, refreshTokenHash: null },
     });
-    return { message: "Đổi mật khẩu thành công" };
+    return { message: 'Đổi mật khẩu thành công' };
   }
 }

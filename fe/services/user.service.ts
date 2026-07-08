@@ -16,12 +16,10 @@ interface ListParams {
 }
 
 export const userService = {
-  list: (params?: ListParams) =>
-    axios.get<{ data: PaginatedResult<AdminUser> }>("/users", { params }).then(unwrap),
+  list: (params?: ListParams) => axios.get<{ data: PaginatedResult<AdminUser> }>("/users", { params }).then(unwrap),
   updateRole: (id: number, role: AdminUser["role"]) =>
     axios.patch<{ data: AdminUser }>(`/users/${id}/role`, { role }).then(unwrap),
-  softDelete: (id: number) =>
-    axios.delete<{ data: AdminUser }>(`/users/${id}`).then(unwrap),
+  softDelete: (id: number) => axios.delete<{ data: AdminUser }>(`/users/${id}`).then(unwrap),
 };
 
 export function useAdminUsers(params?: ListParams) {

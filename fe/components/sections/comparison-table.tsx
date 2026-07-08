@@ -51,7 +51,7 @@ export default function ComparisonTable({ section }: { section: ComparisonTableS
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="mx-auto mb-12 max-w-3xl text-center"
         >
-          <p className="type-eyebrow text-brand-accent">{p.eyebrow ?? "So sánh gói dịch vụ"}</p>
+          <p className="type-eyebrow text-brand-primary">{p.eyebrow ?? "So sánh gói dịch vụ"}</p>
           <h2 className="mt-3 type-display-md text-foreground">
             {p.heading ?? "Chọn gói VHD phù hợp với quy mô của bạn"}
           </h2>

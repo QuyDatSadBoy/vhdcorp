@@ -20,6 +20,9 @@ import {
   Monitor,
   ExternalLink,
   GripVertical,
+  Sparkles,
+  LayoutTemplate,
+  MousePointerClick,
 } from "lucide-react";
 import {
   DndContext,
@@ -43,6 +46,7 @@ import type { Section, SiteConfigValue } from "@/types/site-config";
 import { defaultHomeSections } from "@/lib/default-sections";
 import { DEFAULT_SITE_CONFIG } from "@/lib/site-config";
 import { PageRenderer } from "@/components/sections";
+import { useConfirm } from "@/components/admin/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -315,6 +319,7 @@ export default function AdminBuilderPage() {
   const { data, isLoading } = useDraftSiteConfig();
   const saveDraft = useSaveDraftSiteConfig();
   const publish = usePublishSiteConfig();
+  const confirm = useConfirm();
 
   const [draft, setDraft] = useState<SiteConfigValue | null>(null);
   const [page, setPage] = useState<"home" | "about" | "contact">("home");
@@ -517,8 +522,17 @@ export default function AdminBuilderPage() {
   }
 
   function loadDefaults() {
-    if (!confirm("Thay thế bằng layout mặc định?")) return;
-    setSections(defaultHomeSections());
+    void (async () => {
+      const ok = await confirm({
+        title: "Thay thế bằng layout mặc định?",
+        description:
+          "Toàn bộ section hiện tại trên trang này sẽ bị thay thế bởi bố cục mặc định. Hành động không thể hoàn tác (trừ khi bấm Undo).",
+        confirmText: "Thay thế",
+        variant: "destructive",
+      });
+      if (!ok) return;
+      setSections(defaultHomeSections());
+    })();
   }
 
   async function handleSave() {
@@ -533,7 +547,12 @@ export default function AdminBuilderPage() {
     }
   }
   async function handlePublish() {
-    if (!confirm("Xuất bản layout hiện tại?")) return;
+    const ok = await confirm({
+      title: "Xuất bản layout?",
+      description: "Layout hiện tại sẽ được đưa lên trang chính ngay lập tức. Khách truy cập sẽ thấy phiên bản mới.",
+      confirmText: "Xuất bản",
+    });
+    if (!ok) return;
     try {
       await publish.mutateAsync("main");
       setDirty(false);
@@ -729,7 +748,43 @@ export default function AdminBuilderPage() {
         </div>
         <motion.div suppressHydrationWarning initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-0">
           <div ref={previewFrameRef} className="mx-auto bg-background transition-[max-width] duration-200">
-            <PageRenderer sections={sections} />
+            {sections.length === 0 ? (
+              <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-10">
+                <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-dashed border-foreground/15 bg-linear-to-br from-background via-muted/30 to-background p-6 text-center shadow-sm sm:p-8">
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute -top-16 -left-16 h-48 w-48 rounded-full bg-brand-primary/15 blur-3xl"
+                  />
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute -right-16 -bottom-16 h-48 w-48 rounded-full bg-brand-accent/15 blur-3xl"
+                  />
+                  <div className="relative">
+                    <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-linear-to-br from-brand-primary to-brand-accent text-white shadow-lg shadow-brand-primary/30">
+                      <LayoutTemplate className="h-6 w-6" />
+                    </div>
+                    <h2 className="mb-2 text-lg font-bold tracking-tight text-foreground">Canvas đang trống</h2>
+                    <p className="mx-auto mb-5 max-w-xs text-xs text-muted-foreground sm:text-sm">
+                      Tải layout mẫu hoặc thêm từng section từ panel bên trái để bắt đầu.
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <Button onClick={loadDefaults} size="sm" className="gap-1.5">
+                        <Sparkles className="h-4 w-4" /> Tải layout mẫu
+                      </Button>
+                      <Button onClick={() => addSection("hero")} size="sm" variant="outline" className="gap-1.5">
+                        <Plus className="h-4 w-4" /> Thêm Hero
+                      </Button>
+                    </div>
+                    <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground/80">
+                      <MousePointerClick className="h-3 w-3" />
+                      Mẹo: kéo thả các section để sắp xếp lại
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <PageRenderer sections={sections} />
+            )}
           </div>
         </motion.div>
       </main>

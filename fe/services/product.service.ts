@@ -89,8 +89,7 @@ export function useCreateProduct() {
 export function useUpdateProduct() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<Product> }) =>
-      productService.update(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: Partial<Product> }) => productService.update(id, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
   });
 }

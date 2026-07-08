@@ -29,17 +29,23 @@ Utilities for controlling table display, border behavior, and layout algorithm.
 </table>
 
 <!-- Separate: each cell has its own borders -->
-<table class="border-separate border border-gray-400">...</table>
+<table class="border-separate border border-gray-400">
+  ...
+</table>
 ```
 
 ### Table layout
 
 ```html
 <!-- Auto: columns sized to content -->
-<table class="table-auto">...</table>
+<table class="table-auto">
+  ...
+</table>
 
 <!-- Fixed: columns use first row widths -->
-<table class="table-fixed">...</table>
+<table class="table-fixed">
+  ...
+</table>
 ```
 
 ### Table display (from layout-display)
@@ -49,7 +55,9 @@ Combine with `table`, `table-row`, `table-cell`, `table-header-group`, etc. for 
 ### Responsive
 
 ```html
-<table class="border-collapse md:border-separate">...</table>
+<table class="border-collapse md:border-separate">
+  ...
+</table>
 ```
 
 ## Key Points

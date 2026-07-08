@@ -41,7 +41,8 @@ export default function ProfilePage() {
     }
   }
 
-  async function save() {
+  async function save(e?: React.FormEvent) {
+    e?.preventDefault();
     try {
       setSaving(true);
       const { data } = await axios.put("/users/me", { name, avatar });
@@ -57,7 +58,13 @@ export default function ProfilePage() {
   if (!user) return null;
 
   return (
-    <motion.div suppressHydrationWarning initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border bg-card p-6">
+    <motion.form
+      suppressHydrationWarning
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      onSubmit={save}
+      className="rounded-xl border bg-card p-6"
+    >
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold">Hồ sơ của tôi</h1>
         {user.googleId ? (
@@ -77,8 +84,12 @@ export default function ProfilePage() {
       <div className="mt-6 flex flex-col items-start gap-6 md:flex-row">
         <div className="flex flex-col items-center gap-3">
           <div className="relative h-32 w-32 overflow-hidden rounded-full border bg-muted">
-            {avatar ? <Image src={avatar} alt={name} fill sizes="128px" className="object-cover" /> : (
-              <div className="grid h-full place-items-center text-3xl font-bold text-muted-foreground">{name?.[0]?.toUpperCase()}</div>
+            {avatar ? (
+              <Image src={avatar} alt={name} fill sizes="128px" className="object-cover" />
+            ) : (
+              <div className="grid h-full place-items-center text-3xl font-bold text-muted-foreground">
+                {name?.[0]?.toUpperCase()}
+              </div>
             )}
           </div>
           <label className="cursor-pointer">
@@ -104,12 +115,12 @@ export default function ProfilePage() {
             <Label htmlFor="name">Họ tên</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          <Button onClick={save} disabled={saving}>
+          <Button type="submit" disabled={saving}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Lưu thay đổi
           </Button>
         </div>
       </div>
-    </motion.div>
+    </motion.form>
   );
 }

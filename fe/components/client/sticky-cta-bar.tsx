@@ -34,12 +34,18 @@ export function StickyCtaBar({ hotline = "+84 28 3000 0000", ctaHref = "/contact
       return;
     }
     const onScroll = () => {
-      const reveal = window.scrollY > window.innerHeight * 0.8;
-      setShow(reveal);
+      const passedHero = window.scrollY > window.innerHeight * 0.8;
+      // Ẩn khi gần chạm footer để không đè nội dung copyright/contact
+      const nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 280;
+      setShow(passedHero && !nearBottom);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, []);
 
   const dismiss = () => {

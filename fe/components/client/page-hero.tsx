@@ -38,7 +38,7 @@ export function PageHero({ eyebrow, title, description, breadcrumbs, variant = "
           <nav
             aria-label="Breadcrumb"
             className={
-              "mb-5 flex flex-wrap items-center gap-1.5 text-sm " + (isDark ? "text-white/70" : "text-foreground/55")
+              "mb-5 flex flex-wrap items-center gap-1.5 text-sm " + (isDark ? "text-white/80" : "text-foreground/75")
             }
           >
             {breadcrumbs.map((b, i) => (
@@ -56,7 +56,7 @@ export function PageHero({ eyebrow, title, description, breadcrumbs, variant = "
           </nav>
         )}
         {eyebrow && (
-          <p className={"type-eyebrow " + (isDark ? "text-brand-highlight" : "text-brand-accent")}>{eyebrow}</p>
+          <p className={"type-eyebrow " + (isDark ? "text-brand-highlight" : "text-brand-primary")}>{eyebrow}</p>
         )}
         <h1 className={"mt-3 type-display-lg " + (isDark ? "text-white" : "text-foreground")}>{title}</h1>
         <div className="mt-4 h-1 w-12 rounded-full bg-brand-highlight" />

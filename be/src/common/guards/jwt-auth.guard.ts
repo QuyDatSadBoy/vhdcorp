@@ -1,15 +1,20 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
-import { ConfigService } from "@nestjs/config";
-import { Reflector } from "@nestjs/core";
-import { IS_PUBLIC_KEY } from "@decorator/public.decorator";
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { Reflector } from '@nestjs/core';
+import { IS_PUBLIC_KEY } from '@decorator/public.decorator';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly reflector: Reflector
+    private readonly reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -25,19 +30,19 @@ export class JwtAuthGuard implements CanActivate {
     // Token được set qua HttpOnly Cookie tên `access_token` (signed)
     const token = request?.signedCookies?.access_token;
     if (!token) {
-      throw new UnauthorizedException("Không tìm thấy access token");
+      throw new UnauthorizedException('Không tìm thấy access token');
     }
 
     try {
       request.user = await this.jwtService.verifyAsync(token, {
-        secret: this.configService.getOrThrow("JWT_ACCESS_SECRET"),
+        secret: this.configService.getOrThrow('JWT_ACCESS_SECRET'),
       });
       return true;
     } catch (error) {
-      if (error?.name === "TokenExpiredError") {
-        throw new UnauthorizedException("Access token hết hạn");
+      if (error?.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Access token hết hạn');
       }
-      throw new UnauthorizedException("Access token không hợp lệ");
+      throw new UnauthorizedException('Access token không hợp lệ');
     }
   }
 }

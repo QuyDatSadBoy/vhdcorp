@@ -16,13 +16,14 @@ When working with React components (`.tsx`, `.jsx` files or `@react` imports), a
 Use the type system to prevent invalid states at compile time.
 
 **Discriminated unions for mutually exclusive states:**
+
 ```ts
 // Good: only valid combinations possible
 type RequestState<T> =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'success'; data: T }
-  | { status: 'error'; error: Error };
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "success"; data: T }
+  | { status: "error"; error: Error };
 
 // Bad: allows invalid combinations like { loading: true, error: Error }
 type RequestState<T> = {
@@ -33,18 +34,22 @@ type RequestState<T> = {
 ```
 
 **Branded types for domain primitives:**
+
 ```ts
-type UserId = string & { readonly __brand: 'UserId' };
-type OrderId = string & { readonly __brand: 'OrderId' };
+type UserId = string & { readonly __brand: "UserId" };
+type OrderId = string & { readonly __brand: "OrderId" };
 
 // Compiler prevents passing OrderId where UserId expected
-function getUser(id: UserId): Promise<User> { /* ... */ }
+function getUser(id: UserId): Promise<User> {
+  /* ... */
+}
 ```
 
 **Const assertions for literal unions:**
+
 ```ts
-const ROLES = ['admin', 'user', 'guest'] as const;
-type Role = typeof ROLES[number]; // 'admin' | 'user' | 'guest'
+const ROLES = ["admin", "user", "guest"] as const;
+type Role = (typeof ROLES)[number]; // 'admin' | 'user' | 'guest'
 
 // Array and type stay in sync automatically
 function isValidRole(role: string): role is Role {
@@ -53,6 +58,7 @@ function isValidRole(role: string): role is Role {
 ```
 
 **Exhaustive switch with never check:**
+
 ```ts
 type Status = "active" | "inactive";
 
@@ -117,8 +123,8 @@ For advanced type utilities beyond TypeScript builtins, consider [type-fest](htt
 - `Simplify<T>` - flatten complex intersection types in IDE tooltips
 
 ```ts
-import type { Opaque, PartialDeep } from 'type-fest';
+import type { Opaque, PartialDeep } from "type-fest";
 
-type UserId = Opaque<string, 'UserId'>;
+type UserId = Opaque<string, "UserId">;
 type UserPatch = PartialDeep<User>;
 ```

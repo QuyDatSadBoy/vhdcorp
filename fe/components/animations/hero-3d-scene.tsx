@@ -16,7 +16,7 @@
  * Mounted lazy, ssr:false trong hero. Pause khi reduced-motion / out-of-view.
  */
 
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment, Float, MeshTransmissionMaterial } from "@react-three/drei";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -32,7 +32,7 @@ function readCssColor(varName: string, fallback: string): THREE.Color {
 }
 
 function ParallaxRig({ strength = 0.4 }: { strength?: number }) {
-  const { camera } = useThree();
+  const rigRef = useRef<THREE.Group | null>(null);
   const target = useRef(new THREE.Vector2(0, 0));
   const current = useRef(new THREE.Vector2(0, 0));
 
@@ -46,12 +46,15 @@ function ParallaxRig({ strength = 0.4 }: { strength?: number }) {
 
   useFrame(() => {
     current.current.lerp(target.current, 0.045);
-    camera.position.x = current.current.x * strength;
-    camera.position.y = -current.current.y * strength;
-    camera.lookAt(0, 0, 0);
+    if (!rigRef.current) return;
+
+    rigRef.current.position.x = current.current.x * strength;
+    rigRef.current.position.y = -current.current.y * strength;
+    rigRef.current.rotation.y = current.current.x * 0.12;
+    rigRef.current.rotation.x = current.current.y * 0.08;
   });
 
-  return null;
+  return <group ref={rigRef} />;
 }
 
 function GlassTorus({

@@ -15,12 +15,12 @@ npm install tailwindcss @tailwindcss/vite
 
 ```ts
 // vite.config.ts
-import { defineConfig } from 'vite'
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [tailwindcss()],
-})
+});
 ```
 
 ```css
@@ -38,9 +38,9 @@ npm install tailwindcss @tailwindcss/postcss postcss
 // postcss.config.js
 export default {
   plugins: {
-    '@tailwindcss/postcss': {},
+    "@tailwindcss/postcss": {},
   },
-}
+};
 ```
 
 ```css

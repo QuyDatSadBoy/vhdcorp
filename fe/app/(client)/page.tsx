@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import { getSiteConfig } from "@/lib/site-config";
+import { buildMetadata } from "@/lib/seo";
 import { PageRenderer } from "@/components/sections";
 import { defaultHomeSections } from "@/lib/default-sections";
 import { JsonLd, SITE_URL } from "@/components/seo/json-ld";
 import { SectionToc, type TocItem } from "@/components/client/section-toc";
 import { HomeMarquees } from "@/components/client/home-marquees";
+
+export async function generateMetadata(): Promise<Metadata> {
+  // Trang chủ — dùng brand title + description từ SiteConfig.seo
+  return buildMetadata({ canonical: SITE_URL });
+}
 
 const TOC_LABELS: Record<string, string> = {
   hero: "Trang chủ",

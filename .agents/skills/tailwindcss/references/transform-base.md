@@ -14,9 +14,7 @@ Base utilities for transforming elements.
 Use `transform-gpu` to force GPU acceleration for better performance:
 
 ```html
-<div class="scale-150 transform-gpu">
-  GPU-accelerated transform
-</div>
+<div class="scale-150 transform-gpu">GPU-accelerated transform</div>
 ```
 
 ### CPU rendering
@@ -24,9 +22,7 @@ Use `transform-gpu` to force GPU acceleration for better performance:
 Use `transform-cpu` to force CPU rendering if needed:
 
 ```html
-<div class="scale-150 transform-cpu">
-  CPU-rendered transform
-</div>
+<div class="scale-150 transform-cpu">CPU-rendered transform</div>
 ```
 
 ### Removing transforms
@@ -34,9 +30,7 @@ Use `transform-cpu` to force CPU rendering if needed:
 Use `transform-none` to remove all transforms:
 
 ```html
-<div class="skew-y-3 md:transform-none">
-  Skewed on mobile, normal on desktop
-</div>
+<div class="skew-y-3 md:transform-none">Skewed on mobile, normal on desktop</div>
 ```
 
 ### Custom transforms
@@ -44,12 +38,8 @@ Use `transform-none` to remove all transforms:
 Use arbitrary values for custom transform functions:
 
 ```html
-<div class="transform-[matrix(1,2,3,4,5,6)]">
-  Custom matrix transform
-</div>
-<div class="transform-[perspective(1000px)_rotateX(45deg)]">
-  Custom 3D transform
-</div>
+<div class="transform-[matrix(1,2,3,4,5,6)]">Custom matrix transform</div>
+<div class="transform-[perspective(1000px)_rotateX(45deg)]">Custom 3D transform</div>
 ```
 
 ## Key Points

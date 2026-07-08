@@ -6,11 +6,13 @@ import { Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAdminProducts, useDeleteProduct } from "@/services/product.service";
 import { AdminTable } from "@/components/admin/admin-table";
+import { useConfirm } from "@/components/admin/confirm-dialog";
 import { Button } from "@/components/ui/button";
 
 export default function AdminProductsPage() {
   const { data, isLoading } = useAdminProducts({ pageSize: 50 });
   const del = useDeleteProduct();
+  const confirm = useConfirm();
 
   return (
     <AdminTable
@@ -30,27 +32,58 @@ export default function AdminProductsPage() {
           ),
           className: "w-20",
         },
-        { key: "name", header: "Tên", render: (p) => <div><p className="font-medium">{p.name}</p><p className="text-xs text-muted-foreground">/{p.slug}</p></div> },
+        {
+          key: "name",
+          header: "Tên",
+          render: (p) => (
+            <div>
+              <p className="font-medium">{p.name}</p>
+              <p className="text-xs text-muted-foreground">/{p.slug}</p>
+            </div>
+          ),
+        },
         { key: "price", header: "Giá", render: (p) => <>{Number(p.price).toLocaleString("vi-VN")} ₫</> },
         { key: "stock", header: "Tồn", render: (p) => p.stock },
-        { key: "status", header: "Trạng thái", render: (p) => (
-          <span className={`rounded-full px-2 py-0.5 text-xs ${p.status === "PUBLISHED" ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"}`}>{p.status}</span>
-        ) },
+        {
+          key: "status",
+          header: "Trạng thái",
+          render: (p) => (
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs ${p.status === "PUBLISHED" ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"}`}
+            >
+              {p.status}
+            </span>
+          ),
+        },
         {
           key: "actions",
           header: "",
           className: "text-right w-32",
           render: (p) => (
             <div className="flex justify-end gap-1">
-              <Button asChild variant="ghost" size="icon"><Link href={`/admin/products/${p.id}`} aria-label="Sửa"><Edit className="h-4 w-4" /></Link></Button>
+              <Button asChild variant="ghost" size="icon">
+                <Link href={`/admin/products/${p.id}`} aria-label="Sửa">
+                  <Edit className="h-4 w-4" />
+                </Link>
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label="Xóa"
                 onClick={async () => {
-                  if (!confirm(`Xóa sản phẩm "${p.name}"?`)) return;
-                  try { await del.mutateAsync(p.id); toast.success("Đã xóa"); }
-                  catch (e) { toast.error(e instanceof Error ? e.message : "Xóa thất bại"); }
+                  const ok = await confirm({
+                    title: "Xóa sản phẩm?",
+                    description: `Sản phẩm "${p.name}" sẽ bị xóa khỏi cửa hàng.`,
+                    confirmText: "Xóa",
+                    variant: "destructive",
+                  });
+                  if (!ok) return;
+                  try {
+                    await del.mutateAsync(p.id);
+                    toast.success("Đã xóa");
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Xóa thất bại");
+                  }
                 }}
               >
                 <Trash2 className="h-4 w-4 text-red-500" />

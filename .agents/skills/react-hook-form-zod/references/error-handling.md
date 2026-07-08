@@ -72,12 +72,9 @@ const onError = (errors) => {
 
 ```typescript
 const schema = z.object({
-  email: z.string()
-    .min(1, 'Email is required')
-    .email('Please enter a valid email address'),
-  password: z.string()
-    .min(8, { message: 'Password must be at least 8 characters long' }),
-})
+  email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
+  password: z.string().min(8, { message: "Password must be at least 8 characters long" }),
+});
 ```
 
 ### Method 2: Custom Error Map
@@ -86,18 +83,18 @@ const schema = z.object({
 const customErrorMap: z.ZodErrorMap = (issue, ctx) => {
   switch (issue.code) {
     case z.ZodIssueCode.too_small:
-      return { message: `Must be at least ${issue.minimum} characters` }
+      return { message: `Must be at least ${issue.minimum} characters` };
     case z.ZodIssueCode.invalid_string:
-      if (issue.validation === 'email') {
-        return { message: 'Please enter a valid email address' }
+      if (issue.validation === "email") {
+        return { message: "Please enter a valid email address" };
       }
-      break
+      break;
     default:
-      return { message: ctx.defaultError }
+      return { message: ctx.defaultError };
   }
-}
+};
 
-z.setErrorMap(customErrorMap)
+z.setErrorMap(customErrorMap);
 ```
 
 ---
@@ -108,10 +105,10 @@ z.setErrorMap(customErrorMap)
 
 ```typescript
 try {
-  schema.parse(data)
+  schema.parse(data);
 } catch (error) {
   if (error instanceof z.ZodError) {
-    const formattedErrors = error.flatten().fieldErrors
+    const formattedErrors = error.flatten().fieldErrors;
     // Result: { email: ['Invalid email'], password: ['Too short'] }
   }
 }
@@ -122,16 +119,16 @@ try {
 ```typescript
 const formatError = (error: FieldError): string => {
   switch (error.type) {
-    case 'required':
-      return 'This field is required'
-    case 'min':
-      return `Minimum length is ${error.message}`
-    case 'pattern':
-      return 'Invalid format'
+    case "required":
+      return "This field is required";
+    case "min":
+      return `Minimum length is ${error.message}`;
+    case "pattern":
+      return "Invalid format";
     default:
-      return error.message || 'Invalid value'
+      return error.message || "Invalid value";
   }
-}
+};
 ```
 
 ---
@@ -141,30 +138,30 @@ const formatError = (error: FieldError): string => {
 ```typescript
 const onSubmit = async (data) => {
   try {
-    const response = await fetch('/api/submit', {
-      method: 'POST',
+    const response = await fetch("/api/submit", {
+      method: "POST",
       body: JSON.stringify(data),
-    })
+    });
 
-    const result = await response.json()
+    const result = await response.json();
 
     if (!result.success && result.errors) {
       // Map server errors to form fields
       Object.entries(result.errors).forEach(([field, message]) => {
         setError(field, {
-          type: 'server',
+          type: "server",
           message: Array.isArray(message) ? message[0] : message,
-        })
-      })
+        });
+      });
     }
   } catch (error) {
     // Network error
-    setError('root', {
-      type: 'server',
-      message: 'Unable to connect. Please try again.',
-    })
+    setError("root", {
+      type: "server",
+      message: "Unable to connect. Please try again.",
+    });
   }
-}
+};
 ```
 
 ---
@@ -187,11 +184,11 @@ const onSubmit = async (data) => {
 
 ```typescript
 const onSubmit = async (data) => {
-  const success = await submitData(data)
+  const success = await submitData(data);
   if (success) {
-    reset() // Clears form and errors
+    reset(); // Clears form and errors
   }
-}
+};
 ```
 
 ---
@@ -199,14 +196,14 @@ const onSubmit = async (data) => {
 ## Internationalization (i18n)
 
 ```typescript
-import { useTranslation } from 'react-i18next'
+import { useTranslation } from "react-i18next";
 
-const { t } = useTranslation()
+const { t } = useTranslation();
 
 const schema = z.object({
-  email: z.string().email(t('errors.invalidEmail')),
-  password: z.string().min(8, t('errors.passwordTooShort')),
-})
+  email: z.string().email(t("errors.invalidEmail")),
+  password: z.string().min(8, t("errors.passwordTooShort")),
+});
 ```
 
 ---

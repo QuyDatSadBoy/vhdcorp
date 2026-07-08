@@ -23,18 +23,15 @@ export const categoryService = {
       .get<{ data: Category[] }>("/categories", {
         params: {
           ...params,
-          parentId:
-            params?.parentId === null ? "null" : params?.parentId ?? undefined,
+          parentId: params?.parentId === null ? "null" : (params?.parentId ?? undefined),
           includeChildren: params?.includeChildren ? "true" : undefined,
         },
       })
       .then(unwrap),
   tree: () => axios.get<{ data: Category[] }>("/categories/tree").then(unwrap),
-  bySlug: (slug: string) =>
-    axios.get<{ data: Category }>(`/categories/slug/${slug}`).then(unwrap),
+  bySlug: (slug: string) => axios.get<{ data: Category }>(`/categories/slug/${slug}`).then(unwrap),
   byId: (id: number) => axios.get<{ data: Category }>(`/categories/${id}`).then(unwrap),
-  create: (payload: Partial<Category>) =>
-    axios.post<{ data: Category }>("/categories", payload).then(unwrap),
+  create: (payload: Partial<Category>) => axios.post<{ data: Category }>("/categories", payload).then(unwrap),
   update: (id: number, payload: Partial<Category>) =>
     axios.put<{ data: Category }>(`/categories/${id}`, payload).then(unwrap),
   remove: (id: number) => axios.delete(`/categories/${id}`).then(() => undefined),
@@ -75,8 +72,7 @@ export function useCreateCategory() {
 export function useUpdateCategory() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<Category> }) =>
-      categoryService.update(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: Partial<Category> }) => categoryService.update(id, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: categoryKeys.all }),
   });
 }

@@ -1,4 +1,4 @@
-import { PipeTransform, Injectable } from "@nestjs/common";
+import { PipeTransform, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class DefaultPageSizePipe implements PipeTransform {

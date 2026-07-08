@@ -1,8 +1,16 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "@prisma/prisma.service";
-import { ReviewStatus, type Prisma } from "@vhd/prisma-client";
-import { CreateReviewDto, UpdateReviewDto, UpdateReviewStatusDto } from "./dto/review.dto";
-import { buildPaginationParams, toPaginated } from "@util/pagination";
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from '@prisma/prisma.service';
+import { ReviewStatus, type Prisma } from '@vhd/prisma-client';
+import {
+  CreateReviewDto,
+  UpdateReviewDto,
+  UpdateReviewStatusDto,
+} from './dto/review.dto';
+import { buildPaginationParams, toPaginated } from '@util/pagination';
 
 @Injectable()
 export class ReviewService {
@@ -11,7 +19,7 @@ export class ReviewService {
   async listForProduct(productSlug: string) {
     return this.prisma.review.findMany({
       where: { product: { slug: productSlug }, status: ReviewStatus.APPROVED },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       include: { user: { select: { id: true, name: true, avatar: true } } },
     });
   }
@@ -19,10 +27,17 @@ export class ReviewService {
   async adminList(params: {
     pageNumber?: string;
     pageSize?: string;
+    page?: string;
+    limit?: string;
     status?: ReviewStatus;
     productId?: number;
   }) {
-    const { page, limit, skip, take } = buildPaginationParams(params.pageNumber, params.pageSize);
+    const { page, limit, skip, take } = buildPaginationParams(
+      params.pageNumber,
+      params.pageSize,
+      params.page,
+      params.limit,
+    );
     const where: Prisma.ReviewWhereInput = {};
     if (params.status) where.status = params.status;
     if (params.productId) where.productId = params.productId;
@@ -32,7 +47,7 @@ export class ReviewService {
         where,
         skip,
         take,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
         include: {
           user: { select: { id: true, email: true, name: true } },
           product: { select: { id: true, name: true, slug: true } },
@@ -47,12 +62,12 @@ export class ReviewService {
     const product = await this.prisma.product.findFirst({
       where: { id: dto.productId, deletedAt: null },
     });
-    if (!product) throw new NotFoundException("Sản phẩm không tồn tại");
+    if (!product) throw new NotFoundException('Sản phẩm không tồn tại');
 
     const existing = await this.prisma.review.findUnique({
       where: { productId_userId: { productId: dto.productId, userId } },
     });
-    if (existing) throw new ConflictException("Bạn đã đánh giá sản phẩm này");
+    if (existing) throw new ConflictException('Bạn đã đánh giá sản phẩm này');
 
     return this.prisma.review.create({
       data: {
@@ -67,16 +82,24 @@ export class ReviewService {
 
   async update(id: number, userId: number, dto: UpdateReviewDto) {
     const review = await this.prisma.review.findUnique({ where: { id } });
-    if (!review) throw new NotFoundException("Không tìm thấy đánh giá");
-    if (review.userId !== userId) throw new NotFoundException("Không có quyền sửa đánh giá này");
+    if (!review) throw new NotFoundException('Không tìm thấy đánh giá');
+    if (review.userId !== userId)
+      throw new NotFoundException('Không có quyền sửa đánh giá này');
     return this.prisma.review.update({
       where: { id },
-      data: { rating: dto.rating, content: dto.content, status: ReviewStatus.PENDING },
+      data: {
+        rating: dto.rating,
+        content: dto.content,
+        status: ReviewStatus.PENDING,
+      },
     });
   }
 
   async setStatus(id: number, dto: UpdateReviewStatusDto) {
-    return this.prisma.review.update({ where: { id }, data: { status: dto.status } });
+    return this.prisma.review.update({
+      where: { id },
+      data: { status: dto.status },
+    });
   }
 
   async remove(id: number) {

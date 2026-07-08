@@ -25,11 +25,23 @@ interface Props<T extends { id: number }> {
 }
 
 export function AdminTable<T extends { id: number }>({
-  title, description, newHref, columns, rows, isLoading, emptyText = "Chưa có dữ liệu.", toolbar,
+  title,
+  description,
+  newHref,
+  columns,
+  rows,
+  isLoading,
+  emptyText = "Chưa có dữ liệu.",
+  toolbar,
 }: Props<T>) {
   return (
     <div>
-      <motion.div suppressHydrationWarning initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
+      <motion.div
+        suppressHydrationWarning
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6"
+      >
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
@@ -37,7 +49,11 @@ export function AdminTable<T extends { id: number }>({
         <div className="flex items-center gap-2">
           {toolbar}
           {newHref && (
-            <Button asChild><Link href={newHref}><Plus className="mr-2 h-4 w-4" /> Tạo mới</Link></Button>
+            <Button asChild>
+              <Link href={newHref}>
+                <Plus className="mr-2 h-4 w-4" /> Tạo mới
+              </Link>
+            </Button>
           )}
         </div>
       </motion.div>
@@ -47,15 +63,25 @@ export function AdminTable<T extends { id: number }>({
           <thead className="border-b bg-muted/40">
             <tr>
               {columns.map((c) => (
-                <th key={c.key} className={`px-4 py-3 text-left font-medium ${c.className ?? ""}`}>{c.header}</th>
+                <th key={c.key} className={`px-4 py-3 text-left font-medium ${c.className ?? ""}`}>
+                  {c.header}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={columns.length} className="px-4 py-12 text-center text-muted-foreground">Đang tải...</td></tr>
+              <tr>
+                <td colSpan={columns.length} className="px-4 py-12 text-center text-muted-foreground">
+                  Đang tải...
+                </td>
+              </tr>
             ) : !rows || rows.length === 0 ? (
-              <tr><td colSpan={columns.length} className="px-4 py-12 text-center text-muted-foreground">{emptyText}</td></tr>
+              <tr>
+                <td colSpan={columns.length} className="px-4 py-12 text-center text-muted-foreground">
+                  {emptyText}
+                </td>
+              </tr>
             ) : (
               rows.map((row, idx) => (
                 <motion.tr
@@ -67,7 +93,9 @@ export function AdminTable<T extends { id: number }>({
                   className="border-b last:border-0 hover:bg-accent/20"
                 >
                   {columns.map((c) => (
-                    <td key={c.key} className={`px-4 py-3 ${c.className ?? ""}`}>{c.render(row)}</td>
+                    <td key={c.key} className={`px-4 py-3 ${c.className ?? ""}`}>
+                      {c.render(row)}
+                    </td>
                   ))}
                 </motion.tr>
               ))

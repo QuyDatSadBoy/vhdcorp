@@ -44,11 +44,7 @@ export function BackToTop() {
           transition={{ duration: 0.25 }}
           className="group fixed bottom-24 right-4 z-30 grid h-12 w-12 place-items-center rounded-full bg-background/95 text-foreground shadow-[0_8px_24px_-10px_rgba(15,35,86,0.4)] backdrop-blur transition-colors hover:text-brand-primary sm:bottom-28 sm:right-6"
         >
-          <svg
-            aria-hidden
-            viewBox={`0 0 ${SIZE} ${SIZE}`}
-            className="absolute inset-0 -rotate-90"
-          >
+          <svg aria-hidden viewBox={`0 0 ${SIZE} ${SIZE}`} className="absolute inset-0 -rotate-90">
             <circle
               cx={SIZE / 2}
               cy={SIZE / 2}

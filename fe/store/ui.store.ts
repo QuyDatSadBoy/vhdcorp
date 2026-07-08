@@ -20,11 +20,10 @@ export const useUiStore = create<UiState & UiActions>()(
         adminSidebarCollapsed: false,
         toggleAdminSidebar: () =>
           set((s) => ({ adminSidebarCollapsed: !s.adminSidebarCollapsed }), false, "ui/toggleAdminSidebar"),
-        setAdminSidebarCollapsed: (v) =>
-          set({ adminSidebarCollapsed: v }, false, "ui/setAdminSidebarCollapsed"),
+        setAdminSidebarCollapsed: (v) => set({ adminSidebarCollapsed: v }, false, "ui/setAdminSidebarCollapsed"),
       }),
-      { name: "vhd-ui" },
+      { name: "vhd-ui" }
     ),
-    { name: "UiStore" },
-  ),
+    { name: "UiStore" }
+  )
 );

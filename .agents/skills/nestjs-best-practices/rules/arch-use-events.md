@@ -20,7 +20,7 @@ export class OrdersService {
     private emailService: EmailService,
     private analyticsService: AnalyticsService,
     private notificationService: NotificationService,
-    private loyaltyService: LoyaltyService,
+    private loyaltyService: LoyaltyService
   ) {}
 
   async createOrder(dto: CreateOrderDto): Promise<Order> {
@@ -29,8 +29,8 @@ export class OrdersService {
     // Tight coupling - OrdersService knows about all consumers
     await this.inventoryService.reserve(order.items);
     await this.emailService.sendConfirmation(order);
-    await this.analyticsService.track('order_created', order);
-    await this.notificationService.push(order.userId, 'Order placed');
+    await this.analyticsService.track("order_created", order);
+    await this.notificationService.push(order.userId, "Order placed");
     await this.loyaltyService.addPoints(order.userId, order.total);
 
     // Adding new behavior requires modifying this service
@@ -43,7 +43,7 @@ export class OrdersService {
 
 ```typescript
 // Use EventEmitter for decoupling
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 // Define event
 export class OrderCreatedEvent {
@@ -51,7 +51,7 @@ export class OrderCreatedEvent {
     public readonly orderId: string,
     public readonly userId: string,
     public readonly items: OrderItem[],
-    public readonly total: number,
+    public readonly total: number
   ) {}
 }
 
@@ -60,17 +60,14 @@ export class OrderCreatedEvent {
 export class OrdersService {
   constructor(
     private eventEmitter: EventEmitter2,
-    private repo: Repository<Order>,
+    private repo: Repository<Order>
   ) {}
 
   async createOrder(dto: CreateOrderDto): Promise<Order> {
     const order = await this.repo.save(dto);
 
     // Emit event - no knowledge of consumers
-    this.eventEmitter.emit(
-      'order.created',
-      new OrderCreatedEvent(order.id, order.userId, order.items, order.total),
-    );
+    this.eventEmitter.emit("order.created", new OrderCreatedEvent(order.id, order.userId, order.items, order.total));
 
     return order;
   }
@@ -79,7 +76,7 @@ export class OrdersService {
 // Listeners in separate modules
 @Injectable()
 export class InventoryListener {
-  @OnEvent('order.created')
+  @OnEvent("order.created")
   async handleOrderCreated(event: OrderCreatedEvent): Promise<void> {
     await this.inventoryService.reserve(event.items);
   }
@@ -87,7 +84,7 @@ export class InventoryListener {
 
 @Injectable()
 export class EmailListener {
-  @OnEvent('order.created')
+  @OnEvent("order.created")
   async handleOrderCreated(event: OrderCreatedEvent): Promise<void> {
     await this.emailService.sendConfirmation(event.orderId);
   }
@@ -95,9 +92,9 @@ export class EmailListener {
 
 @Injectable()
 export class AnalyticsListener {
-  @OnEvent('order.created')
+  @OnEvent("order.created")
   async handleOrderCreated(event: OrderCreatedEvent): Promise<void> {
-    await this.analyticsService.track('order_created', {
+    await this.analyticsService.track("order_created", {
       orderId: event.orderId,
       total: event.total,
     });

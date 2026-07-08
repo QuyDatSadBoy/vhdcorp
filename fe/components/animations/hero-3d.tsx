@@ -61,7 +61,14 @@ function Pipe({
     <Float speed={0.8} floatIntensity={1.0} rotationIntensity={0.4}>
       <mesh ref={ref} position={position} scale={scale}>
         <cylinderGeometry args={[0.25, 0.25, 2.2, 20, 1, true]} />
-        <meshStandardMaterial color={color} roughness={0.1} metalness={0.8} transparent opacity={0.82} side={THREE.DoubleSide} />
+        <meshStandardMaterial
+          color={color}
+          roughness={0.1}
+          metalness={0.8}
+          transparent
+          opacity={0.82}
+          side={THREE.DoubleSide}
+        />
       </mesh>
     </Float>
   );
@@ -179,11 +186,7 @@ function CameraRig() {
  * 3D hero scene — warehouse theme: crates, plastic pipes, rubber rings, crystals.
  * Phù hợp với tổng kho nhựa, cao su và miến truyền thống VHD Corp.
  */
-export function Hero3DScene({
-  className = "",
-}: {
-  className?: string;
-}) {
+export function Hero3DScene({ className = "" }: { className?: string }) {
   return (
     <div className={className}>
       <Canvas
@@ -209,7 +212,13 @@ export function Hero3DScene({
 
           {/* Rubber rings / gaskets — gioăng cao su */}
           <RubberRing position={[0.5, 0.8, 0.5]} rotation={[0.8, 0, 0.3]} scale={0.9} color="#F5A623" speed={0.22} />
-          <RubberRing position={[-1.8, -1.2, -0.5]} rotation={[0.3, 1.2, 0]} scale={0.6} color="#E8920F" speed={-0.18} />
+          <RubberRing
+            position={[-1.8, -1.2, -0.5]}
+            rotation={[0.3, 1.2, 0]}
+            scale={0.6}
+            color="#E8920F"
+            speed={-0.18}
+          />
           <RubberRing position={[2.2, 1.8, -1.2]} rotation={[1.0, 0.4, 0.5]} scale={0.5} color="#F5A623" speed={0.3} />
 
           {/* Crystal / molecular structures — cấu trúc phân tử polymer */}
@@ -230,4 +239,3 @@ export function Hero3DScene({
     </div>
   );
 }
-

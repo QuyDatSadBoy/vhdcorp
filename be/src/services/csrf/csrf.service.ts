@@ -1,5 +1,5 @@
-import { Injectable } from "@nestjs/common";
-import * as CSRF from "csrf";
+import { Injectable } from '@nestjs/common';
+import * as CSRF from 'csrf';
 
 @Injectable()
 export class CsrfService {

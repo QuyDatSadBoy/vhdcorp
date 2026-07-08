@@ -55,7 +55,7 @@ export default function Testimonials({ section }: { section: Section }) {
 
       <div className="container mx-auto px-4">
         <Reveal className="mx-auto mb-10 max-w-3xl text-center">
-          <p className="type-eyebrow text-brand-accent">Khách hàng nói gì</p>
+          <p className="type-eyebrow text-brand-primary">Khách hàng nói gì</p>
           <h2 className="mt-3 type-display-md text-foreground">Đối tác Việt Nam tin tưởng VHD Corp</h2>
           <p className="mt-3 type-lead text-foreground/65">
             Hàng trăm doanh nghiệp đã chọn VHD làm đối tác cung ứng dài hạn — chất lượng đo bằng sự gắn bó.

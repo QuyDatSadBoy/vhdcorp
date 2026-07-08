@@ -9,8 +9,7 @@ export const reviewKeys = {
 };
 
 export const reviewService = {
-  forProduct: (slug: string) =>
-    axios.get<{ data: Review[] }>(`/reviews/product/${slug}`).then(unwrap),
+  forProduct: (slug: string) => axios.get<{ data: Review[] }>(`/reviews/product/${slug}`).then(unwrap),
   adminList: (params?: { pageNumber?: number; pageSize?: number; status?: string }) =>
     axios.get<{ data: PaginatedResult<Review> }>("/reviews/admin", { params }).then(unwrap),
   create: (payload: { productId: number; rating: number; content: string }) =>

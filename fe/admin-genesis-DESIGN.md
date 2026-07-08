@@ -1,9 +1,11 @@
 # Genesis
 
 ## Overview
-An editorial precision interface for a community platform where developers discover, share, and download design system files. The aesthetic is quietly confident — bold display typography, generous spacing, and gallery-frame card surfaces. The mood is professional and modern without being sterile. High information density balanced by breathing room. 
+
+An editorial precision interface for a community platform where developers discover, share, and download design system files. The aesthetic is quietly confident — bold display typography, generous spacing, and gallery-frame card surfaces. The mood is professional and modern without being sterile. High information density balanced by breathing room.
 
 ## Colors
+
 - **Primary** (#6366F1): CTAs, active states, links, focus rings, interactive highlights — indigo
 - **Primary Hover** (#4F46E5): Darker indigo for hover states on primary elements
 - **Secondary** (#20970B): Reserved exclusively for the DESIGN.md brand highlight on the homepage — green
@@ -18,6 +20,7 @@ An editorial precision interface for a community platform where developers disco
 - **Error** (#EF4444): Destructive actions, validation errors, rejected status
 
 ## Typography
+
 - **Display Font**: General Sans — loaded from Fontshare
 - **Body Font**: DM Sans — loaded from Google Fonts
 - **Code Font**: JetBrains Mono — loaded from Google Fonts
@@ -27,9 +30,11 @@ Display and heading text uses General Sans at bold weight with tight letter spac
 Type scale: Display 72px, Headline 60px, Section heading 32px, Subhead 24px, Body 15px, Small 13px, Caption 12px, Overline 11px uppercase.
 
 ## Elevation
+
 This design uses minimal shadows. Cards rest flat with a 1px border and gain a subtle shadow on hover (0 8px 30px rgba(0,0,0,0.08)) combined with a -2px vertical lift. Primary buttons gain a tinted glow shadow on hover (0 4px 12px rgba(99,102,241,0.35)). The nav uses backdrop-blur rather than a shadow to convey elevation. Dropdowns and popovers use shadow-lg. Focus states use a 3px indigo ring (0 0 0 3px rgba(99,102,241,0.12)) rather than a shadow.
 
 ## Components
+
 - **Buttons**: Primary uses indigo fill with white text, 6px radius, medium weight. Secondary uses transparent bg with 1px border, same radius. Ghost has no border or bg, just text color change on hover. Destructive uses red text with red border. All buttons shift up 1px on hover. Sizes: small (32px), medium (38px), large (44px).
 - **Cards**: White surface, 1px subtle border, 12px radius, overflow hidden. Kit preview cards have a 200px image area on top and a content area below with name, author avatar, and stats. Hover lifts the card 2px and increases shadow. Transition duration 200ms.
 - **Inputs**: 1px subtle border, surface background, 6px radius, 10px vertical and 14px horizontal padding, 14px font size. Focus: border turns indigo with a 3px rgba ring. Error: border turns red. Placeholder text uses muted color.
@@ -41,6 +46,7 @@ This design uses minimal shadows. Cards rest flat with a 1px border and gain a s
 - **Search**: Global search triggered by ⌘K. Rendered as a rounded-xl bar with magnifying glass icon and keyboard shortcut badge.
 
 ## Spacing
+
 - Base unit: 4px
 - Scale: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96px
 - Component padding: small 8×12, medium 10×16, large 12×24
@@ -49,6 +55,7 @@ This design uses minimal shadows. Cards rest flat with a 1px border and gain a s
 - Card grid gap: 20-24px
 
 ## Border Radius
+
 - 4px: Tags, chips, badges, inline code
 - 6px: Buttons, inputs, selects
 - 8px: Metadata cards, dropdowns, panels
@@ -56,6 +63,7 @@ This design uses minimal shadows. Cards rest flat with a 1px border and gain a s
 - 9999px: Avatars, status dots, pill badges
 
 ## Do's and Don'ts
+
 - Do use indigo (#6366F1) only for interactive elements — never for decoration or static text
 - Do maintain the 4px spacing grid for all padding, margins, and gaps
 - Do use General Sans for headings and DM Sans for body — never swap them

@@ -25,7 +25,9 @@ function CallbackInner() {
         router.replace(`/login?next=${encodeURIComponent(next)}`);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [params, router, setUser]);
 
   return (
@@ -38,11 +40,13 @@ function CallbackInner() {
 
 export default function CallbackPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
       <CallbackInner />
     </Suspense>
   );

@@ -19,7 +19,7 @@ export class UserAndOrderService {
     private userRepo: UserRepository,
     private orderRepo: OrderRepository,
     private mailer: MailService,
-    private payment: PaymentService,
+    private payment: PaymentService
   ) {}
 
   async createUser(dto: CreateUserDto) {
@@ -85,12 +85,12 @@ export class OrderStatsService {
 }
 
 // Orchestration in controller or dedicated orchestrator
-@Controller('orders')
+@Controller("orders")
 export class OrdersController {
   constructor(
     private orders: OrdersService,
     private payment: PaymentService,
-    private notifications: NotificationService,
+    private notifications: NotificationService
   ) {}
 
   @Post()

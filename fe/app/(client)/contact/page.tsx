@@ -59,11 +59,7 @@ const localBusinessLd = {
       availableLanguage: ["Vietnamese", "English"],
     },
   ],
-  sameAs: [
-    "https://www.facebook.com/vhdcorp",
-    "https://www.youtube.com/@vhdcorp",
-    "https://zalo.me/vhdcorp",
-  ],
+  sameAs: ["https://www.facebook.com/vhdcorp", "https://www.youtube.com/@vhdcorp", "https://zalo.me/vhdcorp"],
 };
 
 const breadcrumbLd = {

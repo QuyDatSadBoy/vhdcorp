@@ -109,7 +109,7 @@ export default function IndustriesSection({ section }: { section: IndustriesType
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="mb-14 max-w-3xl"
         >
-          <p className="type-eyebrow text-brand-accent">Lĩnh vực kinh doanh</p>
+          <p className="type-eyebrow text-brand-primary">Lĩnh vực kinh doanh</p>
           <TextReveal as="h2" className="mt-3 type-display-md text-foreground">
             {heading}
           </TextReveal>

@@ -12,13 +12,13 @@ Practical patterns when building with Tailwind utilities.
 **Use components** for repeated UI: Extract into React/Vue/Svelte components or template partials.
 
 ```jsx
-function Button({ children, variant = 'primary' }) {
-  const base = 'px-4 py-2 rounded-lg font-medium'
+function Button({ children, variant = "primary" }) {
+  const base = "px-4 py-2 rounded-lg font-medium";
   const variants = {
-    primary: 'bg-blue-500 hover:bg-blue-600 text-white',
-    secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-900',
-  }
-  return <button className={`${base} ${variants[variant]}`}>{children}</button>
+    primary: "bg-blue-500 hover:bg-blue-600 text-white",
+    secondary: "bg-gray-200 hover:bg-gray-300 text-gray-900",
+  };
+  return <button className={`${base} ${variants[variant]}`}>{children}</button>;
 }
 ```
 

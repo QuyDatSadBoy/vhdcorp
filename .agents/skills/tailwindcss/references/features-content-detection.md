@@ -18,11 +18,7 @@ export function Button({ color, children }) {
     blue: "bg-blue-500 text-white",
   };
 
-  return (
-    <button className={`${colors[color]} rounded-full px-2 py-1.5`}>
-      {children}
-    </button>
-  );
+  return <button className={`${colors[color]} rounded-full px-2 py-1.5`}>{children}</button>;
 }
 ```
 
@@ -43,9 +39,7 @@ The strings `text-red-600` and `text-green-600` don't exist in the file, so Tail
 ### ✅ Use Complete Class Names
 
 ```html
-<div class="{{ error ? 'text-red-600' : 'text-green-600' }}">
-  Content
-</div>
+<div class="{{ error ? 'text-red-600' : 'text-green-600' }}">Content</div>
 ```
 
 ### ❌ Don't Build Classes from Props

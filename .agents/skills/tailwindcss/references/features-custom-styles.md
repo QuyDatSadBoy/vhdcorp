@@ -28,14 +28,10 @@ Use square bracket notation for one-off values that don't belong in your theme:
 
 ```html
 <!-- Arbitrary values -->
-<div class="top-[117px] bg-[#bada55] text-[22px]">
-  Content
-</div>
+<div class="top-[117px] bg-[#bada55] text-[22px]">Content</div>
 
 <!-- With variants -->
-<div class="top-[117px] lg:top-[344px]">
-  Content
-</div>
+<div class="top-[117px] lg:top-[344px]">Content</div>
 ```
 
 ### CSS Variables as Arbitrary Values
@@ -43,9 +39,7 @@ Use square bracket notation for one-off values that don't belong in your theme:
 Reference CSS variables:
 
 ```html
-<div class="fill-(--my-brand-color)">
-  Content
-</div>
+<div class="fill-(--my-brand-color)">Content</div>
 ```
 
 This is shorthand for `fill-[var(--my-brand-color)]`.
@@ -55,14 +49,10 @@ This is shorthand for `fill-[var(--my-brand-color)]`.
 Use square brackets for CSS properties Tailwind doesn't have utilities for:
 
 ```html
-<div class="[mask-type:luminance]">
-  Content
-</div>
+<div class="[mask-type:luminance]">Content</div>
 
 <!-- With variants -->
-<div class="[mask-type:luminance] hover:[mask-type:alpha]">
-  Content
-</div>
+<div class="[mask-type:luminance] hover:[mask-type:alpha]">Content</div>
 ```
 
 ### CSS Variables
@@ -70,9 +60,7 @@ Use square brackets for CSS properties Tailwind doesn't have utilities for:
 Set CSS variables with arbitrary properties:
 
 ```html
-<div class="[--scroll-offset:56px] lg:[--scroll-offset:44px]">
-  Content
-</div>
+<div class="[--scroll-offset:56px] lg:[--scroll-offset:44px]">Content</div>
 ```
 
 ## Arbitrary Variants
@@ -90,9 +78,7 @@ Create custom selectors on the fly:
 Use underscores for spaces in arbitrary values:
 
 ```html
-<div class="grid-cols-[1fr_500px_2fr]">
-  Content
-</div>
+<div class="grid-cols-[1fr_500px_2fr]">Content</div>
 ```
 
 Tailwind converts underscores to spaces, except in contexts where underscores are valid (like URLs).
@@ -112,9 +98,7 @@ Add custom utilities with `@utility`:
 Now you can use `tab-4` utility class, and it works with variants:
 
 ```html
-<div class="tab-4 hover:tab-8">
-  Content
-</div>
+<div class="tab-4 hover:tab-8">Content</div>
 ```
 
 ## Custom Variants
@@ -130,9 +114,7 @@ Add custom variants with `@custom-variant`:
 Now you can use `theme-midnight:` variant:
 
 ```html
-<div class="theme-midnight:bg-black theme-midnight:text-white">
-  Content
-</div>
+<div class="theme-midnight:bg-black theme-midnight:text-white">Content</div>
 ```
 
 ## Using Variants in CSS
@@ -142,11 +124,11 @@ Apply Tailwind variants to custom CSS with `@variant`:
 ```css
 .my-element {
   background: white;
-  
+
   @variant dark {
     background: black;
   }
-  
+
   @variant hover {
     background: gray;
   }
@@ -163,12 +145,12 @@ Add base styles to the `base` layer:
     font-size: var(--text-2xl);
     font-weight: 600;
   }
-  
+
   h2 {
     font-size: var(--text-xl);
     font-weight: 600;
   }
-  
+
   a {
     color: var(--color-blue-600);
     text-decoration-line: underline;

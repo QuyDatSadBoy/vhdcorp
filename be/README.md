@@ -14,12 +14,12 @@ yarn prisma migrate dev
 
 ## Chạy
 
-| Lệnh | Mô tả |
-| --- | --- |
-| `yarn start:dev` | Dev với hot reload (port 8333) |
-| `yarn start:log` | Dev + ghi log → `logs/app.log` |
-| `yarn start:debug` | Debug mode |
-| `yarn start:prod` | Production (`node dist/main`) |
+| Lệnh               | Mô tả                          |
+| ------------------ | ------------------------------ |
+| `yarn start:dev`   | Dev với hot reload (port 8333) |
+| `yarn start:log`   | Dev + ghi log → `logs/app.log` |
+| `yarn start:debug` | Debug mode                     |
+| `yarn start:prod`  | Production (`node dist/main`)  |
 
 ## Xem log để debug
 
@@ -64,17 +64,17 @@ yarn test:cov      # coverage report
 
 ## Env quan trọng
 
-| Biến | Bắt buộc | Mô tả |
-| --- | --- | --- |
-| `DATABASE_URL` | ✅ | PostgreSQL connection string |
-| `JWT_ACCESS_SECRET` | ✅ | Min 32 chars |
-| `JWT_REFRESH_SECRET` | ✅ | Min 32 chars |
-| `COOKIE_SECRET` | ✅ | Min 32 chars |
-| `GOOGLE_CLIENT_ID` | OAuth | Google Cloud Console |
-| `GOOGLE_CLIENT_SECRET` | OAuth | Google Cloud Console |
-| `CLOUDINARY_*` | Upload | Cloudinary dashboard |
-| `CORS_ORIGIN` | — | `*` khi dev, domain cụ thể khi prod |
-| `FRONTEND_URL` | OAuth | URL FE để redirect sau OAuth |
+| Biến                   | Bắt buộc | Mô tả                               |
+| ---------------------- | -------- | ----------------------------------- |
+| `DATABASE_URL`         | ✅       | PostgreSQL connection string        |
+| `JWT_ACCESS_SECRET`    | ✅       | Min 32 chars                        |
+| `JWT_REFRESH_SECRET`   | ✅       | Min 32 chars                        |
+| `COOKIE_SECRET`        | ✅       | Min 32 chars                        |
+| `GOOGLE_CLIENT_ID`     | OAuth    | Google Cloud Console                |
+| `GOOGLE_CLIENT_SECRET` | OAuth    | Google Cloud Console                |
+| `CLOUDINARY_*`         | Upload   | Cloudinary dashboard                |
+| `CORS_ORIGIN`          | —        | `*` khi dev, domain cụ thể khi prod |
+| `FRONTEND_URL`         | OAuth    | URL FE để redirect sau OAuth        |
 
 Xem mẫu đầy đủ tại `.env.example`.
 

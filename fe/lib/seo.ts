@@ -24,9 +24,7 @@ export async function buildMetadata(input: BuildMetadataInput = {}): Promise<Met
   const seo = siteConfig.seo;
   const brand = siteConfig.brand;
 
-  const rawTitle = input.title
-    ? seo.titleTemplate.replace("%s", input.title)
-    : `${brand.siteName} — ${brand.tagline}`;
+  const rawTitle = input.title ? seo.titleTemplate.replace("%s", input.title) : `${brand.siteName} — ${brand.tagline}`;
   const title = rawTitle.length > 60 ? rawTitle.slice(0, 57).trimEnd() + "…" : rawTitle;
   const description = (input.description ?? seo.defaultDescription).slice(0, 160);
   const rawImage = input.image ?? seo.ogImage ?? brand.ogDefaultImage.url;

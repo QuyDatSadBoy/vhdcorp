@@ -13,6 +13,7 @@
 Claude Code automatically discovers this skill when you mention:
 
 ### Primary Keywords
+
 - react-hook-form
 - useForm
 - zod validation
@@ -25,6 +26,7 @@ Claude Code automatically discovers this skill when you mention:
 - react forms
 
 ### Secondary Keywords
+
 - register form
 - handleSubmit
 - formState errors
@@ -41,6 +43,7 @@ Claude Code automatically discovers this skill when you mention:
 - validation errors react
 
 ### Framework Integration
+
 - shadcn form
 - shadcn/ui form
 - Form component shadcn
@@ -50,6 +53,7 @@ Claude Code automatically discovers this skill when you mention:
 - vite form validation
 
 ### Zod-Specific
+
 - z.object
 - z.string
 - z.number
@@ -61,6 +65,7 @@ Claude Code automatically discovers this skill when you mention:
 - schema validation
 
 ### Error-Based Keywords
+
 - "resolver not found"
 - "zod type inference"
 - "form validation failed"
@@ -98,26 +103,27 @@ This skill provides comprehensive knowledge for building type-safe, validated fo
 
 This skill prevents **12** documented issues:
 
-| Issue | Source | Prevention |
-|-------|--------|------------|
-| Zod v4 type inference errors | [#13109](https://github.com/react-hook-form/react-hook-form/issues/13109) (Closed) | Correct type patterns for Zod v4; resolved in v7.66.x+ |
-| Uncontrolled to controlled warning | React docs | Always set defaultValues |
-| Nested object validation errors | Common issue | Proper error path handling |
-| Array field re-renders | Performance issue | useFieldArray optimization |
-| Async validation race conditions | Common pattern | Debouncing and cancellation |
-| Server error mapping | Integration issue | Error structure alignment |
-| Default values not applied | Common mistake | Proper initialization |
-| Controller field not updating | Common issue | Correct render function usage |
-| useFieldArray key warnings | React warnings | Proper key prop usage |
-| Schema refinement error paths | Zod behavior | Custom path specification |
-| Transform vs preprocess confusion | Zod API | Clear usage guidelines |
-| Multiple resolver conflicts | Configuration error | Single resolver pattern |
+| Issue                              | Source                                                                             | Prevention                                             |
+| ---------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Zod v4 type inference errors       | [#13109](https://github.com/react-hook-form/react-hook-form/issues/13109) (Closed) | Correct type patterns for Zod v4; resolved in v7.66.x+ |
+| Uncontrolled to controlled warning | React docs                                                                         | Always set defaultValues                               |
+| Nested object validation errors    | Common issue                                                                       | Proper error path handling                             |
+| Array field re-renders             | Performance issue                                                                  | useFieldArray optimization                             |
+| Async validation race conditions   | Common pattern                                                                     | Debouncing and cancellation                            |
+| Server error mapping               | Integration issue                                                                  | Error structure alignment                              |
+| Default values not applied         | Common mistake                                                                     | Proper initialization                                  |
+| Controller field not updating      | Common issue                                                                       | Correct render function usage                          |
+| useFieldArray key warnings         | React warnings                                                                     | Proper key prop usage                                  |
+| Schema refinement error paths      | Zod behavior                                                                       | Custom path specification                              |
+| Transform vs preprocess confusion  | Zod API                                                                            | Clear usage guidelines                                 |
+| Multiple resolver conflicts        | Configuration error                                                                | Single resolver pattern                                |
 
 ---
 
 ## When to Use This Skill
 
 ✅ **Use when**:
+
 - Building forms with validation in React
 - Need type-safe form data
 - Want client + server validation with single schema
@@ -130,6 +136,7 @@ This skill prevents **12** documented issues:
 - Using Next.js, Vite, or any React framework
 
 ❌ **Don't use when**:
+
 - Building simple forms without validation (plain React state is fine)
 - Using different validation library (Yup, Joi, etc.)
 - Using different form library (Formik, Final Form, etc.)
@@ -184,11 +191,13 @@ function LoginForm() {
 ## Package Versions
 
 **Latest Tested Versions** (as of 2025-11-20):
+
 - react-hook-form: 7.66.1
 - zod: 4.1.12
 - @hookform/resolvers: 5.2.2
 
 **Installation**:
+
 ```bash
 npm install react-hook-form@7.66.1 zod@4.1.12 @hookform/resolvers@5.2.2
 ```
@@ -198,12 +207,14 @@ npm install react-hook-form@7.66.1 zod@4.1.12 @hookform/resolvers@5.2.2
 ## Token Efficiency
 
 **Manual Setup** (without skill):
+
 - Initial implementation: ~6,000 tokens
 - Debugging validation errors: ~3,000 tokens
 - Adding advanced features: ~2,000 tokens
 - **Total**: ~10,000 tokens
 
 **With Skill**:
+
 - Direct implementation: ~3,000 tokens
 - Minimal debugging: ~500 tokens
 - Advanced features: ~500 tokens
@@ -251,6 +262,7 @@ npm install react-hook-form@7.66.1 zod@4.1.12 @hookform/resolvers@5.2.2
 ## Production Validation
 
 This skill has been tested in:
+
 - ✅ React + Vite applications
 - ✅ Next.js App Router with Server Actions
 - ✅ Next.js Pages Router with API routes

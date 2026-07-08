@@ -61,7 +61,9 @@ export default function Footer() {
   const copyright =
     (footer as { copyright?: string } | undefined)?.copyright ??
     `© ${new Date().getFullYear()} ${brand?.siteName ?? "VHD Corp"}. All rights reserved.`;
-  const contact = (footer as { contact?: { email?: string; phone?: string; hotline?: string; address?: string } } | undefined)?.contact;
+  const contact = (
+    footer as { contact?: { email?: string; phone?: string; hotline?: string; address?: string } } | undefined
+  )?.contact;
 
   return (
     <footer className="border-t bg-brand-primary text-white">
@@ -107,7 +109,9 @@ export default function Footer() {
             )}
             <div className="leading-tight">
               <p className="font-heading text-lg font-bold text-white">{brand?.siteName ?? "VHD Corp"}</p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-highlight">{brand?.tagline ?? "KẾT NỐI GIÁ TRỊ - HỢP TÁC VỮNG BỀN"}</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-highlight">
+                {brand?.tagline ?? "KẾT NỐI GIÁ TRỊ - HỢP TÁC VỮNG BỀN"}
+              </p>
             </div>
           </Link>
           <p className="max-w-sm text-sm leading-relaxed text-white/70">
@@ -156,30 +160,36 @@ export default function Footer() {
           <h3 className="text-xs font-bold uppercase tracking-wider text-brand-highlight">Liên hệ</h3>
           <ul className="space-y-2.5 text-sm text-white/75">
             {contact?.hotline && (
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 shrink-0 text-brand-highlight" />
-                <a className="hover:text-white" href={`tel:${contact.hotline.replace(/\s+/g, "")}`}>
+              <li className="flex items-start gap-2">
+                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-brand-highlight" />
+                <a
+                  className="min-w-0 wrap-break-word hover:text-white"
+                  href={`tel:${contact.hotline.replace(/\s+/g, "")}`}
+                >
                   {contact.hotline}
                 </a>
               </li>
             )}
             {!contact?.hotline && (
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 shrink-0 text-brand-highlight" />
-                <a className="hover:text-white" href="tel:+84283xxxx">
+              <li className="flex items-start gap-2">
+                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-brand-highlight" />
+                <a className="min-w-0 wrap-break-word hover:text-white" href="tel:+84283xxxx">
                   +84 28 3xxx xxxx
                 </a>
               </li>
             )}
-            <li className="flex items-center gap-2">
-              <Mail className="h-4 w-4 shrink-0 text-brand-highlight" />
-              <a className="hover:text-white" href={`mailto:${contact?.email ?? "contact@vhdcorp.vn"}`}>
+            <li className="flex items-start gap-2">
+              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-brand-highlight" />
+              <a
+                className="min-w-0 break-all hover:text-white"
+                href={`mailto:${contact?.email ?? "contact@vhdcorp.vn"}`}
+              >
                 {contact?.email ?? "contact@vhdcorp.vn"}
               </a>
             </li>
             <li className="flex items-start gap-2">
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-highlight" />
-              <span>{contact?.address ?? "TP. Hồ Chí Minh, Việt Nam"}</span>
+              <span className="min-w-0 wrap-break-word">{contact?.address ?? "TP. Hồ Chí Minh, Việt Nam"}</span>
             </li>
           </ul>
         </div>

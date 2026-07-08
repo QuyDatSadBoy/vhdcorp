@@ -19,7 +19,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { RichEditor } from "@/components/admin/rich-editor";
 import { slugify } from "@/lib/utils";
 
-interface Props { initial?: Product }
+interface Props {
+  initial?: Product;
+}
 
 export function ProductForm({ initial }: Props) {
   const router = useRouter();
@@ -63,7 +65,18 @@ export function ProductForm({ initial }: Props) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!categoryId) return toast.error("Vui lòng chọn danh mục");
-    const payload = { name, slug, description, price: Number(price), stock, categoryId, status, images, metaTitle, metaDesc };
+    const payload = {
+      name,
+      slug,
+      description,
+      price: Number(price),
+      stock,
+      categoryId,
+      status,
+      images,
+      metaTitle,
+      metaDesc,
+    };
     try {
       if (initial) {
         await update.mutateAsync({ id: initial.id, payload });
@@ -81,73 +94,133 @@ export function ProductForm({ initial }: Props) {
   const pending = create.isPending || update.isPending;
 
   return (
-    <motion.form suppressHydrationWarning initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} onSubmit={submit} className="grid gap-6 lg:grid-cols-[1fr_320px]">
+    <motion.form
+      suppressHydrationWarning
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      onSubmit={submit}
+      className="grid gap-6 lg:grid-cols-[1fr_320px]"
+    >
       <div className="space-y-6">
-        <Card><CardContent className="p-6 space-y-4">
-          <div className="space-y-2"><Label>Tên sản phẩm</Label><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
-          <div className="space-y-2"><Label>Slug</Label><Input value={slug} onChange={(e) => { slugLocked.current = true; setSlug(e.target.value); }} required /></div>
-          <div className="space-y-2">
-            <Label>Mô tả chi tiết</Label>
-            <RichEditor
-              value={description}
-              onChange={setDescription}
-              uploadFolder="products"
-              placeholder="Nhập mô tả chi tiết sản phẩm..."
-            />
-          </div>
-        </CardContent></Card>
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-2">
+              <Label>Tên sản phẩm</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Slug</Label>
+              <Input
+                value={slug}
+                onChange={(e) => {
+                  slugLocked.current = true;
+                  setSlug(e.target.value);
+                }}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Mô tả chi tiết</Label>
+              <RichEditor
+                value={description}
+                onChange={setDescription}
+                uploadFolder="products"
+                placeholder="Nhập mô tả chi tiết sản phẩm..."
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        <Card><CardContent className="p-6 space-y-4">
-          <h3 className="font-semibold">Hình ảnh</h3>
-          <div className="grid grid-cols-3 gap-3 md:grid-cols-5">
-            {images.map((src, i) => (
-              <div key={src} className="relative aspect-square overflow-hidden rounded border bg-muted">
-                <Image src={src} alt="" fill sizes="120px" className="object-cover" />
-                <button type="button" aria-label="Xóa" onClick={() => setImages(images.filter((_, idx) => idx !== i))} className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white">
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-            <label className="grid aspect-square cursor-pointer place-items-center rounded border border-dashed text-muted-foreground hover:bg-accent/30">
-              <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => onUpload(e.target.files)} />
-              {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
-            </label>
-          </div>
-        </CardContent></Card>
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <h3 className="font-semibold">Hình ảnh</h3>
+            <div className="grid grid-cols-3 gap-3 md:grid-cols-5">
+              {images.map((src, i) => (
+                <div key={src} className="relative aspect-square overflow-hidden rounded border bg-muted">
+                  <Image src={src} alt="" fill sizes="120px" className="object-cover" />
+                  <button
+                    type="button"
+                    aria-label="Xóa"
+                    onClick={() => setImages(images.filter((_, idx) => idx !== i))}
+                    className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              <label className="grid aspect-square cursor-pointer place-items-center rounded border border-dashed text-muted-foreground hover:bg-accent/30">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => onUpload(e.target.files)}
+                />
+                {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+              </label>
+            </div>
+          </CardContent>
+        </Card>
 
-        <Card><CardContent className="p-6 space-y-4">
-          <h3 className="font-semibold">SEO</h3>
-          <div className="space-y-2"><Label>Meta Title</Label><Input value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} /></div>
-          <div className="space-y-2"><Label>Meta Description</Label><Textarea rows={3} value={metaDesc} onChange={(e) => setMetaDesc(e.target.value)} /></div>
-        </CardContent></Card>
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <h3 className="font-semibold">SEO</h3>
+            <div className="space-y-2">
+              <Label>Meta Title</Label>
+              <Input value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Meta Description</Label>
+              <Textarea rows={3} value={metaDesc} onChange={(e) => setMetaDesc(e.target.value)} />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="space-y-6">
-        <Card><CardContent className="p-6 space-y-4">
-          <div className="space-y-2"><Label>Trạng thái</Label>
-            <Select value={status} onValueChange={(v: "DRAFT" | "PUBLISHED") => setStatus(v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="DRAFT">Bản nháp</SelectItem>
-                <SelectItem value="PUBLISHED">Xuất bản</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2"><Label>Danh mục</Label>
-            <Select value={categoryId ? String(categoryId) : ""} onValueChange={(v) => setCategoryId(Number(v))}>
-              <SelectTrigger><SelectValue placeholder="Chọn..." /></SelectTrigger>
-              <SelectContent>
-                {(categories ?? []).map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2"><Label>Giá (VND)</Label><Input type="number" min={0} value={price} onChange={(e) => setPrice(e.target.value)} required /></div>
-          <div className="space-y-2"><Label>Tồn kho</Label><Input type="number" min={0} value={stock} onChange={(e) => setStock(Number(e.target.value))} /></div>
-          <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {initial ? "Cập nhật" : "Tạo sản phẩm"}
-          </Button>
-        </CardContent></Card>
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-2">
+              <Label>Trạng thái</Label>
+              <Select value={status} onValueChange={(v: "DRAFT" | "PUBLISHED") => setStatus(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DRAFT">Bản nháp</SelectItem>
+                  <SelectItem value="PUBLISHED">Xuất bản</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Danh mục</Label>
+              <Select value={categoryId ? String(categoryId) : ""} onValueChange={(v) => setCategoryId(Number(v))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(categories ?? []).map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Giá (VND)</Label>
+              <Input type="number" min={0} value={price} onChange={(e) => setPrice(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Tồn kho</Label>
+              <Input type="number" min={0} value={stock} onChange={(e) => setStock(Number(e.target.value))} />
+            </div>
+            <Button type="submit" className="w-full" disabled={pending}>
+              {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {initial ? "Cập nhật" : "Tạo sản phẩm"}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </motion.form>
   );

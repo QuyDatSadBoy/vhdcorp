@@ -1,7 +1,7 @@
-import { Injectable } from "@nestjs/common";
-import { PassportStrategy } from "@nestjs/passport";
-import { Strategy, VerifyCallback } from "passport-google-oauth20";
-import { ConfigService } from "@nestjs/config";
+import { Injectable } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { Strategy, VerifyCallback } from 'passport-google-oauth20';
+import { ConfigService } from '@nestjs/config';
 
 export interface GoogleProfile {
   googleId: string;
@@ -11,15 +11,16 @@ export interface GoogleProfile {
 }
 
 @Injectable()
-export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
+export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(private readonly config: ConfigService) {
     super({
-      clientID: config.get<string>("GOOGLE_CLIENT_ID") || "missing-client-id",
-      clientSecret: config.get<string>("GOOGLE_CLIENT_SECRET") || "missing-client-secret",
+      clientID: config.get<string>('GOOGLE_CLIENT_ID') || 'missing-client-id',
+      clientSecret:
+        config.get<string>('GOOGLE_CLIENT_SECRET') || 'missing-client-secret',
       callbackURL:
-        config.get<string>("GOOGLE_CALLBACK_URL") ||
-        "http://localhost:8080/api/auth/google/callback",
-      scope: ["email", "profile"],
+        config.get<string>('GOOGLE_CALLBACK_URL') ||
+        'http://localhost:8080/api/auth/google/callback',
+      scope: ['email', 'profile'],
       passReqToCallback: false,
     });
   }
@@ -37,13 +38,13 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
   ): void {
     const email = profile.emails?.[0]?.value;
     if (!email) {
-      done(new Error("Không lấy được email từ Google profile"), undefined);
+      done(new Error('Không lấy được email từ Google profile'), undefined);
       return;
     }
     const googleProfile: GoogleProfile = {
       googleId: profile.id,
       email,
-      name: profile.displayName ?? "",
+      name: profile.displayName ?? '',
       picture: profile.photos?.[0]?.value ?? null,
     };
     done(null, googleProfile);

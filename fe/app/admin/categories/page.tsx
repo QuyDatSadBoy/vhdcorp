@@ -5,10 +5,9 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Edit, Trash2, Plus } from "lucide-react";
-import {
-  useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory,
-} from "@/services/category.service";
+import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/services/category.service";
 import ImageUploader from "@/components/admin/image-uploader";
+import { useConfirm } from "@/components/admin/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,8 +17,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Category } from "@/types/domain";
 import { slugify } from "@/lib/utils";
-
-
 
 interface CategoryNode extends Category {
   children?: CategoryNode[];
@@ -48,6 +45,7 @@ export default function AdminCategoriesPage() {
   const create = useCreateCategory();
   const update = useUpdateCategory();
   const del = useDeleteCategory();
+  const confirm = useConfirm();
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
@@ -59,19 +57,32 @@ export default function AdminCategoriesPage() {
   const [order, setOrder] = useState(0);
 
   function openNew() {
-    setEditing(null); setName(""); setSlug(""); setImage(""); setDescription(""); setParentId("none"); setOrder(0);
+    setEditing(null);
+    setName("");
+    setSlug("");
+    setImage("");
+    setDescription("");
+    setParentId("none");
+    setOrder(0);
     setOpen(true);
   }
   function openEdit(c: Category) {
     setEditing(c);
-    setName(c.name); setSlug(c.slug); setImage(c.image ?? ""); setDescription(c.description ?? "");
-    setParentId(c.parentId ? String(c.parentId) : "none"); setOrder(c.order);
+    setName(c.name);
+    setSlug(c.slug);
+    setImage(c.image ?? "");
+    setDescription(c.description ?? "");
+    setParentId(c.parentId ? String(c.parentId) : "none");
+    setOrder(c.order);
     setOpen(true);
   }
 
   async function save() {
     const payload = {
-      name, slug, image: image || null, description: description || null,
+      name,
+      slug,
+      image: image || null,
+      description: description || null,
       parentId: parentId === "none" ? null : Number(parentId),
       order,
     } as Partial<Category>;
@@ -80,20 +91,31 @@ export default function AdminCategoriesPage() {
       else await create.mutateAsync(payload);
       toast.success("Đã lưu");
       setOpen(false);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Lưu thất bại"); }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Lưu thất bại");
+    }
   }
 
   return (
     <div>
-      <motion.div suppressHydrationWarning initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
+      <motion.div
+        suppressHydrationWarning
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between mb-6"
+      >
         <div>
           <h1 className="text-2xl font-bold">Danh mục</h1>
           <p className="text-sm text-muted-foreground">Quản lý cây danh mục đa cấp</p>
         </div>
-        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Thêm danh mục</Button>
+        <Button onClick={openNew}>
+          <Plus className="mr-2 h-4 w-4" /> Thêm danh mục
+        </Button>
       </motion.div>
 
-      {isLoading ? <p>Đang tải...</p> : (
+      {isLoading ? (
+        <p>Đang tải...</p>
+      ) : (
         <div className="space-y-2">
           {flatTree.map((c) => (
             <Card key={c.id} className="overflow-hidden" style={{ marginLeft: (c.__depth ?? 0) * 24 }}>
@@ -102,16 +124,40 @@ export default function AdminCategoriesPage() {
                   {c.image && <Image src={c.image} alt={c.name} fill sizes="40px" className="object-cover" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{(c.__depth ?? 0) > 0 ? "└ " : ""}{c.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">/{c.slug} · thứ tự {c.order}</p>
+                  <p className="font-semibold truncate">
+                    {(c.__depth ?? 0) > 0 ? "└ " : ""}
+                    {c.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    /{c.slug} · thứ tự {c.order}
+                  </p>
                 </div>
                 <div className="flex gap-1">
-                  <Button size="icon" variant="ghost" onClick={() => openEdit(c)} aria-label="Sửa"><Edit className="h-4 w-4" /></Button>
-                  <Button size="icon" variant="ghost" aria-label="Xóa" onClick={async () => {
-                    if (!confirm(`Xóa "${c.name}"?`)) return;
-                    try { await del.mutateAsync(c.id); toast.success("Đã xóa"); }
-                    catch (e) { toast.error(e instanceof Error ? e.message : "Xóa thất bại"); }
-                  }}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => openEdit(c)} aria-label="Sửa">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label="Xóa"
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: "Xóa danh mục?",
+                        description: `Danh mục "${c.name}" sẽ bị xóa. Các danh mục con (nếu có) sẽ trở thành mồ côi.`,
+                        confirmText: "Xóa",
+                        variant: "destructive",
+                      });
+                      if (!ok) return;
+                      try {
+                        await del.mutateAsync(c.id);
+                        toast.success("Đã xóa");
+                      } catch (e) {
+                        toast.error(e instanceof Error ? e.message : "Xóa thất bại");
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -126,30 +172,62 @@ export default function AdminCategoriesPage() {
             <DialogDescription>Nhập tên, slug và chọn danh mục cha nếu cần.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-2"><Label>Tên</Label><Input value={name} onChange={(e) => {
-              const v = e.target.value;
-              setName(v);
-              // Tự sinh slug khi user chưa tự gõ slug (chỉ áp dụng cho tạo mới).
-              if (!editing && (slug === "" || slug === slugify(name))) setSlug(slugify(v));
-            }} /></div>
-            <div className="space-y-2"><Label>Slug</Label><Input value={slug} onChange={(e) => setSlug(e.target.value)} /></div>
-            <div className="space-y-2"><Label>Mô tả</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} /></div>
-            <div className="space-y-2"><Label>Danh mục cha</Label>
+            <div className="space-y-2">
+              <Label>Tên</Label>
+              <Input
+                value={name}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setName(v);
+                  // Tự sinh slug khi user chưa tự gõ slug (chỉ áp dụng cho tạo mới).
+                  if (!editing && (slug === "" || slug === slugify(name))) setSlug(slugify(v));
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Slug</Label>
+              <Input value={slug} onChange={(e) => setSlug(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Mô tả</Label>
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            </div>
+            <div className="space-y-2">
+              <Label>Danh mục cha</Label>
               <Select value={parentId} onValueChange={setParentId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— Không có —</SelectItem>
-                  {(data ?? []).filter((c) => !editing || c.id !== editing.id).map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                  ))}
+                  {(data ?? [])
+                    .filter((c) => !editing || c.id !== editing.id)
+                    .map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Thứ tự</Label><Input type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} /></div>
-            <div className="space-y-2"><Label>Ảnh đại diện</Label>
-              <ImageUploader value={image} onChange={setImage} folder="categories" aspect="square" allowUrlInput label="ảnh danh mục" />
+            <div className="space-y-2">
+              <Label>Thứ tự</Label>
+              <Input type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} />
             </div>
-            <Button className="w-full" onClick={save}>{editing ? "Cập nhật" : "Tạo mới"}</Button>
+            <div className="space-y-2">
+              <Label>Ảnh đại diện</Label>
+              <ImageUploader
+                value={image}
+                onChange={setImage}
+                folder="categories"
+                aspect="square"
+                allowUrlInput
+                label="ảnh danh mục"
+              />
+            </div>
+            <Button className="w-full" onClick={save}>
+              {editing ? "Cập nhật" : "Tạo mới"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

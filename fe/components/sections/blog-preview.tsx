@@ -53,7 +53,7 @@ export default function BlogPreview({ section }: { section: Section }) {
       <div className="container mx-auto px-4">
         <Reveal className="mb-10 flex flex-wrap items-end justify-between gap-6">
           <div>
-            <p className="type-eyebrow text-brand-accent">Tin tức &amp; Cập nhật</p>
+            <p className="type-eyebrow text-brand-primary">Tin tức &amp; Cập nhật</p>
             <h2 className="mt-3 type-display-md text-foreground">{p.heading ?? "Câu chuyện VHD"}</h2>
             <div className="mt-4 h-1 w-12 rounded-full bg-brand-highlight" />
           </div>
@@ -74,9 +74,7 @@ export default function BlogPreview({ section }: { section: Section }) {
             <Skeleton className="aspect-video rounded-2xl" />
           </div>
         ) : posts.length === 0 ? (
-          <p className="rounded-xl border border-dashed p-10 text-center text-foreground/60">
-            Chưa có bài viết nào.
-          </p>
+          <p className="rounded-xl border border-dashed p-10 text-center text-foreground/60">Chưa có bài viết nào.</p>
         ) : (
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Hero post */}
@@ -107,9 +105,7 @@ export default function BlogPreview({ section }: { section: Section }) {
                     <h3 className="font-heading text-2xl font-bold leading-tight text-foreground transition-colors group-hover:text-brand-primary md:text-3xl">
                       {hero.title}
                     </h3>
-                    {hero.excerpt && (
-                      <p className="line-clamp-3 text-foreground/65">{hero.excerpt}</p>
-                    )}
+                    {hero.excerpt && <p className="line-clamp-3 text-foreground/65">{hero.excerpt}</p>}
                     <span className="mt-auto inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary">
                       Đọc bài viết
                       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -144,9 +140,7 @@ export default function BlogPreview({ section }: { section: Section }) {
                     <h3 className="line-clamp-2 font-heading text-base font-bold leading-snug text-foreground transition-colors group-hover:text-brand-primary md:text-lg">
                       {post.title}
                     </h3>
-                    {post.excerpt && (
-                      <p className="line-clamp-2 text-sm text-foreground/60">{post.excerpt}</p>
-                    )}
+                    {post.excerpt && <p className="line-clamp-2 text-sm text-foreground/60">{post.excerpt}</p>}
                   </div>
                 </Link>
               </motion.article>

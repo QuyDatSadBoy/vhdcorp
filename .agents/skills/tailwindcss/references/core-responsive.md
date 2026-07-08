@@ -18,13 +18,13 @@ Tailwind uses a mobile-first approach. Unprefixed utilities apply to all screen 
 
 ## Default Breakpoints
 
-| Breakpoint | Minimum Width | CSS |
-|------------|---------------|-----|
-| `sm` | 40rem (640px) | `@media (width >= 40rem)` |
-| `md` | 48rem (768px) | `@media (width >= 48rem)` |
-| `lg` | 64rem (1024px) | `@media (width >= 64rem)` |
-| `xl` | 80rem (1280px) | `@media (width >= 80rem)` |
-| `2xl` | 96rem (1536px) | `@media (width >= 96rem)` |
+| Breakpoint | Minimum Width  | CSS                       |
+| ---------- | -------------- | ------------------------- |
+| `sm`       | 40rem (640px)  | `@media (width >= 40rem)` |
+| `md`       | 48rem (768px)  | `@media (width >= 48rem)` |
+| `lg`       | 64rem (1024px) | `@media (width >= 64rem)` |
+| `xl`       | 80rem (1280px) | `@media (width >= 80rem)` |
+| `2xl`      | 96rem (1536px) | `@media (width >= 96rem)` |
 
 ## Usage
 
@@ -76,12 +76,12 @@ Target a specific breakpoint range by stacking responsive variants with `max-*` 
 
 Tailwind generates `max-*` variants for each breakpoint:
 
-| Variant | Media Query |
-|---------|-------------|
-| `max-sm` | `@media (width < 40rem)` |
-| `max-md` | `@media (width < 48rem)` |
-| `max-lg` | `@media (width < 64rem)` |
-| `max-xl` | `@media (width < 80rem)` |
+| Variant   | Media Query              |
+| --------- | ------------------------ |
+| `max-sm`  | `@media (width < 40rem)` |
+| `max-md`  | `@media (width < 48rem)` |
+| `max-lg`  | `@media (width < 64rem)` |
+| `max-xl`  | `@media (width < 80rem)` |
 | `max-2xl` | `@media (width < 96rem)` |
 
 ## Custom Breakpoints
@@ -104,9 +104,7 @@ Add custom breakpoints using `--breakpoint-*` theme variables:
 Use arbitrary values for one-off breakpoints:
 
 ```html
-<div class="min-[320px]:text-center max-[600px]:bg-sky-300">
-  Content
-</div>
+<div class="min-[320px]:text-center max-[600px]:bg-sky-300">Content</div>
 ```
 
 ## Container Queries
@@ -117,24 +115,22 @@ Style elements based on parent container size instead of viewport:
 <!-- Mark container -->
 <div class="@container">
   <!-- Style based on container size -->
-  <div class="flex flex-col @md:flex-row">
-    Content
-  </div>
+  <div class="flex flex-col @md:flex-row">Content</div>
 </div>
 ```
 
 ### Container Query Variants
 
-| Variant | Minimum Width |
-|---------|---------------|
-| `@3xs` | 16rem (256px) |
-| `@xs` | 20rem (320px) |
-| `@sm` | 24rem (384px) |
-| `@md` | 28rem (448px) |
-| `@lg` | 32rem (512px) |
-| `@xl` | 36rem (576px) |
-| `@2xl` | 42rem (672px) |
-| `@3xl` | 48rem (768px) |
+| Variant          | Minimum Width  |
+| ---------------- | -------------- |
+| `@3xs`           | 16rem (256px)  |
+| `@xs`            | 20rem (320px)  |
+| `@sm`            | 24rem (384px)  |
+| `@md`            | 28rem (448px)  |
+| `@lg`            | 32rem (512px)  |
+| `@xl`            | 36rem (576px)  |
+| `@2xl`           | 42rem (672px)  |
+| `@3xl`           | 48rem (768px)  |
 | ... up to `@7xl` | 80rem (1280px) |
 
 ### Named Containers
@@ -143,9 +139,7 @@ Name containers to target specific ones in nested structures:
 
 ```html
 <div class="@container/main">
-  <div class="flex flex-row @sm/main:flex-col">
-    Content
-  </div>
+  <div class="flex flex-row @sm/main:flex-col">Content</div>
 </div>
 ```
 

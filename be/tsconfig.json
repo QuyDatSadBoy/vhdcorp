@@ -19,45 +19,19 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@authentication/*": [
-        "src/authentication/*"
-      ],
-      "@provider/*": [
-        "src/providers/*"
-      ],
-      "@guard/*": [
-        "src/common/guards/*"
-      ],
-      "@model/*": [
-        "src/models/*"
-      ],
-      "@pipe/*": [
-        "src/common/pipes/*"
-      ],
-      "@interceptor/*": [
-        "src/common/interceptors/*"
-      ],
-      "@decorator/*": [
-        "src/common/decorators/*"
-      ],
-      "@util/*": [
-        "src/common/utils/*"
-      ],
-      "@prisma/*": [
-        "src/prisma/*"
-      ],
-      "@database/*": [
-        "src/database/*"
-      ],
-      "@pagination/*": [
-        "src/pagination/*"
-      ],
-      "@service/*": [
-        "src/services/*"
-      ],
-      "@prisma-client": [
-        "node_modules/@vhd/prisma-client"
-      ]
+      "@authentication/*": ["src/authentication/*"],
+      "@provider/*": ["src/providers/*"],
+      "@guard/*": ["src/common/guards/*"],
+      "@model/*": ["src/models/*"],
+      "@pipe/*": ["src/common/pipes/*"],
+      "@interceptor/*": ["src/common/interceptors/*"],
+      "@decorator/*": ["src/common/decorators/*"],
+      "@util/*": ["src/common/utils/*"],
+      "@prisma/*": ["src/prisma/*"],
+      "@database/*": ["src/database/*"],
+      "@pagination/*": ["src/pagination/*"],
+      "@service/*": ["src/services/*"],
+      "@prisma-client": ["node_modules/@vhd/prisma-client"]
     }
   }
 }

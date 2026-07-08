@@ -16,7 +16,11 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     return { title: "Không tìm thấy bài viết" };
   }
   const title = post.metaTitle ?? post.title;
-  const description = post.metaDesc ?? post.excerpt ?? "";
+  const description = (
+    post.metaDesc?.trim() ||
+    post.excerpt?.trim() ||
+    `${post.title} — Tin tức, kiến thức ngành nhựa, cao su và cơ khí công nghiệp từ VHD Corp.`
+  ).slice(0, 160);
   const ogImage = post.ogImage ?? post.coverImage;
   return {
     title,
@@ -38,26 +42,32 @@ export default async function PostDetailRoute({ params }: { params: Promise<Para
   const { slug } = await params;
   const post = await serverApi.postBySlug(slug);
 
-  const articleLd = post ? {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline: post.title,
-    image: post.coverImage ? [post.coverImage.startsWith("http") ? post.coverImage : `${SITE_URL}${post.coverImage}`] : undefined,
-    datePublished: post.publishedAt,
-    dateModified: post.updatedAt ?? post.publishedAt,
-    author: post.author?.name ? { "@type": "Person", name: post.author.name } : undefined,
-    mainEntityOfPage: `${SITE_URL}/posts/${post.slug}`,
-  } : null;
+  const articleLd = post
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: post.title,
+        image: post.coverImage
+          ? [post.coverImage.startsWith("http") ? post.coverImage : `${SITE_URL}${post.coverImage}`]
+          : undefined,
+        datePublished: post.publishedAt,
+        dateModified: post.updatedAt ?? post.publishedAt,
+        author: post.author?.name ? { "@type": "Person", name: post.author.name } : undefined,
+        mainEntityOfPage: `${SITE_URL}/posts/${post.slug}`,
+      }
+    : null;
 
-  const breadcrumbLd = post ? {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE_URL },
-      { "@type": "ListItem", position: 2, name: "Tin tức", item: `${SITE_URL}/posts` },
-      { "@type": "ListItem", position: 3, name: post.title, item: `${SITE_URL}/posts/${post.slug}` },
-    ],
-  } : null;
+  const breadcrumbLd = post
+    ? {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE_URL },
+          { "@type": "ListItem", position: 2, name: "Tin tức", item: `${SITE_URL}/posts` },
+          { "@type": "ListItem", position: 3, name: post.title, item: `${SITE_URL}/posts/${post.slug}` },
+        ],
+      }
+    : null;
 
   return (
     <>
