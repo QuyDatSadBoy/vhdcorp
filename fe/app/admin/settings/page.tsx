@@ -13,8 +13,33 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ImageUploader from "@/components/admin/image-uploader";
 import { useConfirm } from "@/components/admin/confirm-dialog";
+import FooterColumnsEditor from "@/components/admin/footer-columns-editor";
+import ContactChannelsEditor from "@/components/admin/contact-channels-editor";
+import SiteConfigHistory from "@/components/admin/site-config-history";
+
+/** Danh sách font gợi ý — font ngoài "Be Vietnam Pro"/"Inter" sẽ tự load qua Google Fonts. */
+const FONT_OPTIONS = [
+  "Be Vietnam Pro",
+  "Inter",
+  "Montserrat",
+  "Roboto",
+  "Open Sans",
+  "Lora",
+  "Playfair Display",
+  "Nunito",
+  "Source Sans 3",
+  "Space Grotesk",
+];
+
+const SPACING_OPTIONS: { value: "compact" | "normal" | "spacious"; label: string }[] = [
+  { value: "compact", label: "Gọn (compact)" },
+  { value: "normal", label: "Bình thường (normal)" },
+  { value: "spacious", label: "Thoáng (spacious)" },
+];
 
 export default function AdminSettingsPage() {
   const { data, isLoading } = useDraftSiteConfig();
@@ -23,6 +48,8 @@ export default function AdminSettingsPage() {
   const confirm = useConfirm();
 
   const [draft, setDraft] = useState<SiteConfigValue | null>(null);
+  // Chuỗi keywords thô (phân cách dấu phẩy) — giữ state riêng để không mất dấu phẩy đang gõ
+  const [keywordsText, setKeywordsText] = useState("");
 
   useEffect(() => {
     if (data?.value) {
@@ -38,6 +65,7 @@ export default function AdminSettingsPage() {
           favicon: { ...DEFAULT_SITE_CONFIG.brand.favicon, ...(v.brand?.favicon ?? {}) },
           ogDefaultImage: { ...DEFAULT_SITE_CONFIG.brand.ogDefaultImage, ...(v.brand?.ogDefaultImage ?? {}) },
         },
+        header: { ...DEFAULT_SITE_CONFIG.header, ...(v.header ?? {}) },
         theme: {
           ...DEFAULT_SITE_CONFIG.theme,
           ...(v.theme ?? {}),
@@ -46,13 +74,18 @@ export default function AdminSettingsPage() {
         },
         seo: { ...DEFAULT_SITE_CONFIG.seo, ...(v.seo ?? {}) },
         navigation: v.navigation ?? DEFAULT_SITE_CONFIG.navigation,
-        footer: { ...DEFAULT_SITE_CONFIG.footer, ...(v.footer ?? {}) },
+        footer: {
+          ...DEFAULT_SITE_CONFIG.footer,
+          ...(v.footer ?? {}),
+          contact: { ...DEFAULT_SITE_CONFIG.footer.contact, ...(v.footer?.contact ?? {}) },
+        },
         pages: {
           home: v.pages?.home ?? { sections: [] },
           about: v.pages?.about ?? { sections: [] },
           contact: v.pages?.contact ?? { sections: [] },
         },
       });
+      setKeywordsText((v.seo?.defaultKeywords ?? []).join(", "));
     }
   }, [data]);
 
@@ -122,11 +155,13 @@ export default function AdminSettingsPage() {
       <Tabs defaultValue="brand">
         <TabsList>
           <TabsTrigger value="brand">Brand</TabsTrigger>
+          <TabsTrigger value="header">Header</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
           <TabsTrigger value="seo">SEO</TabsTrigger>
           <TabsTrigger value="navigation">Navigation</TabsTrigger>
           <TabsTrigger value="footer">Footer</TabsTrigger>
           <TabsTrigger value="custom">Custom CSS</TabsTrigger>
+          <TabsTrigger value="history">Lịch sử</TabsTrigger>
         </TabsList>
 
         <TabsContent value="brand">
@@ -186,6 +221,31 @@ export default function AdminSettingsPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="header">
+          <Card>
+            <CardContent className="p-6 space-y-4 max-w-xl">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <Label>Hiện dòng promo</Label>
+                  <p className="text-xs text-muted-foreground">Dải thông báo/khuyến mãi phía trên header</p>
+                </div>
+                <Switch
+                  checked={!!draft.header?.showPromo}
+                  onCheckedChange={(checked) => update("header", { ...(draft.header ?? {}), showPromo: checked })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Nội dung promo</Label>
+                <Input
+                  placeholder="VD: Miễn phí giao hàng cho đơn B2B trên 5 triệu"
+                  value={draft.header?.promoText ?? ""}
+                  onChange={(e) => update("header", { ...(draft.header ?? {}), promoText: e.target.value })}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="theme">
           <Card>
             <CardContent className="p-6 space-y-4 max-w-xl">
@@ -209,30 +269,79 @@ export default function AdminSettingsPage() {
                 </div>
               ))}
               <div className="space-y-2">
-                <Label>Border radius (px)</Label>
+                <Label>Border radius (px, 0–24)</Label>
                 <Input
                   type="number"
+                  min={0}
+                  max={24}
                   value={draft.theme.borderRadius}
                   onChange={(e) => update("theme", { ...draft.theme, borderRadius: Number(e.target.value) })}
                 />
               </div>
+              {(["heading", "body"] as const).map((slot) => {
+                const current = draft.theme.fonts[slot];
+                const options = FONT_OPTIONS.includes(current) ? FONT_OPTIONS : [current, ...FONT_OPTIONS];
+                return (
+                  <div key={slot} className="space-y-2">
+                    <Label>{slot === "heading" ? "Font tiêu đề" : "Font nội dung"}</Label>
+                    <Select
+                      value={current}
+                      onValueChange={(value) =>
+                        update("theme", { ...draft.theme, fonts: { ...draft.theme.fonts, [slot]: value } })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {options.map((f) => (
+                          <SelectItem key={f} value={f}>
+                            {f}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              })}
+              <p className="text-xs text-muted-foreground">
+                Font ngoài danh sách built-in (Be Vietnam Pro, Inter) sẽ tự động load qua Google Fonts.
+              </p>
               <div className="space-y-2">
-                <Label>Heading font</Label>
+                <Label>Cỡ chữ gốc (px, 14–20)</Label>
                 <Input
-                  value={draft.theme.fonts.heading}
+                  type="number"
+                  min={14}
+                  max={20}
+                  value={draft.theme.fonts.baseFontSize}
                   onChange={(e) =>
-                    update("theme", { ...draft.theme, fonts: { ...draft.theme.fonts, heading: e.target.value } })
+                    update("theme", {
+                      ...draft.theme,
+                      fonts: { ...draft.theme.fonts, baseFontSize: Number(e.target.value) },
+                    })
                   }
                 />
+                <p className="text-xs text-muted-foreground">Scale toàn bộ kích thước chữ và khoảng cách theo rem.</p>
               </div>
               <div className="space-y-2">
-                <Label>Body font</Label>
-                <Input
-                  value={draft.theme.fonts.body}
-                  onChange={(e) =>
-                    update("theme", { ...draft.theme, fonts: { ...draft.theme.fonts, body: e.target.value } })
+                <Label>Mật độ khoảng cách</Label>
+                <Select
+                  value={draft.theme.spacing}
+                  onValueChange={(value) =>
+                    update("theme", { ...draft.theme, spacing: value as SiteConfigValue["theme"]["spacing"] })
                   }
-                />
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SPACING_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -255,6 +364,34 @@ export default function AdminSettingsPage() {
                   value={draft.seo.defaultDescription}
                   onChange={(e) => update("seo", { ...draft.seo, defaultDescription: e.target.value })}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Từ khóa mặc định (phân cách bằng dấu phẩy)</Label>
+                <Input
+                  placeholder="nhựa công nghiệp, cao su, làng nghề Việt"
+                  value={keywordsText}
+                  onChange={(e) => {
+                    setKeywordsText(e.target.value);
+                    update("seo", {
+                      ...draft.seo,
+                      defaultKeywords: e.target.value
+                        .split(",")
+                        .map((k) => k.trim())
+                        .filter(Boolean),
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>OG Image URL (SEO)</Label>
+                <Input
+                  placeholder="https://.../og-image.jpg"
+                  value={draft.seo.ogImage ?? ""}
+                  onChange={(e) => update("seo", { ...draft.seo, ogImage: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Kích thước khuyến nghị 1200x630px. Để trống sẽ dùng OG image mặc định ở tab Brand.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Google Analytics ID</Label>
@@ -351,24 +488,44 @@ export default function AdminSettingsPage() {
                   onChange={(e) => update("footer", { ...draft.footer, copyright: e.target.value })}
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Mô tả công ty (cột đầu footer)</Label>
+                <Textarea
+                  rows={3}
+                  placeholder="Giới thiệu ngắn về công ty hiển thị ở footer"
+                  value={draft.footer.description ?? ""}
+                  onChange={(e) => update("footer", { ...draft.footer, description: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <Label>Hiện bản đồ</Label>
+                  <p className="text-xs text-muted-foreground">Hiển thị bản đồ vị trí công ty ở footer</p>
+                </div>
+                <Switch
+                  checked={!!draft.footer.showMap}
+                  onCheckedChange={(checked) => update("footer", { ...draft.footer, showMap: checked })}
+                />
+              </div>
 
               {/* Thông tin liên hệ — hiển thị footer + floating widget */}
               <div className="rounded-lg border p-4 space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4">
                   <Label className="text-base font-semibold">Thông tin liên hệ</Label>
-                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      Bật floating widget (FB Messenger / Zalo / Hotline)
+                    </span>
+                    <Switch
                       checked={!!draft.footer.contact?.floatingWidget}
-                      onChange={(e) =>
+                      onCheckedChange={(checked) =>
                         update("footer", {
                           ...draft.footer,
-                          contact: { ...(draft.footer.contact ?? {}), floatingWidget: e.target.checked },
+                          contact: { ...(draft.footer.contact ?? {}), floatingWidget: checked },
                         })
                       }
                     />
-                    Bật floating widget (FB Messenger / Zalo / Hotline)
-                  </label>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
@@ -450,6 +607,25 @@ export default function AdminSettingsPage() {
                     />
                   </div>
                 </div>
+
+                {/* Kênh liên hệ nổi tùy chỉnh 100% — Facebook/Zalo/TikTok/… icon + nhãn + link */}
+                <div className="space-y-2 border-t pt-3">
+                  <Label className="text-sm font-semibold">Kênh nút liên hệ nổi (góc phải màn hình)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Thêm bao nhiêu kênh tùy ý: Facebook, Zalo, TikTok, YouTube… mỗi kênh gồm icon + nhãn + link. Nhập số
+                    điện thoại sẽ tự thành nút gọi, nhập email tự thành nút gửi mail. Để trống danh sách → widget tự
+                    dùng Messenger/Zalo/Hotline/Email phía trên.
+                  </p>
+                  <ContactChannelsEditor
+                    channels={draft.footer.contact?.channels ?? []}
+                    onChange={(channels) =>
+                      update("footer", {
+                        ...draft.footer,
+                        contact: { ...(draft.footer.contact ?? {}), channels },
+                      })
+                    }
+                  />
+                </div>
               </div>
 
               <div>
@@ -501,6 +677,17 @@ export default function AdminSettingsPage() {
                   </Button>
                 </div>
               </div>
+
+              <div>
+                <Label>Cột link footer</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Các cột link hiển thị ở footer (VD: Về chúng tôi, Sản phẩm, Hỗ trợ)
+                </p>
+                <FooterColumnsEditor
+                  columns={draft.footer.columns}
+                  onChange={(columns) => update("footer", { ...draft.footer, columns })}
+                />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -515,6 +702,18 @@ export default function AdminSettingsPage() {
                 value={draft.customCss ?? ""}
                 onChange={(e) => update("customCss", e.target.value)}
               />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history">
+          <Card>
+            <CardContent className="p-6 max-w-3xl">
+              <p className="text-sm text-muted-foreground mb-4">
+                Các phiên bản cấu hình đã lưu. Khôi phục sẽ ghi đè bản nháp hiện tại — bấm Xuất bản để áp dụng lên trang
+                chính.
+              </p>
+              <SiteConfigHistory />
             </CardContent>
           </Card>
         </TabsContent>

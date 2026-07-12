@@ -17,7 +17,7 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter, log: ['error'] });
 
 async function seedAdmin() {
-  const email = 'admin@vhdcorp.vn';
+  const email = 'admin@vhdcorp.com';
   const password = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.upsert({
     where: { email },
@@ -178,9 +178,9 @@ async function seedSiteConfig(adminId: number) {
       siteName: 'VHD Corp',
       tagline: 'KẾT NỐI GIÁ TRỊ - HỢP TÁC VỮNG BỀN',
       logo: { url: '/images/vhdcorplogo.jpeg', publicId: '' },
-      favicon: { url: '/images/vhdcorplogo.jpeg' },
+      favicon: { url: '/icons/favicon-32.png' },
       ogDefaultImage: {
-        url: '/images/vhdcorplogo.jpeg',
+        url: '/images/og-default.jpg',
         width: 1200,
         height: 630,
       },
@@ -217,6 +217,10 @@ async function seedSiteConfig(adminId: number) {
       about: { sections: [] },
       contact: { sections: [] },
     },
+    header: {
+      promoText: 'Miễn phí giao hàng cho đơn B2B trên 5 triệu',
+      showPromo: true,
+    },
     navigation: [
       { id: 'nav-home', label: 'Trang chủ', href: '/', order: 1, children: [] },
       {
@@ -249,6 +253,17 @@ async function seedSiteConfig(adminId: number) {
       },
     ],
     footer: {
+      description:
+        'VHD Corp — tổng kho nhựa, cao su và sản phẩm làng nghề Việt. Kết nối giá trị, hợp tác vững bền.',
+      contact: {
+        email: 'contact@vhdcorp.vn',
+        phone: '',
+        hotline: '',
+        address: 'TP. Hồ Chí Minh, Việt Nam',
+        floatingWidget: true,
+        messengerUrl: '',
+        zaloUrl: '',
+      },
       columns: [
         {
           heading: 'Về chúng tôi',

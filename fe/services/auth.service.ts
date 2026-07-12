@@ -8,13 +8,30 @@ export const authKeys = {
   me: ["auth", "me"] as const,
 };
 
+/**
+ * Session hint — cookie auth là HttpOnly nên client không đọc được.
+ * Đánh dấu localStorage sau khi login để khách vãng lai KHÔNG bắn /auth/me
+ * (tránh 401 network error trong console trên mọi trang public).
+ */
+const SESSION_HINT_KEY = "vhd_session";
+const hasSessionHint = () => typeof window !== "undefined" && localStorage.getItem(SESSION_HINT_KEY) === "1";
+export const setSessionHint = (on: boolean) => {
+  if (typeof window === "undefined") return;
+  if (on) localStorage.setItem(SESSION_HINT_KEY, "1");
+  else localStorage.removeItem(SESSION_HINT_KEY);
+};
+
 const authApi = {
   // Anonymous user trả về null thay vì throw — tránh nhiễu log 401 trên trang public.
   me: async (): Promise<AuthUser | null> => {
+    if (!hasSessionHint()) return null;
     try {
       return await axios.get<{ data: AuthUser }>("/auth/me").then(unwrap);
     } catch (err) {
-      if (isAxiosError(err) && err.response?.status === 401) return null;
+      if (isAxiosError(err) && err.response?.status === 401) {
+        setSessionHint(false);
+        return null;
+      }
       throw err;
     }
   },
@@ -41,7 +58,10 @@ export function useLogin() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: authApi.login,
-    onSuccess: (result) => qc.setQueryData(authKeys.me, result.user),
+    onSuccess: (result) => {
+      setSessionHint(true);
+      qc.setQueryData(authKeys.me, result.user);
+    },
   });
 }
 
@@ -49,7 +69,10 @@ export function useAdminLogin() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: authApi.adminLogin,
-    onSuccess: (result) => qc.setQueryData(authKeys.me, result.user),
+    onSuccess: (result) => {
+      setSessionHint(true);
+      qc.setQueryData(authKeys.me, result.user);
+    },
   });
 }
 
@@ -57,7 +80,10 @@ export function useRegister() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: authApi.register,
-    onSuccess: (result) => qc.setQueryData(authKeys.me, result.user),
+    onSuccess: (result) => {
+      setSessionHint(true);
+      qc.setQueryData(authKeys.me, result.user);
+    },
   });
 }
 
@@ -65,7 +91,10 @@ export function useGoogleSignIn() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: authApi.google,
-    onSuccess: (result) => qc.setQueryData(authKeys.me, result.user),
+    onSuccess: (result) => {
+      setSessionHint(true);
+      qc.setQueryData(authKeys.me, result.user);
+    },
   });
 }
 
@@ -74,6 +103,7 @@ export function useLogout() {
   return useMutation({
     mutationFn: authApi.logout,
     onSuccess: () => {
+      setSessionHint(false);
       qc.setQueryData(authKeys.me, null);
       qc.clear();
     },

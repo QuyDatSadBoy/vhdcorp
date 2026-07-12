@@ -42,6 +42,11 @@ enum ConfigStatus {
   PUBLISHED
 }
 
+enum ContactStatus {
+  NEW
+  HANDLED
+}
+
 // ─── User ──────────────────────────────────────────────────────────────────
 
 model User {
@@ -67,16 +72,20 @@ model User {
 // ─── Category (cây đa cấp) ─────────────────────────────────────────────────
 
 model Category {
-  id        Int        @id @default(autoincrement())
-  slug      String     @unique
-  name      String
-  image     String?
-  parentId  Int?
-  parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id])
-  children  Category[] @relation("CategoryTree")
-  order     Int        @default(0)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id          Int        @id @default(autoincrement())
+  slug        String     @unique
+  name        String
+  image       String?
+  description String?    @db.Text
+  metaTitle   String?
+  metaDesc    String?
+  ogImage     String?
+  parentId    Int?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  order       Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   products Product[]
 
@@ -159,6 +168,24 @@ model Review {
   @@index([status])
   @@index([productId])
   @@map("reviews")
+}
+
+// ─── Contact (liên hệ khách hàng) ──────────────────────────────────────────
+
+model Contact {
+  id        Int           @id @default(autoincrement())
+  name      String
+  email     String
+  phone     String?
+  subject   String?
+  message   String        @db.Text
+  status    ContactStatus @default(NEW)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("contacts")
 }
 
 // ─── Banner ────────────────────────────────────────────────────────────────

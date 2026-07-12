@@ -49,7 +49,7 @@ export default function BlogPreview({ section }: { section: Section }) {
   const sideTwo = rest.slice(0, 3);
 
   return (
-    <section ref={sectionRef} className="relative bg-(--vhd-color-surface)/60">
+    <section ref={sectionRef} className="relative bg-(--vhd-color-surface)/60 dark:bg-white/[0.04]">
       <div className="container mx-auto px-4">
         <Reveal className="mb-10 flex flex-wrap items-end justify-between gap-6">
           <div>

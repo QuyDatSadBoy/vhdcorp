@@ -118,6 +118,74 @@ export class UserService {
     });
   }
 
+  /** Admin tạo tài khoản mới (STAFF/ADMIN/CUSTOMER) — hash mật khẩu, chặn trùng email */
+  async adminCreate(data: {
+    email: string;
+    password?: string;
+    name?: string;
+    role?: Role;
+  }) {
+    if (!data.password) {
+      throw new BadRequestException('Cần đặt mật khẩu cho tài khoản mới');
+    }
+    const existed = await this.prisma.user.findUnique({
+      where: { email: data.email },
+    });
+    if (existed) throw new BadRequestException('Email đã được sử dụng');
+    const hash = await bcrypt.hash(data.password, 10);
+    return this.prisma.user.create({
+      data: {
+        email: data.email,
+        password: hash,
+        name: data.name ?? data.email.split('@')[0],
+        role: data.role ?? Role.CUSTOMER,
+      },
+      select: SAFE_USER_SELECT,
+    });
+  }
+
+  /** Admin sửa thông tin user khác (hiện tại: tên hiển thị) */
+  async adminUpdate(targetUserId: number, data: { name?: string }) {
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+    });
+    if (!target || target.deletedAt)
+      throw new NotFoundException('Người dùng không tồn tại');
+    return this.prisma.user.update({
+      where: { id: targetUserId },
+      data: { ...(data.name !== undefined ? { name: data.name } : {}) },
+      select: SAFE_USER_SELECT,
+    });
+  }
+
+  /** Admin đặt lại mật khẩu cho user (quên mật khẩu…) — thu hồi refresh token */
+  async adminResetPassword(targetUserId: number, newPassword: string) {
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+    });
+    if (!target || target.deletedAt)
+      throw new NotFoundException('Người dùng không tồn tại');
+    const hash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: targetUserId },
+      data: { password: hash, refreshTokenHash: null },
+    });
+    return { message: 'Đã đặt lại mật khẩu' };
+  }
+
+  /** Khôi phục user đã soft-delete */
+  async restore(targetUserId: number) {
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+    });
+    if (!target) throw new NotFoundException('Người dùng không tồn tại');
+    return this.prisma.user.update({
+      where: { id: targetUserId },
+      data: { deletedAt: null },
+      select: SAFE_USER_SELECT,
+    });
+  }
+
   /** Đổi mật khẩu chính chủ — yêu cầu mật khẩu hiện tại */
   async changePassword(
     userId: number,

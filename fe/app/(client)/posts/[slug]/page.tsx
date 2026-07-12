@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { serverApi } from "@/lib/server-api";
 import { JsonLd, SITE_URL } from "@/components/seo/json-ld";
+import { buildMetadata } from "@/lib/seo";
 import PostDetailClient from "./_components/post-detail-client";
 
 export const dynamic = "force-dynamic";
@@ -15,26 +16,21 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   if (!post) {
     return { title: "Không tìm thấy bài viết" };
   }
-  const title = post.metaTitle ?? post.title;
-  const description = (
+  const description =
     post.metaDesc?.trim() ||
     post.excerpt?.trim() ||
-    `${post.title} — Tin tức, kiến thức ngành nhựa, cao su và cơ khí công nghiệp từ VHD Corp.`
-  ).slice(0, 160);
-  const ogImage = post.ogImage ?? post.coverImage;
-  return {
-    title,
+    `${post.title} — Tin tức, kiến thức ngành nhựa, cao su và cơ khí công nghiệp từ VHD Corp.`;
+  // buildMetadata áp titleTemplate SiteConfig; bổ sung publishedTime cho OG article
+  const base = await buildMetadata({
+    title: post.metaTitle?.trim() || post.title,
     description,
-    openGraph: {
-      title,
-      description,
-      type: "article",
-      url: `${SITE_URL}/posts/${post.slug}`,
-      images: ogImage ? [{ url: ogImage }] : undefined,
-      publishedTime: post.publishedAt ?? undefined,
-    },
-    twitter: { card: "summary_large_image", title, description, images: ogImage ? [ogImage] : undefined },
-    alternates: { canonical: `${SITE_URL}/posts/${post.slug}` },
+    canonical: `${SITE_URL}/posts/${post.slug}`,
+    image: post.ogImage ?? post.coverImage ?? undefined,
+    type: "article",
+  });
+  return {
+    ...base,
+    openGraph: { ...base.openGraph, type: "article", publishedTime: post.publishedAt ?? undefined },
   };
 }
 

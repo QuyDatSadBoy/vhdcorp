@@ -30,17 +30,21 @@ export default function Header() {
   const hotline =
     (config?.footer as { contact?: { hotline?: string; phone?: string } } | undefined)?.contact?.hotline ??
     (config?.footer as { contact?: { hotline?: string; phone?: string } } | undefined)?.contact?.phone;
+  // Dòng promo đọc từ SiteConfig — ẩn khi admin tắt showPromo hoặc chưa nhập promoText
+  const promoText = config?.header?.showPromo === false ? "" : (config?.header?.promoText ?? "");
 
   return (
     <>
       {/* Promo strip */}
       <div className="bg-brand-primary text-white">
         <div className="container mx-auto flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-xs">
-          <span className="hidden items-center gap-2 md:inline-flex">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-highlight" />
-            Miễn phí giao hàng cho đơn B2B trên 5 triệu
-          </span>
-          <span className="inline-flex items-center gap-3">
+          {promoText && (
+            <span className="hidden items-center gap-2 md:inline-flex">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-highlight" />
+              {promoText}
+            </span>
+          )}
+          <span className="ml-auto inline-flex items-center gap-3">
             {hotline && (
               <a
                 href={`tel:${hotline.replace(/\s+/g, "")}`}

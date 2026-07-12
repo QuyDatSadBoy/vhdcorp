@@ -5,11 +5,15 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, MessageCircle, Phone } from "lucide-react";
 import type { ContactCtaSection as Section } from "@/types/site-config";
+import { useSiteConfigStore } from "@/store/site-config.store";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/animations/reveal";
 
 export default function ContactCta({ section }: { section: Section }) {
   const p = section.props;
+  const config = useSiteConfigStore((s) => s.config);
+  // Hotline đọc từ SiteConfig — ẩn nút gọi nếu admin chưa cấu hình
+  const hotline = config?.footer?.contact?.hotline || config?.footer?.contact?.phone || "";
   const sectionRef = useRef<HTMLElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -89,17 +93,19 @@ export default function ContactCta({ section }: { section: Section }) {
                   </span>
                 </Link>
               </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="h-12 rounded-full border-white/30 bg-transparent px-7 text-base font-semibold text-white hover:bg-white/10"
-              >
-                <Link href="tel:+84283xxx">
-                  <Phone className="mr-2 h-4 w-4" />
-                  Gọi tư vấn
-                </Link>
-              </Button>
+              {hotline && (
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="h-12 rounded-full border-white/30 bg-transparent px-7 text-base font-semibold text-white hover:bg-white/10"
+                >
+                  <Link href={`tel:${hotline.replace(/\s+/g, "")}`}>
+                    <Phone className="mr-2 h-4 w-4" />
+                    Gọi tư vấn
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         </motion.div>

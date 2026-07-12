@@ -53,6 +53,9 @@ export default function AdminCategoriesPage() {
   const [slug, setSlug] = useState("");
   const [image, setImage] = useState("");
   const [description, setDescription] = useState("");
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDesc, setMetaDesc] = useState("");
+  const [ogImage, setOgImage] = useState("");
   const [parentId, setParentId] = useState<string>("none");
   const [order, setOrder] = useState(0);
 
@@ -62,6 +65,9 @@ export default function AdminCategoriesPage() {
     setSlug("");
     setImage("");
     setDescription("");
+    setMetaTitle("");
+    setMetaDesc("");
+    setOgImage("");
     setParentId("none");
     setOrder(0);
     setOpen(true);
@@ -72,6 +78,9 @@ export default function AdminCategoriesPage() {
     setSlug(c.slug);
     setImage(c.image ?? "");
     setDescription(c.description ?? "");
+    setMetaTitle(c.metaTitle ?? "");
+    setMetaDesc(c.metaDesc ?? "");
+    setOgImage(c.ogImage ?? "");
     setParentId(c.parentId ? String(c.parentId) : "none");
     setOrder(c.order);
     setOpen(true);
@@ -83,6 +92,9 @@ export default function AdminCategoriesPage() {
       slug,
       image: image || null,
       description: description || null,
+      metaTitle: metaTitle || null,
+      metaDesc: metaDesc || null,
+      ogImage: ogImage || null,
       parentId: parentId === "none" ? null : Number(parentId),
       order,
     } as Partial<Category>;
@@ -224,6 +236,40 @@ export default function AdminCategoriesPage() {
                 allowUrlInput
                 label="ảnh danh mục"
               />
+            </div>
+            {/* SEO — override metadata trang danh mục */}
+            <div className="rounded-lg border p-3 space-y-3">
+              <p className="text-sm font-semibold">SEO</p>
+              <div className="space-y-2">
+                <Label>Meta title</Label>
+                <Input
+                  value={metaTitle}
+                  onChange={(e) => setMetaTitle(e.target.value)}
+                  placeholder={name || "Để trống dùng tên danh mục"}
+                  maxLength={200}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Meta description</Label>
+                <Textarea
+                  value={metaDesc}
+                  onChange={(e) => setMetaDesc(e.target.value)}
+                  rows={2}
+                  placeholder="150–160 ký tự tối ưu cho Google"
+                  maxLength={320}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Ảnh OG (chia sẻ mạng xã hội)</Label>
+                <ImageUploader
+                  value={ogImage}
+                  onChange={setOgImage}
+                  folder="categories"
+                  aspect="video"
+                  allowUrlInput
+                  label="ảnh OG 1200x630"
+                />
+              </div>
             </div>
             <Button className="w-full" onClick={save}>
               {editing ? "Cập nhật" : "Tạo mới"}

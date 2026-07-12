@@ -10,6 +10,7 @@ import {
   FolderTree,
   FileText,
   Star,
+  Mail,
   Image as ImageIcon,
   Megaphone,
   Wrench,
@@ -17,6 +18,7 @@ import {
   Settings,
   Sparkles,
   ChevronRight,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth.store";
@@ -55,6 +57,7 @@ const navGroups: NavGroup[] = [
     label: "Tương tác",
     items: [
       { href: "/admin/reviews", label: "Đánh giá", icon: Star },
+      { href: "/admin/contacts", label: "Liên hệ", icon: Mail },
       { href: "/admin/users", label: "Người dùng", icon: Users },
     ],
   },
@@ -63,6 +66,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/admin/builder", label: "Page Builder", icon: Wrench },
       { href: "/admin/settings", label: "Cài đặt site", icon: Settings },
+      { href: "/admin/knowledge", label: "Kiến thức AI", icon: Bot },
     ],
   },
 ];

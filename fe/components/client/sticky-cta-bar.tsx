@@ -5,15 +5,18 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, MessageCircle, Phone, X } from "lucide-react";
+import { useSiteConfigStore } from "@/store/site-config.store";
 
 const SESSION_KEY = "vhd_sticky_cta_dismissed";
 
 interface Props {
-  hotline?: string;
   ctaHref?: string;
 }
 
-export function StickyCtaBar({ hotline = "+84 28 3000 0000", ctaHref = "/contact" }: Props) {
+export function StickyCtaBar({ ctaHref = "/contact" }: Props) {
+  const config = useSiteConfigStore((s) => s.config);
+  // Hotline đọc từ SiteConfig — ẩn nút gọi nếu admin chưa cấu hình
+  const hotline = config?.footer?.contact?.hotline || config?.footer?.contact?.phone || "";
   const [show, setShow] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const pathname = usePathname();
@@ -69,7 +72,7 @@ export function StickyCtaBar({ hotline = "+84 28 3000 0000", ctaHref = "/contact
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           className="fixed inset-x-0 bottom-4 z-30 mx-auto max-w-4xl px-4 sm:bottom-6"
         >
-          <div className="relative flex flex-col items-stretch gap-3 rounded-2xl border border-foreground/10 bg-background/95 p-3 pr-10 shadow-[0_18px_60px_-20px_rgba(15,35,86,0.35)] backdrop-blur sm:flex-row sm:items-center sm:gap-4 sm:p-3 sm:pr-3">
+          <div className="relative flex flex-col items-stretch gap-3 rounded-2xl border border-foreground/10 bg-background/95 p-3 pl-10 shadow-[0_18px_60px_-20px_rgba(15,35,86,0.35)] backdrop-blur sm:flex-row sm:items-center sm:gap-4 sm:p-3 sm:pl-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-(--vhd-color-highlight)/15 text-brand-highlight">
               <MessageCircle className="h-5 w-5" />
             </span>
@@ -77,13 +80,15 @@ export function StickyCtaBar({ hotline = "+84 28 3000 0000", ctaHref = "/contact
               <p className="text-sm font-bold text-foreground">Cần tư vấn báo giá B2B?</p>
               <p className="text-xs text-foreground/55">Phản hồi trong 24 giờ — VHD luôn sẵn sàng.</p>
             </div>
-            <a
-              href={`tel:${hotline.replace(/\s/g, "")}`}
-              className="hidden items-center gap-1.5 rounded-full border border-foreground/10 px-4 py-2 text-xs font-semibold text-foreground/80 transition-colors hover:border-brand-primary/40 hover:text-foreground sm:inline-flex"
-            >
-              <Phone className="h-3.5 w-3.5" />
-              {hotline}
-            </a>
+            {hotline && (
+              <a
+                href={`tel:${hotline.replace(/\s/g, "")}`}
+                className="hidden items-center gap-1.5 rounded-full border border-foreground/10 px-4 py-2 text-xs font-semibold text-foreground/80 transition-colors hover:border-brand-primary/40 hover:text-foreground sm:inline-flex"
+              >
+                <Phone className="h-3.5 w-3.5" />
+                {hotline}
+              </a>
+            )}
             <Link
               href={ctaHref}
               className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-brand-primary/90"
@@ -95,7 +100,8 @@ export function StickyCtaBar({ hotline = "+84 28 3000 0000", ctaHref = "/contact
               type="button"
               onClick={dismiss}
               aria-label="Đóng"
-              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full text-foreground/40 transition-colors hover:bg-foreground/5 hover:text-foreground sm:relative sm:right-0 sm:top-0 sm:h-8 sm:w-8"
+              // Mobile: X nằm góc TRÁI — góc phải là cột nút nổi (chat AI + liên hệ), tránh bị đè
+              className="absolute left-2 top-2 grid h-7 w-7 place-items-center rounded-full text-foreground/40 transition-colors hover:bg-foreground/5 hover:text-foreground sm:relative sm:left-0 sm:top-0 sm:h-8 sm:w-8"
             >
               <X className="h-3.5 w-3.5" />
             </button>

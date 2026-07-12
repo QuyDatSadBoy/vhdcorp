@@ -70,7 +70,8 @@ export function PageRenderer({ sections }: { sections: Section[] }) {
   return (
     <>
       {ordered.map((s) => (
-        <div key={s.id} id={`sec-${s.type}`} className="scroll-mt-20">
+        // data-section-id: Builder dùng để scroll-tới / chọn section từ preview
+        <div key={s.id} id={`sec-${s.type}`} data-section-id={s.id} className="scroll-mt-20">
           <SectionRenderer section={s} />
         </div>
       ))}

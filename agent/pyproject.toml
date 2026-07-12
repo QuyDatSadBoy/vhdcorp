@@ -1,0 +1,35 @@
+[project]
+name = "vhd-agent"
+version = "0.1.0"
+description = "VHD Corp AI chat agent service (FastAPI + LangGraph + Gemini)"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "langgraph>=1.0",
+    "langgraph-checkpoint-sqlite>=2.0",
+    "langchain-google-genai>=2.1",
+    "langchain-core>=0.3",
+    "aiosqlite>=0.21",
+    "pydantic-settings>=2.7",
+    "httpx>=0.28",
+    "python-dotenv>=1.0",
+    "mcp>=1.28.1",
+]
+
+[dependency-groups]
+dev = [
+    "pillow>=12.3.0",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.25",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "integration: test cần kết nối mạng/dịch vụ thật (có thể skip khi offline)",
+]
+
+[tool.uv]
+package = false

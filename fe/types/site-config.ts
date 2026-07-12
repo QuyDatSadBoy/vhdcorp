@@ -270,11 +270,40 @@ export interface FooterColumn {
   links: { label: string; href: string }[];
 }
 
+/** Icon preset cho kênh liên hệ nổi — xem CHANNEL_PRESETS ở floating-contact.tsx */
+export type ContactChannelIcon =
+  | "facebook"
+  | "messenger"
+  | "zalo"
+  | "phone"
+  | "email"
+  | "tiktok"
+  | "youtube"
+  | "instagram"
+  | "linkedin"
+  | "telegram"
+  | "whatsapp"
+  | "link";
+
+/** Một kênh trong floating contact widget — admin thêm/xóa/sắp xếp tự do */
+export interface ContactChannel {
+  id: string;
+  icon: ContactChannelIcon;
+  /** Nhãn hiển thị; để trống → dùng nhãn mặc định theo icon */
+  label?: string;
+  /** URL đầy đủ (https://…), số điện thoại (tự thành tel:) hoặc email (tự thành mailto:) */
+  url: string;
+  /** Ảnh icon tùy chỉnh admin tải lên (Cloudinary) — có thì dùng thay icon preset */
+  image?: string;
+}
+
 export interface FooterConfig {
   columns: FooterColumn[];
   social: { platform: string; url: string }[];
   copyright: string;
   showMap?: boolean;
+  /** Mô tả ngắn về công ty hiển thị ở cột đầu footer */
+  description?: string;
   /** Thông tin liên hệ admin có thể tùy chỉnh — hiển thị ở footer + floating widget */
   contact?: {
     email?: string;
@@ -285,6 +314,12 @@ export interface FooterConfig {
     floatingWidget?: boolean;
     messengerUrl?: string;
     zaloUrl?: string;
+    /**
+     * Kênh liên hệ nổi tùy chỉnh 100% (icon + nhãn + link, thứ tự tự do).
+     * Có kênh nào ở đây → floating widget CHỈ hiển thị danh sách này;
+     * để trống → tự suy ra từ messengerUrl/zaloUrl/hotline/email ở trên.
+     */
+    channels?: ContactChannel[];
   };
 }
 
@@ -325,10 +360,17 @@ export interface SeoConfig {
   facebookPixelId?: string;
 }
 
+export interface HeaderConfig {
+  /** Dòng promo strip phía trên header — để trống sẽ ẩn */
+  promoText?: string;
+  showPromo?: boolean;
+}
+
 export interface SiteConfigValue {
   brand: BrandConfig;
   theme: ThemeConfig;
   seo: SeoConfig;
+  header?: HeaderConfig;
   pages: {
     home: PageSchema;
     about: PageSchema;

@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import axios from "axios";
 import type { PaginatedResult, Product, Post, Category } from "@/types/domain";
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 
 const api = axios.create({ baseURL: API_URL });
@@ -29,21 +29,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       api.get<{ data: Category[] }>("/categories").then((r) => r.data.data ?? []),
     ]);
 
-    const productEntries: MetadataRoute.Sitemap = products.map((p) => ({
-      url: `${SITE_URL}/products/${p.slug}`,
-      lastModified: new Date(p.updatedAt),
-      changeFrequency: "weekly",
-      priority: 0.8,
-    }));
-    const postEntries: MetadataRoute.Sitemap = posts.map((p) => ({
-      url: `${SITE_URL}/posts/${p.slug}`,
-      lastModified: new Date(p.updatedAt),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    }));
+    const productEntries: MetadataRoute.Sitemap = products
+      .filter((p) => p.status === "PUBLISHED")
+      .map((p) => ({
+        url: `${SITE_URL}/products/${p.slug}`,
+        lastModified: p.updatedAt ? new Date(p.updatedAt) : new Date(),
+        changeFrequency: "weekly",
+        priority: 0.8,
+      }));
+    const postEntries: MetadataRoute.Sitemap = posts
+      .filter((p) => p.status === "PUBLISHED")
+      .map((p) => ({
+        url: `${SITE_URL}/posts/${p.slug}`,
+        lastModified: p.updatedAt ? new Date(p.updatedAt) : new Date(),
+        changeFrequency: "monthly",
+        priority: 0.6,
+      }));
     const categoryEntries: MetadataRoute.Sitemap = categories.map((c) => ({
       url: `${SITE_URL}/categories/${c.slug}`,
-      lastModified: new Date(c.updatedAt),
+      lastModified: c.updatedAt ? new Date(c.updatedAt) : new Date(),
       changeFrequency: "weekly",
       priority: 0.7,
     }));

@@ -40,7 +40,7 @@ export default function UseCases({ section }: { section: UseCasesSection }) {
   const cols = p.columns ?? 4;
 
   return (
-    <section className="relative bg-(--vhd-color-surface)/40 py-24">
+    <section className="relative bg-(--vhd-color-surface)/40 dark:bg-white/[0.03] py-24">
       <div className="container mx-auto max-w-7xl px-4">
         <motion.div
           suppressHydrationWarning

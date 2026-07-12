@@ -52,7 +52,7 @@ expect_code GET "$API/health" 200
 section "1" "Admin login (email/password ONLY — no Google)"
 LOGIN=$(curl -s -c "$COOK_ADMIN" -X POST "$API/auth/admin/login" \
   -H 'Content-Type: application/json' \
-  -d '{"email":"admin@vhdcorp.vn","password":"admin123"}')
+  -d '{"email":"admin@vhdcorp.com","password":"admin123"}')
 echo "$LOGIN" | grep -q '"role":"ADMIN"' && ok "admin login returns ADMIN role" || fail "admin login role" "missing ADMIN"
 grep -q access_token  "$COOK_ADMIN" && ok "access_token cookie set"  || fail "access_token cookie" "missing"
 grep -q refresh_token "$COOK_ADMIN" && ok "refresh_token cookie set" || fail "refresh_token cookie" "missing"

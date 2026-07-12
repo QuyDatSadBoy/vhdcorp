@@ -144,7 +144,7 @@ export default async function AboutPage() {
       </section>
 
       {/* Brand story split */}
-      <section className="bg-(--vhd-color-surface)/60 py-20">
+      <section className="bg-(--vhd-color-surface)/60 dark:bg-white/[0.04] py-20">
         <div className="container mx-auto grid items-center gap-12 px-4 lg:grid-cols-2">
           <div>
             <p className="type-eyebrow text-brand-primary">Câu chuyện thương hiệu</p>
@@ -180,8 +180,8 @@ export default async function AboutPage() {
             />
             <div className="relative grid h-full place-items-center p-12">
               <Image
-                src="/images/vhdcorplogo.jpeg"
-                alt="VHD Corp"
+                src={config.brand.logo.url || "/images/vhdcorplogo.jpeg"}
+                alt={config.brand.siteName}
                 width={420}
                 height={420}
                 className="h-72 w-72 rounded-2xl bg-white object-contain p-6 shadow-2xl md:h-80 md:w-80"
@@ -218,7 +218,7 @@ export default async function AboutPage() {
       </section>
 
       {/* Timeline */}
-      <section className="bg-(--vhd-color-surface)/60 py-20">
+      <section className="bg-(--vhd-color-surface)/60 dark:bg-white/[0.04] py-20">
         <div className="container mx-auto px-4">
           <div className="mb-12 max-w-2xl">
             <p className="type-eyebrow text-brand-primary">Mốc thời gian</p>

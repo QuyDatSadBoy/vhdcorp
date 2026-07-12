@@ -64,6 +64,8 @@ export default function Footer() {
   const contact = (
     footer as { contact?: { email?: string; phone?: string; hotline?: string; address?: string } } | undefined
   )?.contact;
+  // Hotline ưu tiên, fallback sang phone — ẩn nếu cả hai trống
+  const phone = contact?.hotline || contact?.phone || "";
 
   return (
     <footer className="border-t bg-brand-primary text-white">
@@ -114,10 +116,10 @@ export default function Footer() {
               </p>
             </div>
           </Link>
-          <p className="max-w-sm text-sm leading-relaxed text-white/70">
-            VHD Corp — tổng kho cung cấp ống nhựa PVC, tấm cao su kỹ thuật và đặc sản miến làng nghề chất lượng cao,
-            phục vụ thị trường B2B/B2C trên toàn quốc.
-          </p>
+          {/* Mô tả công ty đọc từ SiteConfig — ẩn nếu admin chưa nhập */}
+          {footer?.description && (
+            <p className="max-w-sm text-sm leading-relaxed text-white/70">{footer.description}</p>
+          )}
           {socials.filter((s) => s.url).length > 0 && (
             <div className="flex items-center gap-2">
               {socials
@@ -156,43 +158,36 @@ export default function Footer() {
           </nav>
         ))}
 
-        <div className="space-y-3 md:col-span-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-brand-highlight">Liên hệ</h3>
-          <ul className="space-y-2.5 text-sm text-white/75">
-            {contact?.hotline && (
-              <li className="flex items-start gap-2">
-                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-brand-highlight" />
-                <a
-                  className="min-w-0 wrap-break-word hover:text-white"
-                  href={`tel:${contact.hotline.replace(/\s+/g, "")}`}
-                >
-                  {contact.hotline}
-                </a>
-              </li>
-            )}
-            {!contact?.hotline && (
-              <li className="flex items-start gap-2">
-                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-brand-highlight" />
-                <a className="min-w-0 wrap-break-word hover:text-white" href="tel:+84283xxxx">
-                  +84 28 3xxx xxxx
-                </a>
-              </li>
-            )}
-            <li className="flex items-start gap-2">
-              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-brand-highlight" />
-              <a
-                className="min-w-0 break-all hover:text-white"
-                href={`mailto:${contact?.email ?? "contact@vhdcorp.vn"}`}
-              >
-                {contact?.email ?? "contact@vhdcorp.vn"}
-              </a>
-            </li>
-            <li className="flex items-start gap-2">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-highlight" />
-              <span className="min-w-0 wrap-break-word">{contact?.address ?? "TP. Hồ Chí Minh, Việt Nam"}</span>
-            </li>
-          </ul>
-        </div>
+        {/* Cột liên hệ đọc từ SiteConfig — ẩn entry thiếu, ẩn cả cột nếu không có dữ liệu */}
+        {(phone || contact?.email || contact?.address) && (
+          <div className="space-y-3 md:col-span-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-brand-highlight">Liên hệ</h3>
+            <ul className="space-y-2.5 text-sm text-white/75">
+              {phone && (
+                <li className="flex items-start gap-2">
+                  <Phone className="mt-0.5 h-4 w-4 shrink-0 text-brand-highlight" />
+                  <a className="min-w-0 wrap-break-word hover:text-white" href={`tel:${phone.replace(/\s+/g, "")}`}>
+                    {phone}
+                  </a>
+                </li>
+              )}
+              {contact?.email && (
+                <li className="flex items-start gap-2">
+                  <Mail className="mt-0.5 h-4 w-4 shrink-0 text-brand-highlight" />
+                  <a className="min-w-0 break-all hover:text-white" href={`mailto:${contact.email}`}>
+                    {contact.email}
+                  </a>
+                </li>
+              )}
+              {contact?.address && (
+                <li className="flex items-start gap-2">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-highlight" />
+                  <span className="min-w-0 wrap-break-word">{contact.address}</span>
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="border-t border-white/10">

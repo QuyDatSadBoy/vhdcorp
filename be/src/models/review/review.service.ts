@@ -96,6 +96,8 @@ export class ReviewService {
   }
 
   async setStatus(id: number, dto: UpdateReviewStatusDto) {
+    const review = await this.prisma.review.findUnique({ where: { id } });
+    if (!review) throw new NotFoundException('Không tìm thấy đánh giá');
     return this.prisma.review.update({
       where: { id },
       data: { status: dto.status },
@@ -103,6 +105,8 @@ export class ReviewService {
   }
 
   async remove(id: number) {
+    const review = await this.prisma.review.findUnique({ where: { id } });
+    if (!review) throw new NotFoundException('Không tìm thấy đánh giá');
     return this.prisma.review.delete({ where: { id } });
   }
 }

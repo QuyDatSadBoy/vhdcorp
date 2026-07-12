@@ -108,14 +108,15 @@ export default function ImageUploader({
         {value ? (
           <>
             <Image src={value} alt={label} fill sizes="(max-width: 768px) 100vw, 400px" className="object-cover" />
-            <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100">
+            {/* Overlay đậm + nút tối viền trắng — nổi rõ trên mọi màu ảnh (kể cả ảnh trắng/logo sáng) */}
+            <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition group-hover:bg-black/60 group-hover:opacity-100">
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   inputRef.current?.click();
                 }}
-                className="inline-flex h-8 items-center gap-1 rounded-md bg-white px-3 text-xs font-medium text-foreground shadow hover:bg-white/90"
+                className="inline-flex h-8 items-center gap-1 rounded-md bg-slate-900/90 px-3 text-xs font-semibold text-white shadow-lg ring-1 ring-white/70 hover:bg-slate-800"
               >
                 <Upload className="h-3.5 w-3.5" /> Đổi
               </button>
@@ -125,7 +126,7 @@ export default function ImageUploader({
                   e.stopPropagation();
                   onChange("");
                 }}
-                className="inline-flex h-8 items-center gap-1 rounded-md bg-destructive px-3 text-xs font-medium text-white shadow hover:bg-destructive/90"
+                className="inline-flex h-8 items-center gap-1 rounded-md bg-red-600 px-3 text-xs font-semibold text-white shadow-lg ring-1 ring-white/70 hover:bg-red-700"
               >
                 <X className="h-3.5 w-3.5" /> Xóa
               </button>

@@ -4,7 +4,7 @@ import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
-import { auth as authApi } from "@/services/auth.service";
+import { auth as authApi, setSessionHint } from "@/services/auth.service";
 
 function CallbackInner() {
   const router = useRouter();
@@ -16,6 +16,8 @@ function CallbackInner() {
     let cancelled = false;
     (async () => {
       try {
+        // OAuth redirect đã set cookie phía BE — bật session hint để me() gọi thật
+        setSessionHint(true);
         const me = await authApi.me();
         if (cancelled) return;
         setUser(me);

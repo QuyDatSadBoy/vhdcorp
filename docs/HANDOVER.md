@@ -49,7 +49,7 @@ PORT=3001 yarn dev
 
 | Trường        | Giá trị                           |
 | ------------- | --------------------------------- |
-| **Email**     | `admin@vhdcorp.vn`                |
+| **Email**     | `admin@vhdcorp.com`               |
 | **Mật khẩu**  | `admin123`                        |
 | Role          | `admin`                           |
 | Đăng nhập tại | http://localhost:3001/admin/login |
@@ -101,7 +101,7 @@ Có thể tự đăng ký mới tại http://localhost:3001/register (email/pass
 
 ## 4. Tính năng — Phía Admin (http://localhost:3001/admin/)
 
-> Đăng nhập bằng `admin@vhdcorp.vn` / `admin123` tại `/admin/login`.
+> Đăng nhập bằng `admin@vhdcorp.com` / `admin123` tại `/admin/login`.
 
 ### 4.1 Dashboard — `/admin/dashboard`
 
@@ -225,7 +225,7 @@ Layout 3 panel (Left 280px / Canvas / Right 320px), kéo thả sửa toàn bộ 
 
 ### 6.2 Admin
 
-- [ ] `/admin/login` đăng nhập bằng `admin@vhdcorp.vn` / `admin123` → vào `/admin/dashboard`
+- [ ] `/admin/login` đăng nhập bằng `admin@vhdcorp.com` / `admin123` → vào `/admin/dashboard`
 - [ ] Dashboard hiển thị KPI + 4 biểu đồ recharts, đổi dark mode chart vẫn đẹp
 - [ ] `/admin/products`: tạo mới → upload ảnh → save → xuất hiện ở client `/products`
 - [ ] `/admin/products/[id]`: edit description (rich editor), chèn ảnh upload, save thành công
@@ -289,9 +289,195 @@ Layout 3 panel (Left 280px / Canvas / Right 320px), kéo thả sửa toàn bộ 
 
 - **Source code:** Repository Git của dự án (branch `main`)
 - **Database:** PostgreSQL `vhdcorp_dev` — thay đổi schema phải chạy `yarn prisma migrate dev`
-- **Đổi mật khẩu admin sau bàn giao:** Vào `/admin/users` → tìm `admin@vhdcorp.vn` → đặt lại mật khẩu, hoặc tạo tài khoản admin mới rồi xóa tài khoản seed
+- **Đổi mật khẩu admin sau bàn giao:** Vào `/admin/users` → tìm `admin@vhdcorp.com` → đặt lại mật khẩu, hoặc tạo tài khoản admin mới rồi xóa tài khoản seed
 - **Khôi phục dữ liệu mẫu:** `cd be && yarn prisma migrate reset` (CẢNH BÁO: xóa toàn bộ DB rồi seed lại)
 
 ---
 
 > ✅ **Sẵn sàng bàn giao** khi toàn bộ checklist §6 đã được tick xanh và Lighthouse SEO/A11y ≥ 95 trên 4 route đại diện.
+
+---
+
+## 9. Cập nhật 2026-07-09 — Hoàn thiện configurability + SEO + Contact
+
+### Backend
+
+- **Contact persistence**: model `Contact` mới (enum `ContactStatus` NEW/HANDLED) — `POST /api/contact` lưu DB; admin quản lý qua `GET /api/contact/admin`, `PUT /api/contact/:id/status`, `DELETE /api/contact/:id`.
+- **Category SEO fields**: `description`, `metaTitle`, `metaDesc`, `ogImage` (migration `add_category_seo_fields`).
+- **Hardening**: ValidationPipe whitelist (chặn mass-assignment) + gom lỗi nested; CORS production chỉ cho `FRONTEND_URL` (+`CORS_ORIGIN`); Swagger tắt ở production; rate-limit 5 lần/phút cho login/admin-login/register; Review setStatus/remove trả 404 sạch.
+
+### Frontend — Admin cấu hình 100%
+
+- **Các field từng "chết" nay hoạt động thật**: `customCss` (inject `<style>`), `googleAnalyticsId`/`googleTagManagerId`/`facebookPixelId` (inject script, ID được sanitize), `theme.fonts.heading/body` (Google Fonts tự load nếu ngoài Be Vietnam Pro/Inter), `theme.fonts.baseFontSize` (scale rem toàn site), `theme.spacing` (scale `--spacing` Tailwind v4), `theme.borderRadius`, `theme.colors.*` (wire vào shadcn tokens — button/ring/chart đổi theo brand, cả light lẫn dark).
+- **Draft preview thật**: nút "Xem trước" builder → `/api/preview` (verify role ADMIN/STAFF qua BE) → Next draftMode → mọi trang render bản DRAFT + banner "Đang xem trước bản nháp"; thoát qua `/api/preview/disable`.
+- **Settings mới**: tab Header (promo strip), Footer columns editor, footer contact/description/showMap, fonts/baseFontSize/spacing, SEO ogImage + defaultKeywords, tab Lịch sử (xem 50 bản, rollback vào draft).
+- **Hộp thư liên hệ**: trang `/admin/contacts` (filter, đổi status, xóa, phân trang) + link sidebar.
+- **Hardcode đã xóa**: promo strip header, mô tả + liên hệ footer, hotline StickyCtaBar/FloatingContact/contact-cta/product-detail, INFO cards trang liên hệ — tất cả đọc từ `SiteConfig`; giá trị rỗng thì ẨN (không còn số điện thoại giả).
+- **Trang Liên hệ** render `pages.contact.sections` từ Page Builder (trên form).
+
+### SEO
+
+- `/products`, `/posts` server-render trang 1 (link crawlable trong HTML đầu, static + revalidate 60s); `/search` noindex.
+- Product JSON-LD hết duplicate, thêm `aggregateRating` SSR; LocalBusiness trang liên hệ derive từ config (xóa phone/geo giả); JSON-LD escape `<` chống XSS.
+- Title template `%s | VHD Corp` áp dụng nhất quán (product/post/category dùng `buildMetadata`).
+- Bộ favicon PNG (16/32/48/180/192/512) + OG image 1200x630 sinh từ logo (`fe/public/icons/`, `fe/public/images/og-default.jpg`) + `app/icon.png` + manifest.
+- `getSiteConfig` fetch với tag `site-config` + revalidate 60s → `POST /api/revalidate` sau publish có hiệu lực thật.
+- Logo brand hiển thị ở: header, footer, hero, about, login, register, admin login (đọc từ `brand.logo.url`).
+
+### Vận hành
+
+- **KHÔNG tạo `yarn.lock` ở repo root** (vỡ resolve tailwind — xem README).
+- inotify limits đã tăng trong `/etc/sysctl.conf` (Turbopack cần).
+- Script one-off cập nhật config DB: `be/prisma/update-brand-assets.ts`.
+
+### Vòng test tay full (2026-07-10) — kết quả & fix thêm
+
+**Đã test như người test thật (Playwright browser, đúng kích thước 1854px + mobile 390px):**
+
+- Client: home (8 màn cuộn, từng section), products (search/filter/sort), product detail, posts, about, contact (submit form thật → inbox), search (lọc live), login/register, menu mobile, dark mode.
+- Admin: dashboard (charts), categories (tạo + SEO fields → verify meta trên client → xóa), products/posts form (Tiptap), banners/media/reviews/users load sạch, contacts (đổi trạng thái → DB).
+- **Chỉnh UI 100% chứng minh bằng mắt**: đổi primary #7C3AED + radius 16 → toàn client đổi tím; font Montserrat → Google Fonts tự load + heading đổi thật; customCss → badge render; GA ID → script xuất hiện; revert sạch.
+- Builder: thêm Hero → live-edit props trên canvas → lưu draft → preview draft trên trang thật (draftMode) → published không đổi → dọn draft.
+
+**Fix trong vòng này:**
+
+- Dải xám sai màu ở dark mode: 9 chỗ `bg-(--vhd-color-surface)/40|60` thiếu `dark:` variant → thêm `dark:bg-white/[0.03|0.04]`.
+- Console 401 `/auth/me` trên mọi trang khách: thêm session-hint localStorage (`vhd_session`) — khách vãng lai không gọi API auth; set hint sau login/register/OAuth callback, xóa khi logout/401.
+- Admin login bỏ qua `?next=` → đã tôn trọng (chỉ nhận path `/admin*`).
+- Title template `%s | VHD Corp` áp dụng cho product/post detail (trước đó 2 trang này bỏ qua config).
+- Lưu ý cache: Next 16 `revalidateTag` là stale-while-revalidate — sau publish, request đầu có thể còn bản cũ, request sau là bản mới (tối đa 60s theo TTL).
+
+---
+
+## 10. Email liên hệ (nodemailer)
+
+`POST /api/contact` sau khi lưu DB sẽ gửi 2 email **fire-and-forget** (lỗi mail chỉ log, không hỏng API):
+
+1. Thông báo cho admin (`ADMIN_EMAIL`) — nội dung liên hệ + ghi chú xem tại `/admin/contacts`.
+2. Xác nhận cho khách — cảm ơn, tóm tắt yêu cầu, cam kết phản hồi 24h.
+
+**Dry-run (mặc định)**: khi `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` trống, `MailService` (`be/src/services/mail/`) dùng JSON transport — email KHÔNG gửi thật, chỉ log `[MAIL:DRY-RUN] to=... subject=...` để test end-to-end.
+
+**Khi có SMTP thật**: điền vào `be/.env` (khuyên dùng Gmail App Password hoặc Resend/Brevo SMTP):
+
+| Env                                       | Ý nghĩa                                              |
+| ----------------------------------------- | ---------------------------------------------------- |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` | Host SMTP, port (587), TLS (`true` nếu port 465)     |
+| `SMTP_USER` / `SMTP_PASS`                 | Tài khoản SMTP (Gmail: App Password)                 |
+| `MAIL_FROM`                               | Người gửi, mặc định `VHD Corp <no-reply@vhdcorp.vn>` |
+| `ADMIN_EMAIL`                             | Mail nhận thông báo liên hệ mới                      |
+
+---
+
+## 11. AI Chat Agent (2026-07-10) — service Python + widget
+
+**Kiến trúc & tính năng chi tiết: [docs/AGENT_PLAN.md](AGENT_PLAN.md).** Đã test 3 vòng liên tiếp 100% (pytest 23 test + ma trận route/SEO/security + email + chat thật qua browser desktop & mobile).
+
+### Chạy service (port 8001)
+
+```bash
+cd agent
+./run.sh          # uv run uvicorn app.main:app --port 8001
+uv run pytest     # 23 tests
+uv run python scripts/sync_products.py   # đồng bộ lại catalog khi đổi sản phẩm
+```
+
+Env: `agent/.env` (đã điền GOOGLE_API_KEY + 13 Tavily keys + model `gemini-3-flash-preview`). FE cần `NEXT_PUBLIC_AGENT_URL=http://localhost:8001` trong `fe/.env.local` (đã có).
+
+### Những gì agent làm được (đã verify)
+
+- Hỏi đáp giá/tồn kho từ `agent/data/products.json` (fuzzy tiếng Việt không dấu), trả link sản phẩm → widget render card đẹp.
+- Nhớ ngữ cảnh hội thoại (checkpoint SQLite); memory: 8 message gần nhất + summary + facts (tóm tắt chạy nền).
+- Guardrail chặn prompt-injection, input quá dài, spam.
+- Tìm web (Tavily, tự xoay 13 key) và **chủ động gửi liên hệ** (tool → `POST /api/contact` BE → inbox admin + 2 email).
+- Quản lý hội thoại như ChatGPT: list/lịch sử/đổi tên/xóa, chỉ tạo khi có message đầu, cô lập theo user (uuid localStorage).
+
+### Email liên hệ
+
+**Đã gửi THẬT qua Gmail SMTP** (`backendt7.2023@gmail.com`, app-password trong `be/.env`) — mỗi liên hệ gửi 2 email: báo admin + xác nhận cho khách (template HTML brand + plain-text + header chống spam). Log `Đã gửi email tới ...` trong be log.
+Đổi tài khoản gửi: sửa `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `ADMIN_EMAIL` trong `be/.env` (Gmail → App passwords, hoặc Brevo/Resend/SendGrid).
+
+### Lưu ý dev
+
+- Nút TanStack Query devtools (dev-only, hình cây dừa) nằm cùng góc nút chat — chỉ có ở `yarn dev`, production không có.
+- Nút X của thanh CTA mobile nằm góc TRÁI (góc phải là cột nút chat + liên hệ).
+
+## 12. Cập nhật 2026-07-10 (đợt 2) — Real-time + Persist gen-UI + TTS + Admin 100%
+
+### Sản phẩm chat REAL-TIME 100%
+
+- Admin sửa sản phẩm/danh mục → BE tự bắn webhook resync sang agent (**0.25s** đo thực tế) — chat luôn trả giá/tồn kho mới nhất.
+- Lưới an toàn: agent tự đồng bộ lại mỗi 30s (trường hợp sửa DB trực tiếp). Env BE: `AGENT_URL`, `AGENT_RESYNC_SECRET`, `AGENT_ADMIN_SECRET` (be/.env.example).
+
+### Reload không mất gen-UI trong chat
+
+- Carousel/form/bảng so sánh đã hiện trong chat được lưu vào cột `ui_blocks` (SQLite) — F5/mở lại vẫn còn nguyên (trước đây chỉ còn text).
+
+### Nút loa đọc tin nhắn nhanh hơn
+
+- Server cache MP3 (LRU 64, sha256 text) + client cache Blob: lần đầu ~3s (MiniMax sinh audio), nghe lại ~60ms; cùng câu qua reload cũng tức thì.
+
+### Kênh liên hệ nổi — admin tùy chỉnh 100%
+
+- Cài đặt site → Footer → **"Kênh nút liên hệ nổi"**: thêm không giới hạn kênh (Facebook, Zalo, TikTok, YouTube, Instagram, LinkedIn, Telegram, WhatsApp, SĐT, email, link bất kỳ) — mỗi kênh chọn icon (màu thương hiệu tự áp) + nhãn + link, sắp xếp bằng mũi tên. Nhập SĐT tự thành `tel:`, email tự thành `mailto:`.
+- Đã publish sẵn 3 kênh MẪU (Facebook/Zalo/TikTok) — **thay link thật trước khi bàn giao**. Xóa hết kênh → widget fallback về Messenger/Zalo/Hotline/Email cũ.
+
+### Trang "Kiến thức AI" trong admin
+
+- Sidebar → Tuỳ chỉnh → **Kiến thức AI**: soạn `knowledge.md` bằng Tiptap WYSIWYG (như soạn bài viết) hoặc chế độ Markdown thô. Bấm Lưu → trợ lý dùng NGAY (đã test: thêm ưu đãi → hỏi chat trả lời đúng sau vài giây).
+- Luồng bảo mật: FE → BE proxy `/api/agent/knowledge` (JWT admin) → agent (secret nội bộ) — FE không bao giờ thấy secret.
+
+### Kiểm thử đợt này
+
+- 57 pytest agent PASS, FE production build PASS, tsc + ESLint FE/BE sạch.
+- 3 vòng E2E `round-full.sh` PASS 100% liên tiếp; browser test thật: reload giữ carousel, TTS replay 64ms, admin thêm 3 kênh → publish → client hiện đúng (desktop 1854 + mobile 390), console 0 lỗi.
+
+## 13. Cập nhật 2026-07-10 (đợt 3) — UX chat + upload ảnh + tài khoản mặc định
+
+- **Tài khoản admin mặc định đổi thành `admin@vhdcorp.com` / `admin123`** (seed.ts + DB hiện tại đã đổi; mọi script test/tài liệu cập nhật theo).
+- **Con lăn chuột trong khung chat**: trước đây lăn chuột trong chat lại cuộn trang phía sau (do thư viện Lenis smooth-scroll hijack wheel toàn trang). Fix: `data-lenis-prevent` trên panel + wheel handler riêng — lăn trong chat chỉ cuộn tin nhắn, trang đứng yên; lăn ngoài chat vẫn bình thường. Đã verify bằng chuột thật (Playwright): panel 0px, ngoài panel cuộn đủ.
+- **Upload ảnh trong chat**: nguyên nhân lỗi là giới hạn 4MB (ảnh chụp điện thoại thường vượt) — giờ ảnh tự thu nhỏ về 1280px + nén JPEG trước khi gửi, nhận tới 15MB, chọn lại cùng một file vẫn hoạt động. Đã test end-to-end: đính ảnh → preview → gửi → agent trả kết quả tìm bằng ảnh (8 card sản phẩm).
+- **Kênh liên hệ nổi — tải icon riêng**: mỗi kênh có nút tải icon (Cloudinary) thay icon preset; bỏ icon là quay về mặc định. Đã test: upload → Lưu nháp → Xuất bản → client hiển thị icon tùy chỉnh.
+- Kiểm thử đợt này: tsc + ESLint sạch, 1 vòng `round-full.sh` PASS 100%, console 0 lỗi.
+- `docs/BAO_CAO.md` viết lại toàn diện: kiến trúc 3 tầng + data flow + mô hình dữ liệu + toàn bộ tính năng client/admin/agent.
+
+## 14. Cập nhật 2026-07-11 — Builder hiện layout thật + Users CRUD + tương phản nút ảnh
+
+- **Page Builder mở lên là thấy giao diện trang chủ đang chạy**: trước đây config trong DB chưa có section (trang chủ render từ layout dựng sẵn trong code) nên builder hiện canvas trống. Giờ builder tự nạp đúng layout đang hiển thị (13 section) khi config trống → admin chỉnh/kéo thả ngay; đã Lưu + Xuất bản nên **config là nguồn chân lý** (version 10, home = 13 sections). Kéo-thả verify bằng chuột thật; undo/redo, auto-save 30s, Ctrl+S/Z/Y hoạt động. Trang Giới thiệu/Liên hệ vẫn dùng giao diện dựng sẵn cho tới khi admin thêm section (empty-state ghi chú rõ).
+- **Người dùng — CRUD đầy đủ**: thêm tài khoản (email/mật khẩu/vai trò, mặc định STAFF), sửa tên, đặt lại mật khẩu (thu hồi phiên cũ), xóa mềm + Thùng rác khôi phục, tìm theo email. BE mới: `POST /users`, `PATCH /users/:id`, `PATCH /users/:id/password`, `POST /users/:id/restore`, `GET /users?deletedOnly=true` (đều chỉ ADMIN). Đã test 7 case API + trọn luồng browser.
+- **Nút Đổi/Xóa trên ảnh (ImageUploader)**: đổi sang nền tối + viền trắng, overlay đậm hơn — nổi rõ trên ảnh sáng màu. Lưu ý: nút vốn hoạt động bình thường; nếu test trong **cửa sổ browser do công cụ tự động (Playwright) mở** thì hộp thoại chọn file bị công cụ chặn — hãy test upload trong browser thường.
+- Kiểm thử: tsc + ESLint FE/BE sạch, 7 test API users pass, browser E2E (builder kéo-thả + users + uploader), 1 vòng `round-full.sh` PASS 100%, console 0 lỗi, test data đã dọn.
+
+## 15. Cập nhật 2026-07-11 (đợt 2) — Builder 3 trang + publish tức thì + hộp thư liên hệ
+
+- **Builder hiện layout đang chạy của CẢ 3 trang**: thêm `defaultAboutSections()` (hero, số liệu, sứ mệnh/tầm nhìn/giá trị, hành trình 2014→2030, giá trị cốt lõi, CTA) và `defaultContactSections()` (quy trình 4 bước + FAQ — render TRÊN form liên hệ, form không bị thay). Builder tự seed khi config trống; "Tải layout mẫu" giờ đúng theo trang đang chọn. Đã publish → config là nguồn chân lý cho cả 3 trang (home 13 / about 6 / contact 2 section).
+- **Nút nhân bản section** (icon copy) trên mỗi hàng — copy nguyên props, chèn ngay dưới.
+- **Publish thấy ngay lập tức**: trước đây `revalidateTag(tag, "default")` là stale-while-revalidate → lượt xem đầu sau publish vẫn là bản cũ (tối đa 60s). Đổi sang `revalidateTag(tag, { expire: 0 })` (hết hạn cứng) — đã đo: publish xong, lượt curl ĐẦU TIÊN đã là nội dung mới.
+- **Kiểm chứng admin chỉnh UI thật**: sửa heading CTA trang Giới thiệu trong builder → Lưu → Xuất bản → client hiển thị đúng chuỗi mới, rồi khôi phục.
+- **Hộp thư liên hệ**: thêm nút **Trả lời qua email** (mailto điền sẵn "Re: <tiêu đề>" + lời chào). Test trọn luồng thật: khách gửi form (/contact) → 2 email thật (báo admin + xác nhận khách) → hiện trong inbox admin → đánh dấu đã xử lý → xóa. Lưu ý: form yêu cầu đủ Họ tên/Email/Tiêu đề/Nội dung (HTML5 required).
+- Kiểm thử: tsc + ESLint sạch, browser E2E toàn bộ (builder 3 trang, kéo-thả, nhân bản, sửa props→publish→client, liên hệ), vòng `round-full.sh` PASS 100%, console 0 lỗi, test data dọn sạch.
+
+## 16. Cập nhật 2026-07-11 (đợt 3) — Builder UX chuyên nghiệp + real-time không cache
+
+### Page Builder UX
+
+- **Click khối trong list → preview tự cuộn tới khối đó + viền sáng highlight**; **click khối ngay trong preview → list chọn theo** (preview là chọn-để-chỉnh kiểu Wix, link trong preview không điều hướng).
+- **Thêm/nhân bản khối → preview cuộn xuống khối mới** và chọn sẵn để chỉnh.
+- **Panel Thuộc tính viết lại hoàn toàn** (`components/admin/section-props-editor.tsx`): nhãn tiếng Việt cho mọi field, danh sách (chỉ số/bước/FAQ/quote/slide/logo/hàng so sánh) là form từng mục với nút thêm/xóa/lên/xuống — **không còn bắt admin gõ JSON**; field ảnh có nút tải lên Cloudinary ngay cạnh; căn lề/bố cục/vị trí ảnh là dropdown; bật/tắt là Switch.
+- **BỎ auto-save 30s** — chỉ Lưu thủ công (nút Lưu / Ctrl+S) hoặc không lưu; thoát khi chưa lưu có cảnh báo beforeunload.
+
+### Real-time — bỏ cache hoàn toàn
+
+- `getSiteConfig` (published), danh sách sản phẩm + bài viết SSR: `cache: "no-store"` — **publish/sửa là mọi lượt xem TIẾP THEO thấy ngay**, không còn cửa sổ 60s, không cần bước revalidate (endpoint `/api/revalidate` vẫn giữ, vô hại). Đã đo: publish xong curl ngay lập tức ra bản mới.
+
+### Kiểm thử
+
+- tsc + ESLint sạch; browser E2E: click list↔preview 2 chiều, highlight, thêm khối cuộn tới, sửa form panel → preview đổi live; vòng `round-full.sh` PASS 100%; console 0 lỗi.
+
+## 17. Cập nhật 2026-07-11 (đợt 4) — Builder phủ 100% trang + UX site
+
+- **Page Builder giờ phủ TẤT CẢ trang nội dung (5 trang)**: Trang chủ, Giới thiệu, Liên hệ, **Sản phẩm**, **Tin tức**. Với 2 trang danh sách, section hiển thị **phía trên danh sách** (banner khuyến mãi/CTA — danh sách sản phẩm/bài viết giữ nguyên bên dưới); layout mẫu riêng cho từng trang. Đã publish sẵn banner "Nhận báo giá B2B" mẫu trên trang Sản phẩm — sửa/xóa tùy ý trong builder.
+- Các trang còn lại đều đã config được từ trước: header/nav/footer/theme/brand (Cài đặt site), sản phẩm & bài viết & danh mục & banner (CRUD + SEO riêng từng trang), kênh liên hệ nổi, kiến thức AI → **admin config 100% mọi thứ khách nhìn thấy**.
+- **UX site**: thêm `app/(client)/loading.tsx` (spinner brand khi chuyển trang — cần thiết vì site giờ render real-time không cache) + `app/(client)/error.tsx` (màn hình lỗi brand + nút Thử lại/Về trang chủ thay vì trắng trang). 404 đã có từ trước.
+- Script test: các check nội dung chat gộp SSE delta trước khi so khớp (số có thể bị cắt giữa 2 chunk stream — hết flake).
+- Kiểm thử: tsc + ESLint sạch, builder 5 trang E2E (chọn trang → tải mẫu → Lưu → Xuất bản → client hiện ngay), 2 vòng `round-full.sh` PASS 100% liên tiếp, console 0 lỗi.

@@ -9,16 +9,28 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { axiosInstance } from "@/lib/axios";
+import { useSiteConfigStore } from "@/store/site-config.store";
 
-const INFO = [
-  { icon: Mail, label: "Email", value: "contact@vhdcorp.vn", href: "mailto:contact@vhdcorp.vn" },
-  { icon: Phone, label: "Hotline", value: "+84 28 3xxx xxxx", href: "tel:+842830000000" },
-  { icon: MapPin, label: "Địa chỉ", value: "TP. Hồ Chí Minh, Việt Nam" },
-  { icon: MessageCircle, label: "Zalo", value: "Chat ngay với VHD", href: "https://zalo.me/vhdcorp" },
-];
+type InfoItem = {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  href?: string;
+};
 
 export default function ContactForm() {
   const [pending, setPending] = useState(false);
+  const config = useSiteConfigStore((s) => s.config);
+  const contact = config?.footer?.contact;
+
+  // Danh sách kênh liên hệ build từ SiteConfig — bỏ entry admin chưa cấu hình
+  const info: InfoItem[] = [];
+  if (contact?.email) info.push({ icon: Mail, label: "Email", value: contact.email, href: `mailto:${contact.email}` });
+  const tel = contact?.hotline || contact?.phone;
+  if (tel) info.push({ icon: Phone, label: "Hotline", value: tel, href: `tel:${tel.replace(/\s+/g, "")}` });
+  if (contact?.address) info.push({ icon: MapPin, label: "Địa chỉ", value: contact.address });
+  if (contact?.zaloUrl)
+    info.push({ icon: MessageCircle, label: "Zalo", value: "Chat ngay với chúng tôi", href: contact.zaloUrl });
 
   return (
     <>
@@ -50,7 +62,7 @@ export default function ContactForm() {
             <h2 className="type-display-md text-foreground">Thông tin liên hệ</h2>
             <p className="text-foreground/65">Chọn kênh phù hợp nhất với bạn — chúng tôi luôn sẵn sàng hỗ trợ.</p>
             <div className="mt-6 grid gap-3">
-              {INFO.map((it) => {
+              {info.map((it) => {
                 const Icon = it.icon;
                 const Wrapper = it.href ? "a" : "div";
                 return (

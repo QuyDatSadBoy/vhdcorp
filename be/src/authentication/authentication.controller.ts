@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthenticationService } from './authentication.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -38,6 +39,7 @@ export class AuthenticationController {
 
   @Public()
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async register(
     @Body() dto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
@@ -50,6 +52,8 @@ export class AuthenticationController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  // Rate limit chặt chống brute-force: 5 lần/phút mỗi IP
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
@@ -62,6 +66,7 @@ export class AuthenticationController {
   @Public()
   @Post('admin/login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async adminLogin(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,

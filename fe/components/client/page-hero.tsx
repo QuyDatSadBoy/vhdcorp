@@ -24,7 +24,9 @@ export function PageHero({ eyebrow, title, description, breadcrumbs, variant = "
     <section
       className={
         "relative isolate overflow-hidden " +
-        (isDark ? "bg-brand-primary text-white" : "border-b border-foreground/8 bg-(--vhd-color-surface)/60")
+        (isDark
+          ? "bg-brand-primary text-white"
+          : "border-b border-foreground/8 bg-(--vhd-color-surface)/60 dark:bg-white/[0.04]")
       }
     >
       {isDark && (

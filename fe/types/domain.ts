@@ -12,6 +12,9 @@ export interface Category {
   name: string;
   image: string | null;
   description?: string | null;
+  metaTitle?: string | null;
+  metaDesc?: string | null;
+  ogImage?: string | null;
   parentId: number | null;
   order: number;
   createdAt: string;

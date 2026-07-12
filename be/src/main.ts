@@ -28,19 +28,30 @@ async function bootstrap() {
   }
   app.useStaticAssets(uploadsDir, { prefix: '/uploads/' });
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('VHD Corp API')
-    .setDescription('VHD Corp REST API documentation')
-    .setVersion('1.0')
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document);
+  // Swagger chỉ bật ngoài production — không lộ API surface công khai
+  if (process.env.NODE_ENV !== 'production') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('VHD Corp API')
+      .setDescription('VHD Corp REST API documentation')
+      .setVersion('1.0')
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-  // CORS — cho phép tất cả origin. Vì FE gửi cookie (credentials: include) nên
-  // không thể dùng "*", phải reflect Origin header. Hành vi tương đương "*".
+  // CORS — dev: reflect mọi origin cho tiện máy LAN; production: CHỈ cho FRONTEND_URL
+  // (cookie credentials + reflect-all ở prod là lỗ hổng CSRF-adjacent).
+  const isProd = process.env.NODE_ENV === 'production';
   app.enableCors({
-    origin: (origin, callback) => callback(null, origin ?? true),
+    origin: isProd
+      ? [
+          frontendUrl,
+          ...(process.env.CORS_ORIGIN
+            ? process.env.CORS_ORIGIN.split(',')
+            : []),
+        ]
+      : (origin, callback) => callback(null, origin ?? true),
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type,Authorization,X-CSRF-TOKEN,X-Requested-With',
     exposedHeaders: 'Content-Disposition',

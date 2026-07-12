@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateContactDto {
   @IsNotEmpty()
@@ -9,10 +15,17 @@ export class CreateContactDto {
   @IsEmail()
   email: string;
 
-  @IsNotEmpty()
+  // Số điện thoại — không bắt buộc
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  phone?: string;
+
+  // Tiêu đề — không bắt buộc
+  @IsOptional()
   @IsString()
   @MaxLength(200)
-  subject: string;
+  subject?: string;
 
   @IsNotEmpty()
   @IsString()

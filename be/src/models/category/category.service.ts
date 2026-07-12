@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@prisma/prisma.service';
 import { SlugService } from '@service/slug/slug.service';
+import { AgentService } from '@service/agent/agent.service';
 import type { Category, Prisma } from '@vhd/prisma-client';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -10,6 +11,7 @@ export class CategoryService {
   constructor(
     private prisma: PrismaService,
     private slug: SlugService,
+    private agent: AgentService,
   ) {}
 
   async list(params: {
@@ -62,15 +64,21 @@ export class CategoryService {
       ? await this.slug.generateUniqueSlug(dto.slug, 'category')
       : await this.slug.generateUniqueSlug(dto.name, 'category');
 
-    return this.prisma.category.create({
+    const created = await this.prisma.category.create({
       data: {
         name: dto.name,
         slug,
         image: dto.image,
+        description: dto.description,
+        metaTitle: dto.metaTitle,
+        metaDesc: dto.metaDesc,
+        ogImage: dto.ogImage,
         parentId: dto.parentId ?? null,
         order: dto.order ?? 0,
       },
     });
+    this.agent.notifyProductsChanged(); // tên danh mục nằm trong catalog chat AI
+    return created;
   }
 
   async update(id: number, dto: UpdateCategoryDto): Promise<Category> {
@@ -81,16 +89,22 @@ export class CategoryService {
     else if (dto.name)
       slug = await this.slug.generateUniqueSlug(dto.name, 'category', id);
 
-    return this.prisma.category.update({
+    const updated = await this.prisma.category.update({
       where: { id },
       data: {
         name: dto.name,
         slug,
         image: dto.image,
+        description: dto.description,
+        metaTitle: dto.metaTitle,
+        metaDesc: dto.metaDesc,
+        ogImage: dto.ogImage,
         parentId: dto.parentId,
         order: dto.order,
       },
     });
+    this.agent.notifyProductsChanged();
+    return updated;
   }
 
   async delete(id: number): Promise<void> {
@@ -109,5 +123,6 @@ export class CategoryService {
       );
     }
     await this.prisma.category.delete({ where: { id } });
+    this.agent.notifyProductsChanged();
   }
 }

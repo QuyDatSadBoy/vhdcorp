@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -8,7 +8,8 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin/", "/account/", "/api/", "/login", "/register", "/callback"],
+        // Không có "/" cuối để chặn cả "/admin" lẫn "/admin/*"; /search giữ crawlable để bot thấy meta noindex.
+        disallow: ["/admin", "/account", "/api", "/login", "/register", "/callback"],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

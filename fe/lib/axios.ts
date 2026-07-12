@@ -7,7 +7,7 @@ import type { ApiError } from "@/types/api";
  * - Response 401 → tự gọi POST /auth/refresh, retry 1 lần.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 
 export const axiosInstance = axios.create({
   baseURL: BASE_URL,

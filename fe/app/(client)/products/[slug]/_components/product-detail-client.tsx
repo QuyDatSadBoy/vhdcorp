@@ -9,12 +9,12 @@ import { Star, Loader2 } from "lucide-react";
 import { useProductBySlug, useRelatedProducts } from "@/services/product.service";
 import { useProductReviews, useCreateReview } from "@/services/review.service";
 import { useAuthStore } from "@/store/auth.store";
+import { useSiteConfigStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { JsonLd, SITE_URL } from "@/components/seo/json-ld";
 import { ImageFallback } from "@/components/client/image-fallback";
 
 export default function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -23,6 +23,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
   const { data: reviews } = useProductReviews(slug);
   const { data: related } = useRelatedProducts(product?.id);
   const user = useAuthStore((s) => s.user);
+  const siteConfig = useSiteConfigStore((s) => s.config);
+  const hotline = siteConfig?.footer.contact?.hotline || siteConfig?.footer.contact?.phone || "";
   const createReview = useCreateReview();
 
   const [imgIdx, setImgIdx] = useState(0);
@@ -74,41 +76,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
     }
   }
 
-  const productLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.name,
-    description: product.shortDescription ?? product.description,
-    image: images.map((src) => (src.startsWith("http") ? src : `${SITE_URL}${src}`)),
-    sku: String(product.id),
-    category: product.category?.name,
-    offers:
-      Number(product.price) > 0
-        ? {
-            "@type": "Offer",
-            priceCurrency: "VND",
-            price: Number(product.price),
-            availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-            url: `${SITE_URL}/products/${product.slug}`,
-          }
-        : undefined,
-    aggregateRating:
-      (reviews ?? []).length > 0
-        ? {
-            "@type": "AggregateRating",
-            ratingValue: ((reviews ?? []).reduce((s, r) => s + r.rating, 0) / (reviews ?? []).length).toFixed(1),
-            reviewCount: (reviews ?? []).length,
-          }
-        : undefined,
-  };
-
-  // JSON-LD: Product + BreadcrumbList đã được SSR ở page.tsx (server) cho crawler.
-  // Tại client, chỉ append thêm khi đã có review (aggregateRating) — tránh trùng lặp.
-  const hasAggregateRating = (reviews ?? []).length > 0;
+  // JSON-LD Product (kèm aggregateRating) + BreadcrumbList được SSR duy nhất ở page.tsx — không render lại tại client.
 
   return (
     <article className="container mx-auto px-4 py-12">
-      {hasAggregateRating && <JsonLd id="product-rating" data={productLd} />}
       <nav className="mb-6 text-sm text-muted-foreground">
         <Link href="/" className="hover:underline">
           Trang chủ
@@ -223,14 +194,16 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             >
               <Link href="/contact">Liên hệ tư vấn</Link>
             </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="h-12 rounded-full border-brand-primary/25 bg-transparent px-7 text-base font-semibold text-brand-primary hover:bg-brand-primary/8"
-            >
-              <a href="tel:+84283xxxxxxx">Gọi báo giá</a>
-            </Button>
+            {hotline && (
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="h-12 rounded-full border-brand-primary/25 bg-transparent px-7 text-base font-semibold text-brand-primary hover:bg-brand-primary/8"
+              >
+                <a href={`tel:${hotline.replace(/[\s.]/g, "")}`}>Gọi báo giá</a>
+              </Button>
+            )}
           </div>
 
           {/* Trust bullets */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,19 +22,24 @@ type Values = z.infer<typeof schema>;
 
 export function AdminLoginForm() {
   const router = useRouter();
+  const params = useSearchParams();
   const setUser = useAuthStore((s) => s.setUser);
   const login = useAdminLogin();
   const { data: meData, isPending: mePending } = useMe();
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: "", password: "" } });
+
+  // Tôn trọng ?next= — chỉ nhận path nội bộ /admin* để tránh open-redirect
+  const rawNext = params.get("next") ?? "";
+  const nextPath = rawNext.startsWith("/admin") && !rawNext.startsWith("//") ? rawNext : "/admin/dashboard";
 
   // Redirect nếu đã đăng nhập với role admin/staff
   useEffect(() => {
     if (mePending) return;
     const user = (meData as { user?: { role?: string } } | null | undefined)?.user;
     if (user?.role === "ADMIN" || user?.role === "STAFF") {
-      router.replace("/admin/dashboard");
+      router.replace(nextPath);
     }
-  }, [meData, mePending, router]);
+  }, [meData, mePending, router, nextPath]);
 
   async function onSubmit(values: Values) {
     try {
@@ -45,7 +50,7 @@ export function AdminLoginForm() {
       }
       setUser(result.user);
       toast.success(`Chào ${result.user.name}`);
-      router.replace("/admin/dashboard");
+      router.replace(nextPath);
       router.refresh();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Đăng nhập thất bại");

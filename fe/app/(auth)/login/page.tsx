@@ -1,15 +1,30 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { LoginForm } from "@/components/client/login-form";
+import { getSiteConfig } from "@/lib/site-config";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const config = await getSiteConfig();
   return (
     <div className="rounded-2xl border bg-card p-8 shadow-xl">
       <Link href="/" className="block text-center text-sm text-muted-foreground hover:text-foreground">
         ← Quay về trang chủ
       </Link>
-      <h1 className="mt-2 text-center text-2xl font-bold">Đăng nhập</h1>
-      <p className="mb-6 text-center text-sm text-muted-foreground">Chào mừng bạn quay lại VHD Corp</p>
+      {config.brand.logo.url && (
+        <div className="mt-4 flex justify-center">
+          <Image
+            src={config.brand.logo.url}
+            alt={config.brand.siteName}
+            width={72}
+            height={72}
+            className="size-18 rounded-2xl bg-white object-contain p-1 shadow-sm ring-1 ring-border"
+            priority
+          />
+        </div>
+      )}
+      <h1 className="mt-3 text-center text-2xl font-bold">Đăng nhập</h1>
+      <p className="mb-6 text-center text-sm text-muted-foreground">Chào mừng bạn quay lại {config.brand.siteName}</p>
       <Suspense>
         <LoginForm />
       </Suspense>

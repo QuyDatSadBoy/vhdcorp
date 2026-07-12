@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@prisma/prisma.service';
 import { SlugService } from '@service/slug/slug.service';
+import { AgentService } from '@service/agent/agent.service';
 import { ProductStatus, type Prisma } from '@vhd/prisma-client';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -28,6 +29,7 @@ export class ProductService {
   constructor(
     private prisma: PrismaService,
     private slug: SlugService,
+    private agent: AgentService,
   ) {}
 
   async list(params: ListParams) {
@@ -132,7 +134,7 @@ export class ProductService {
       dto.slug ?? dto.name,
       'product',
     );
-    return this.prisma.product.create({
+    const created = await this.prisma.product.create({
       data: {
         name: dto.name,
         slug,
@@ -147,6 +149,8 @@ export class ProductService {
         status: dto.status ?? ProductStatus.DRAFT,
       },
     });
+    this.agent.notifyProductsChanged(); // chat AI thấy sản phẩm mới ngay lập tức
+    return created;
   }
 
   async update(id: number, dto: UpdateProductDto) {
@@ -157,7 +161,7 @@ export class ProductService {
     else if (dto.name)
       slug = await this.slug.generateUniqueSlug(dto.name, 'product', id);
 
-    return this.prisma.product.update({
+    const updated = await this.prisma.product.update({
       where: { id },
       data: {
         name: dto.name,
@@ -173,20 +177,26 @@ export class ProductService {
         status: dto.status,
       },
     });
+    this.agent.notifyProductsChanged();
+    return updated;
   }
 
   async softDelete(id: number) {
     await this.findById(id);
-    return this.prisma.product.update({
+    const deleted = await this.prisma.product.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
+    this.agent.notifyProductsChanged();
+    return deleted;
   }
 
   async restore(id: number) {
-    return this.prisma.product.update({
+    const restored = await this.prisma.product.update({
       where: { id },
       data: { deletedAt: null },
     });
+    this.agent.notifyProductsChanged();
+    return restored;
   }
 }

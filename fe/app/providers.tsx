@@ -8,6 +8,7 @@ import { Toaster } from "sonner";
 import { useSiteConfigStore } from "@/store/site-config.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useMe } from "@/services/auth.service";
+import { axiosInstance } from "@/lib/axios";
 import type { SiteConfigValue } from "@/types/site-config";
 
 function AuthSyncer() {
@@ -22,6 +23,22 @@ function AuthSyncer() {
     setUser(user);
     setHydrated(true);
   }, [data, isPending, setUser, setHydrated]);
+
+  // Proactive refresh: access token sống 15' — refresh mỗi 10' khi có session
+  // để request không bao giờ dính 401 (interceptor vẫn là lưới an toàn cuối).
+  useEffect(() => {
+    const tick = () => {
+      if (localStorage.getItem("vhd_session") !== "1") return;
+      axiosInstance.post("/auth/refresh").catch(() => {
+        // Refresh token hết hạn/thu hồi → coi như đăng xuất
+        localStorage.removeItem("vhd_session");
+      });
+    };
+    const id = setInterval(tick, 10 * 60 * 1000);
+    // Chạy ngay 1 lần khi quay lại sau thời gian dài (token có thể đã hết hạn)
+    tick();
+    return () => clearInterval(id);
+  }, []);
 
   return null;
 }

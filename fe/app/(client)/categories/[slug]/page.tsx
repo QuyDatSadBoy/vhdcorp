@@ -20,11 +20,13 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     return buildMetadata({ title: "Không tìm thấy danh mục", noindex: true });
   }
   return buildMetadata({
-    title: category.name,
+    title: category.metaTitle?.trim() || category.name,
     description:
-      category.description?.trim() || `Khám phá toàn bộ sản phẩm thuộc danh mục ${category.name} của VHD Corp.`,
+      category.metaDesc?.trim() ||
+      category.description?.trim() ||
+      `Khám phá toàn bộ sản phẩm thuộc danh mục ${category.name} của VHD Corp.`,
     canonical: `${SITE_URL}/categories/${category.slug}`,
-    image: category.image ?? undefined,
+    image: category.ogImage ?? category.image ?? undefined,
   });
 }
 

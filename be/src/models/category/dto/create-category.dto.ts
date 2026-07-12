@@ -22,6 +22,26 @@ export class CreateCategoryDto {
   @IsString()
   image?: string;
 
+  // SEO fields — hiển thị ở trang danh mục /categories/[slug]
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  metaTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(320)
+  metaDesc?: string;
+
+  @IsOptional()
+  @IsString()
+  ogImage?: string;
+
   @IsOptional()
   @IsInt()
   parentId?: number;

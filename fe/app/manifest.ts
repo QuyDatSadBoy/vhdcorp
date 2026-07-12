@@ -11,6 +11,10 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     display: "standalone",
     background_color: config.theme.colors.background,
     theme_color: config.theme.colors.primary,
-    icons: [{ src: config.brand.favicon.url || "/favicon.ico", sizes: "any", type: "image/x-icon" }],
+    icons: [
+      { src: config.brand.favicon.url || "/favicon.ico", sizes: "any", type: "image/x-icon" },
+      { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
   };
 }

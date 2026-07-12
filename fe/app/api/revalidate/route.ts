@@ -20,8 +20,10 @@ export async function POST(req: NextRequest) {
   const path = req.nextUrl.searchParams.get("path");
   const revalidated: string[] = [];
 
+  // { expire: 0 } = hết hạn CỨNG: lượt xem đầu tiên sau publish đã là bản mới.
+  // (profile "default" là stale-while-revalidate — lượt đầu vẫn trả bản cũ.)
   if (tag) {
-    revalidateTag(tag, "default");
+    revalidateTag(tag, { expire: 0 });
     revalidated.push(`tag:${tag}`);
   }
   if (path) {
@@ -29,7 +31,7 @@ export async function POST(req: NextRequest) {
     revalidated.push(`path:${path}`);
   }
   if (!tag && !path) {
-    revalidateTag("site-config", "default");
+    revalidateTag("site-config", { expire: 0 });
     revalidatePath("/", "layout");
     revalidated.push("tag:site-config", "path:/ (layout)");
   }

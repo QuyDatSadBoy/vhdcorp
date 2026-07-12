@@ -95,3 +95,14 @@ screens/
 be/prisma/fix-*.ts
 be/prisma/update-*.ts
 be/prisma/data-resetting.prisma.ts
+
+# ============================================================
+# Agent — Python AI service
+# ============================================================
+agent/.env
+agent/.venv/
+agent/data/*.db
+agent/data/*.sqlite
+agent/data/*.sqlite3
+agent/**/__pycache__/
+agent/.pytest_cache/

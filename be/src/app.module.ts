@@ -4,6 +4,7 @@ import { ProviderModule } from '@provider/provider.module';
 import { ModelModule } from '@model/model.module';
 import { SlugModule } from '@service/slug/slug.module';
 import { CloudinaryModule } from '@service/cloudinary/cloudinary.module';
+import { AgentModule } from '@service/agent/agent.module';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
 import { PrismaExceptionFilter } from './common/exceptions/prisma-exception.filter';
@@ -20,6 +21,7 @@ import { HealthModule } from './health/health.module';
     ProviderModule,
     SlugModule,
     CloudinaryModule,
+    AgentModule,
     ModelModule,
     AuthenticationModule,
     HealthModule,

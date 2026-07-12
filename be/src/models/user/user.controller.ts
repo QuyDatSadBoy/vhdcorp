@@ -7,6 +7,7 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Post,
   Put,
   Query,
   UseGuards,
@@ -21,6 +22,8 @@ import { Roles } from '@decorator/roles.decorator';
 import { CurrentUser, JwtPayload } from '@decorator/current-user.decorator';
 import { Role } from '@vhd/prisma-client';
 import { ChangePasswordDto, UpdateMeDto } from './dto/update-me.dto';
+import { AdminResetPasswordDto, CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('users')
 @ApiTags('User')
@@ -37,10 +40,12 @@ export class UserController {
     @Query('pageSize') _pageSize?: string,
     @Query('email') email?: string,
     @Query('orderBy') orderBy?: string,
+    @Query('deletedOnly') deletedOnly?: string,
   ) {
     return this.userService.list({
       where: {
-        deletedAt: null,
+        // deletedOnly=true → thùng rác (chỉ user đã xóa, để khôi phục)
+        deletedAt: deletedOnly === 'true' ? { not: null } : null,
         ...(email && email.trim() !== ''
           ? { email: { contains: email, mode: 'insensitive' } }
           : {}),
@@ -50,6 +55,13 @@ export class UserController {
           ? { [orderBy]: 'asc' }
           : { createdAt: 'desc' },
     });
+  }
+
+  /** Admin tạo tài khoản mới (nhân viên/khách) */
+  @Post()
+  @Roles(Role.ADMIN)
+  async adminCreate(@Body() dto: CreateUserDto) {
+    return this.userService.adminCreate(dto);
   }
 
   // ── Self-service endpoints — mọi user đã đăng nhập đều dùng được ───
@@ -81,6 +93,33 @@ export class UserController {
     @Body() body: { role: Role },
   ) {
     return this.userService.updateRole(current.sub, id, body.role);
+  }
+
+  /** Admin sửa thông tin user (tên hiển thị) */
+  @Patch(':id')
+  @Roles(Role.ADMIN)
+  async adminUpdate(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateUserDto,
+  ) {
+    return this.userService.adminUpdate(id, { name: dto.name });
+  }
+
+  /** Admin đặt lại mật khẩu cho user (không cần mật khẩu cũ) */
+  @Patch(':id/password')
+  @Roles(Role.ADMIN)
+  async adminResetPassword(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AdminResetPasswordDto,
+  ) {
+    return this.userService.adminResetPassword(id, dto.newPassword);
+  }
+
+  /** Khôi phục user đã xóa */
+  @Post(':id/restore')
+  @Roles(Role.ADMIN)
+  async restore(@Param('id', ParseIntPipe) id: number) {
+    return this.userService.restore(id);
   }
 
   @Delete(':id')

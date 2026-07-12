@@ -19,6 +19,7 @@ import {
   Tablet,
   Monitor,
   ExternalLink,
+  CopyPlus,
   GripVertical,
   Sparkles,
   LayoutTemplate,
@@ -43,7 +44,13 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useDraftSiteConfig, useSaveDraftSiteConfig, usePublishSiteConfig } from "@/services/site-config.service";
 import type { Section, SiteConfigValue } from "@/types/site-config";
-import { defaultHomeSections } from "@/lib/default-sections";
+import {
+  defaultAboutSections,
+  defaultContactSections,
+  defaultHomeSections,
+  defaultListingSections,
+} from "@/lib/default-sections";
+import SectionPropsEditor from "@/components/admin/section-props-editor";
 import { DEFAULT_SITE_CONFIG } from "@/lib/site-config";
 import { PageRenderer } from "@/components/sections";
 import { useConfirm } from "@/components/admin/confirm-dialog";
@@ -51,9 +58,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 
 const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
   hero: () => ({
@@ -191,6 +195,16 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
   }),
 };
 
+/** Tất cả các trang admin có thể thiết kế qua Builder — phủ 100% trang nội dung */
+const PAGE_OPTIONS = [
+  { key: "home", label: "Trang chủ" },
+  { key: "about", label: "Giới thiệu" },
+  { key: "contact", label: "Liên hệ" },
+  { key: "products", label: "Sản phẩm" },
+  { key: "posts", label: "Tin tức" },
+] as const;
+type PageKey = (typeof PAGE_OPTIONS)[number]["key"];
+
 const TYPE_LABELS: Record<Section["type"], string> = {
   hero: "Hero",
   "featured-products": "Sản phẩm nổi bật",
@@ -219,6 +233,7 @@ function SortableSection({
   onToggleVisible,
   onMove,
   onRemove,
+  onDuplicate,
 }: {
   s: Section;
   selected: boolean;
@@ -226,6 +241,7 @@ function SortableSection({
   onToggleVisible: () => void;
   onMove: (dir: -1 | 1) => void;
   onRemove: () => void;
+  onDuplicate: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: s.id });
   const innerRef = useRef<HTMLDivElement | null>(null);
@@ -245,7 +261,7 @@ function SortableSection({
     el.style.zIndex = isDragging ? "50" : "";
   }, [transform, transition, isDragging]);
   return (
-    <div ref={mergedRef} {...attributes}>
+    <div ref={mergedRef} data-row-id={s.id} {...attributes}>
       <button
         onClick={onSelect}
         className={`w-full rounded-md border px-3 py-2 text-left text-sm transition ${selected ? "border-brand-primary bg-brand-primary/5" : "hover:bg-accent"}`}
@@ -299,6 +315,19 @@ function SortableSection({
             <span
               role="button"
               tabIndex={0}
+              aria-label="Nhân bản"
+              title="Nhân bản section"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDuplicate();
+              }}
+              className="rounded p-1 hover:bg-muted"
+            >
+              <CopyPlus className="h-3 w-3" />
+            </span>
+            <span
+              role="button"
+              tabIndex={0}
               aria-label="Xóa"
               onClick={(e) => {
                 e.stopPropagation();
@@ -322,7 +351,7 @@ export default function AdminBuilderPage() {
   const confirm = useConfirm();
 
   const [draft, setDraft] = useState<SiteConfigValue | null>(null);
-  const [page, setPage] = useState<"home" | "about" | "contact">("home");
+  const [page, setPage] = useState<PageKey>("home");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
@@ -349,6 +378,39 @@ export default function AdminBuilderPage() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  /** Cuộn preview tới section (delay nhỏ để React kịp render section mới thêm) */
+  const scrollPreviewTo = useCallback((id: string) => {
+    setTimeout(() => {
+      previewFrameRef.current
+        ?.querySelector(`[data-section-id="${id}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+  }, []);
+
+  /** Chọn section: từ LIST → preview nhảy theo; từ PREVIEW → list row nhảy theo */
+  const selectSection = useCallback(
+    (id: string, source: "list" | "preview" = "list") => {
+      setSelectedId(id);
+      if (source === "list") scrollPreviewTo(id);
+      else {
+        document.querySelector(`[data-row-id="${id}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    },
+    [scrollPreviewTo]
+  );
+
+  /** Viền sáng section đang chọn trong preview (đồng bộ khi đổi chọn/sections) */
+  useEffect(() => {
+    const root = previewFrameRef.current;
+    if (!root) return;
+    root.querySelectorAll<HTMLElement>("[data-section-id]").forEach((el) => {
+      const on = el.dataset.sectionId === selectedId;
+      el.style.outline = on ? "2px solid #4FB8E7" : "";
+      el.style.outlineOffset = on ? "-2px" : "";
+      el.style.borderRadius = on ? "4px" : "";
+    });
+  });
+
   // Undo/redo: lưu snapshot của draft để quay lại (giới hạn 50)
   const historyRef = useRef<{ past: SiteConfigValue[]; future: SiteConfigValue[] }>({ past: [], future: [] });
   const skipHistoryRef = useRef(false);
@@ -362,6 +424,12 @@ export default function AdminBuilderPage() {
   useEffect(() => {
     if (data?.value) {
       const v = data.value;
+      // Trang chưa có section trong config → nạp layout mặc định tương ứng với
+      // giao diện đang hiển thị ngoài site, để admin thấy nội dung hiện tại và
+      // chỉnh sửa/kéo thả ngay thay vì canvas trống.
+      const homeSeeded = !v.pages?.home?.sections?.length;
+      const aboutSeeded = !v.pages?.about?.sections?.length;
+      const contactSeeded = !v.pages?.contact?.sections?.length;
       // Merge với DEFAULT để đảm bảo các nhánh chưa có (pages/nav/footer/...) không undefined
       const merged: SiteConfigValue = {
         ...DEFAULT_SITE_CONFIG,
@@ -370,9 +438,12 @@ export default function AdminBuilderPage() {
         theme: { ...DEFAULT_SITE_CONFIG.theme, ...(v.theme ?? {}) },
         seo: { ...DEFAULT_SITE_CONFIG.seo, ...(v.seo ?? {}) },
         pages: {
-          home: v.pages?.home ?? { sections: [] },
-          about: v.pages?.about ?? { sections: [] },
-          contact: v.pages?.contact ?? { sections: [] },
+          home: homeSeeded ? { sections: defaultHomeSections() } : v.pages.home,
+          about: aboutSeeded ? { sections: defaultAboutSections() } : v.pages.about,
+          contact: contactSeeded ? { sections: defaultContactSections() } : v.pages.contact,
+          // Trang danh sách: section hiển thị PHÍA TRÊN danh sách sản phẩm/bài viết
+          products: v.pages?.products ?? { sections: [] },
+          posts: v.pages?.posts ?? { sections: [] },
         },
         navigation: v.navigation ?? DEFAULT_SITE_CONFIG.navigation,
         footer: v.footer ?? DEFAULT_SITE_CONFIG.footer,
@@ -381,7 +452,13 @@ export default function AdminBuilderPage() {
       setDraft(merged);
       historyRef.current = { past: [], future: [] };
       syncHistoryFlags();
-      setDirty(false);
+      // Seed layout → đánh dấu dirty để auto-save persist vào draft (builder từ đó
+      // là nguồn chân lý của giao diện các trang).
+      const seeded = homeSeeded || aboutSeeded || contactSeeded;
+      setDirty(seeded);
+      if (seeded) {
+        toast.info("Đã nạp layout đang hiển thị của các trang — chỉnh sửa và bấm Lưu/Xuất bản.");
+      }
     }
   }, [data, syncHistoryFlags]);
 
@@ -428,14 +505,8 @@ export default function AdminBuilderPage() {
   const undoRef = useRef<() => void>(() => {});
   const redoRef = useRef<() => void>(() => {});
 
-  // Auto-save mỗi 30s khi có thay đổi
-  useEffect(() => {
-    if (!dirty) return;
-    const timer = setTimeout(() => {
-      handleSaveRef.current();
-    }, 30_000);
-    return () => clearTimeout(timer);
-  }, [dirty, draft]);
+  // KHÔNG auto-save: admin chủ động bấm Lưu (hoặc Ctrl+S) — chưa lưu thì thoát là bỏ
+  // (beforeunload phía trên đã cảnh báo khi còn thay đổi).
 
   // Keyboard shortcuts: Ctrl+S lưu, Ctrl+Z undo, Ctrl+Y / Ctrl+Shift+Z redo
   useEffect(() => {
@@ -485,11 +556,22 @@ export default function AdminBuilderPage() {
   function addSection(type: Section["type"]) {
     const tpl = SECTION_TEMPLATES[type]();
     setSections([...sections, tpl]);
-    setSelectedId(tpl.id);
+    selectSection(tpl.id, "list"); // preview cuộn tới khối mới thêm
   }
   function removeSection(id: string) {
     setSections(sections.filter((s) => s.id !== id));
     if (selectedId === id) setSelectedId(null);
+  }
+  /** Nhân bản section — copy toàn bộ props, chèn ngay dưới bản gốc */
+  function duplicateSection(id: string) {
+    const idx = sections.findIndex((s) => s.id === id);
+    if (idx < 0) return;
+    const copy = structuredClone(sections[idx]);
+    copy.id = crypto.randomUUID();
+    const next = [...sections];
+    next.splice(idx + 1, 0, copy);
+    setSections(next);
+    selectSection(copy.id, "list");
   }
   function move(id: string, dir: -1 | 1) {
     const idx = sections.findIndex((s) => s.id === id);
@@ -531,7 +613,16 @@ export default function AdminBuilderPage() {
         variant: "destructive",
       });
       if (!ok) return;
-      setSections(defaultHomeSections());
+      // Layout mẫu đúng theo trang đang chọn
+      const defaults =
+        page === "about"
+          ? defaultAboutSections()
+          : page === "contact"
+            ? defaultContactSections()
+            : page === "products" || page === "posts"
+              ? defaultListingSections(page)
+              : defaultHomeSections();
+      setSections(defaults);
     })();
   }
 
@@ -599,18 +690,20 @@ export default function AdminBuilderPage() {
             <h2 className="font-bold">Page Builder</h2>
             <Select
               value={page}
-              onValueChange={(v: "home" | "about" | "contact") => {
+              onValueChange={(v: PageKey) => {
                 setPage(v);
                 setSelectedId(null);
               }}
             >
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-36">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="home">Trang chủ</SelectItem>
-                <SelectItem value="about">Giới thiệu</SelectItem>
-                <SelectItem value="contact">Liên hệ</SelectItem>
+                {PAGE_OPTIONS.map((p) => (
+                  <SelectItem key={p.key} value={p.key}>
+                    {p.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -641,10 +734,11 @@ export default function AdminBuilderPage() {
                     key={s.id}
                     s={s}
                     selected={selectedId === s.id}
-                    onSelect={() => setSelectedId(s.id)}
+                    onSelect={() => selectSection(s.id, "list")}
                     onToggleVisible={() => toggleVisible(s.id)}
                     onMove={(dir) => move(s.id, dir)}
                     onRemove={() => removeSection(s.id)}
+                    onDuplicate={() => duplicateSection(s.id)}
                   />
                 ))}
               </SortableContext>
@@ -724,7 +818,7 @@ export default function AdminBuilderPage() {
             size="sm"
             variant="ghost"
             onClick={async () => {
-              // Lưu nháp trước rồi mở tab mới với cờ ?preview=draft để FE đọc draft.
+              // Lưu nháp trước rồi bật Next draftMode qua /api/preview — trang client render bản DRAFT thật.
               if (dirty) {
                 try {
                   await handleSave();
@@ -732,7 +826,8 @@ export default function AdminBuilderPage() {
                   /* lỗi đã được toast trong handleSave */
                 }
               }
-              window.open("/?preview=draft", "_blank", "noopener");
+              const target = page === "home" ? "/" : `/${page}`;
+              window.open(`/api/preview?redirect=${encodeURIComponent(target)}`, "_blank", "noopener");
             }}
             title="Mở tab xem trước với draft"
           >
@@ -747,7 +842,18 @@ export default function AdminBuilderPage() {
           </span>
         </div>
         <motion.div suppressHydrationWarning initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-0">
-          <div ref={previewFrameRef} className="mx-auto bg-background transition-[max-width] duration-200">
+          <div
+            ref={previewFrameRef}
+            className="mx-auto bg-background transition-[max-width] duration-200"
+            // Preview = chọn-để-chỉnh (kiểu Wix): click khối nào chọn khối đó,
+            // chặn điều hướng link bên trong preview.
+            onClickCapture={(e) => {
+              const hit = (e.target as HTMLElement).closest?.("[data-section-id]") as HTMLElement | null;
+              e.preventDefault();
+              e.stopPropagation();
+              if (hit?.dataset.sectionId) selectSection(hit.dataset.sectionId, "preview");
+            }}
+          >
             {sections.length === 0 ? (
               <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-10">
                 <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-dashed border-foreground/15 bg-linear-to-br from-background via-muted/30 to-background p-6 text-center shadow-sm sm:p-8">
@@ -765,7 +871,9 @@ export default function AdminBuilderPage() {
                     </div>
                     <h2 className="mb-2 text-lg font-bold tracking-tight text-foreground">Canvas đang trống</h2>
                     <p className="mx-auto mb-5 max-w-xs text-xs text-muted-foreground sm:text-sm">
-                      Tải layout mẫu hoặc thêm từng section từ panel bên trái để bắt đầu.
+                      {page === "products" || page === "posts"
+                        ? "Section thêm ở đây sẽ hiển thị PHÍA TRÊN danh sách (banner khuyến mãi, CTA…) — danh sách sản phẩm/bài viết vẫn giữ nguyên bên dưới."
+                        : "Trang này đang dùng giao diện dựng sẵn ngoài site. Thêm section ở đây để tự thiết kế và ghi đè — hoặc tải layout mẫu để bắt đầu nhanh."}
                     </p>
                     <div className="flex flex-wrap items-center justify-center gap-2">
                       <Button onClick={loadDefaults} size="sm" className="gap-1.5">
@@ -801,84 +909,11 @@ export default function AdminBuilderPage() {
                 <p className="text-xs text-muted-foreground">Loại</p>
                 <p className="font-medium">{TYPE_LABELS[selected.type]}</p>
               </div>
-              <PropsEditor section={selected} onChange={updateSelected} />
+              <SectionPropsEditor section={selected} onChange={updateSelected} />
             </CardContent>
           </Card>
         )}
       </aside>
-    </div>
-  );
-}
-
-function PropsEditor({ section, onChange }: { section: Section; onChange: (patch: Record<string, unknown>) => void }) {
-  const props = section.props as unknown as Record<string, unknown>;
-  const fields = Object.keys(props).filter(
-    (k) => !["paddingTop", "paddingBottom", "background", "animation", "animationDelay"].includes(k)
-  );
-
-  return (
-    <div className="space-y-3">
-      {fields.map((k) => {
-        const v = props[k];
-        if (typeof v === "string") {
-          if (k.toLowerCase().includes("html") || k === "subheading" || k === "body" || k === "description") {
-            return (
-              <div key={k} className="space-y-1">
-                <Label className="text-xs">{k}</Label>
-                <Textarea rows={3} value={v} onChange={(e) => onChange({ [k]: e.target.value })} />
-              </div>
-            );
-          }
-          return (
-            <div key={k} className="space-y-1">
-              <Label className="text-xs">{k}</Label>
-              <Input value={v} onChange={(e) => onChange({ [k]: e.target.value })} />
-            </div>
-          );
-        }
-        if (typeof v === "number") {
-          return (
-            <div key={k} className="space-y-1">
-              <Label className="text-xs">{k}</Label>
-              <Input type="number" value={v} onChange={(e) => onChange({ [k]: Number(e.target.value) })} />
-            </div>
-          );
-        }
-        if (typeof v === "boolean") {
-          return (
-            <div key={k} className="flex items-center justify-between">
-              <Label className="text-xs" htmlFor={`bool-${k}`}>
-                {k}
-              </Label>
-              <input
-                id={`bool-${k}`}
-                type="checkbox"
-                aria-label={k}
-                title={k}
-                checked={v}
-                onChange={(e) => onChange({ [k]: e.target.checked })}
-              />
-            </div>
-          );
-        }
-        return (
-          <div key={k} className="space-y-1">
-            <Label className="text-xs">{k} (JSON)</Label>
-            <Textarea
-              rows={4}
-              className="font-mono text-xs"
-              value={JSON.stringify(v, null, 2)}
-              onChange={(e) => {
-                try {
-                  onChange({ [k]: JSON.parse(e.target.value) });
-                } catch {
-                  /* ignore */
-                }
-              }}
-            />
-          </div>
-        );
-      })}
     </div>
   );
 }

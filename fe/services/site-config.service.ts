@@ -88,3 +88,12 @@ export function usePublishSiteConfig() {
 export function useSiteConfigHistory(key = "main") {
   return useQuery({ queryKey: siteConfigKeys.history(key), queryFn: () => siteConfigService.history(key) });
 }
+
+export function useRollbackSiteConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (historyId: number) => siteConfigService.rollback(historyId),
+    // Rollback ghi đè bản DRAFT trên BE → invalidate để trang settings refetch draft + history
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["site-config"] }),
+  });
+}

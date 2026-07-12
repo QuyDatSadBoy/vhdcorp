@@ -3,7 +3,7 @@ import {
   BadRequestException,
   PipeTransform,
 } from '@nestjs/common';
-import { validate } from 'class-validator';
+import { validate, ValidationError } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 
 export class ValidationPipe implements PipeTransform<any> {
@@ -12,21 +12,35 @@ export class ValidationPipe implements PipeTransform<any> {
       return value;
     }
     const object = plainToInstance(metatype, value);
-    const errors = await validate(object);
+    // whitelist: strip mọi property không khai báo trong DTO → chặn mass-assignment vào Prisma
+    const errors = await validate(object, {
+      whitelist: true,
+      forbidUnknownValues: false,
+    });
     if (errors.length > 0) {
-      // Get error messages
-      const errorMessage: string = errors.reduce(
-        (accumulator, currentValue) =>
-          accumulator.concat(
-            Object.values(currentValue.constraints)
-              .map((err) => err.toString() + ' \n ')
-              .toString(),
-          ),
-        ``,
-      );
-      throw new BadRequestException(errorMessage);
+      throw new BadRequestException(this.flattenErrors(errors).join(' \n '));
     }
-    return value;
+    // Trả về instance đã được whitelist strip (không trả raw value)
+    return object;
+  }
+
+  /** Gom message từ cả nested errors — constraints có thể undefined ở node cha */
+  private flattenErrors(errors: ValidationError[], prefix = ''): string[] {
+    const messages: string[] = [];
+    for (const err of errors) {
+      const path = prefix ? `${prefix}.${err.property}` : err.property;
+      if (err.constraints) {
+        messages.push(
+          ...Object.values(err.constraints).map((m) =>
+            prefix ? `${path}: ${m}` : m,
+          ),
+        );
+      }
+      if (err.children?.length) {
+        messages.push(...this.flattenErrors(err.children, path));
+      }
+    }
+    return messages;
   }
 
   private toValidate(metatype: any): boolean {

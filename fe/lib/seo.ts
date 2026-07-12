@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getSiteConfig } from "./site-config";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001";
 
 interface BuildMetadataInput {
   title?: string;
@@ -75,8 +75,12 @@ export async function buildMetadata(input: BuildMetadataInput = {}): Promise<Met
           },
         },
     icons: {
-      icon: brand.favicon.url || "/favicon.ico",
-      apple: brand.favicon.url || "/favicon.ico",
+      icon: [
+        { url: brand.favicon.url || "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+        { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
+        { url: "/icons/favicon-48.png", sizes: "48x48", type: "image/png" },
+      ],
+      apple: "/icons/apple-touch-icon.png",
     },
     category: input.type === "product" ? "shopping" : "business",
     formatDetection: {

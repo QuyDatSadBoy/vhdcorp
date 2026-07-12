@@ -1,0 +1,130 @@
+[
+  {
+    "id": 8,
+    "slug": "tui-vai-canvas-vhd",
+    "name": "Túi vải canvas VHD Corp",
+    "price": 65000,
+    "stock": 200,
+    "description": "Sản phẩm mẫu: Túi vải canvas VHD Corp. VHD Corp cam kết chất lượng và uy tín.",
+    "category": {
+      "name": "Sản phẩm khác",
+      "slug": "san-pham-khac"
+    },
+    "images": [],
+    "image": "",
+    "status": "PUBLISHED",
+    "url": "/products/tui-vai-canvas-vhd"
+  },
+  {
+    "id": 7,
+    "slug": "qua-tang-doanh-nghiep",
+    "name": "Set quà tặng doanh nghiệp",
+    "price": 850000,
+    "stock": 20,
+    "description": "Sản phẩm mẫu: Set quà tặng doanh nghiệp. VHD Corp cam kết chất lượng và uy tín.",
+    "category": {
+      "name": "Sản phẩm khác",
+      "slug": "san-pham-khac"
+    },
+    "images": [],
+    "image": "",
+    "status": "PUBLISHED",
+    "url": "/products/qua-tang-doanh-nghiep"
+  },
+  {
+    "id": 6,
+    "slug": "tranh-dong-ho",
+    "name": "Tranh dân gian Đông Hồ",
+    "price": 150000,
+    "stock": 40,
+    "description": "Sản phẩm mẫu: Tranh dân gian Đông Hồ. VHD Corp cam kết chất lượng và uy tín.",
+    "category": {
+      "name": "Đồ thủ công",
+      "slug": "do-thu-cong"
+    },
+    "images": [],
+    "image": "",
+    "status": "PUBLISHED",
+    "url": "/products/tranh-dong-ho"
+  },
+  {
+    "id": 5,
+    "slug": "non-la-lang-chuong",
+    "name": "Nón lá làng Chuông",
+    "price": 75000,
+    "stock": 60,
+    "description": "Sản phẩm mẫu: Nón lá làng Chuông. VHD Corp cam kết chất lượng và uy tín.",
+    "category": {
+      "name": "Đồ thủ công",
+      "slug": "do-thu-cong"
+    },
+    "images": [],
+    "image": "",
+    "status": "PUBLISHED",
+    "url": "/products/non-la-lang-chuong"
+  },
+  {
+    "id": 4,
+    "slug": "che-thai-nguyen-tan-cuong",
+    "name": "Chè Tân Cương Thái Nguyên",
+    "price": 220000,
+    "stock": 80,
+    "description": "Sản phẩm mẫu: Chè Tân Cương Thái Nguyên. VHD Corp cam kết chất lượng và uy tín.",
+    "category": {
+      "name": "Thực phẩm làng nghề",
+      "slug": "thuc-pham-lang-nghe"
+    },
+    "images": [],
+    "image": "",
+    "status": "PUBLISHED",
+    "url": "/products/che-thai-nguyen-tan-cuong"
+  },
+  {
+    "id": 3,
+    "slug": "nuoc-mam-truyen-thong-1l",
+    "name": "Nước mắm truyền thống 1L",
+    "price": 95000,
+    "stock": 300,
+    "description": "Sản phẩm mẫu: Nước mắm truyền thống 1L. VHD Corp cam kết chất lượng và uy tín.",
+    "category": {
+      "name": "Thực phẩm làng nghề",
+      "slug": "thuc-pham-lang-nghe"
+    },
+    "images": [],
+    "image": "",
+    "status": "PUBLISHED",
+    "url": "/products/nuoc-mam-truyen-thong-1l"
+  },
+  {
+    "id": 2,
+    "slug": "tam-cao-su-non",
+    "name": "Tấm cao su non chống rung",
+    "price": 180000,
+    "stock": 120,
+    "description": "Sản phẩm mẫu: Tấm cao su non chống rung. VHD Corp cam kết chất lượng và uy tín.",
+    "category": {
+      "name": "Nhựa & Cao su",
+      "slug": "nhua-cao-su"
+    },
+    "images": [],
+    "image": "",
+    "status": "PUBLISHED",
+    "url": "/products/tam-cao-su-non"
+  },
+  {
+    "id": 1,
+    "slug": "ong-nhua-pvc-d21",
+    "name": "Ống nhựa PVC D21",
+    "price": 25000,
+    "stock": 500,
+    "description": "Sản phẩm mẫu: Ống nhựa PVC D21. VHD Corp cam kết chất lượng và uy tín.",
+    "category": {
+      "name": "Nhựa & Cao su",
+      "slug": "nhua-cao-su"
+    },
+    "images": [],
+    "image": "",
+    "status": "PUBLISHED",
+    "url": "/products/ong-nhua-pvc-d21"
+  }
+]

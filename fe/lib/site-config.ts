@@ -1,7 +1,7 @@
 import { cache } from "react";
 import type { SiteConfigDto, SiteConfigValue } from "@/types/site-config";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 
 /**
  * Default fallback dùng khi BE chưa sẵn sàng (lần đầu chạy / migration đang chạy).
@@ -11,9 +11,13 @@ export const DEFAULT_SITE_CONFIG: SiteConfigValue = {
   brand: {
     siteName: "VHD Corp",
     tagline: "KẾT NỐI GIÁ TRỊ - HỢP TÁC VỮNG BỀN",
-    logo: { url: "" },
-    favicon: { url: "/favicon.ico" },
-    ogDefaultImage: { url: "", width: 1200, height: 630 },
+    logo: { url: "/images/vhdcorplogo.jpeg" },
+    favicon: { url: "/icons/favicon-32.png" },
+    ogDefaultImage: { url: "/images/og-default.jpg", width: 1200, height: 630 },
+  },
+  header: {
+    promoText: "Miễn phí giao hàng cho đơn B2B trên 5 triệu",
+    showPromo: true,
   },
   theme: {
     colors: {
@@ -54,6 +58,16 @@ export const DEFAULT_SITE_CONFIG: SiteConfigValue = {
     ],
     copyright: "© 2026 VHD Corp. All rights reserved.",
     showMap: true,
+    description: "VHD Corp — tổng kho nhựa, cao su và sản phẩm làng nghề Việt. Kết nối giá trị, hợp tác vững bền.",
+    contact: {
+      email: "contact@vhdcorp.vn",
+      phone: "",
+      hotline: "",
+      address: "TP. Hồ Chí Minh, Việt Nam",
+      floatingWidget: true,
+      messengerUrl: "",
+      zaloUrl: "",
+    },
   },
   customCss: "",
 };
@@ -79,18 +93,40 @@ function mergeWithDefaults(partial: Partial<SiteConfigValue> | undefined): SiteC
       fonts: { ...DEFAULT_SITE_CONFIG.theme.fonts, ...(partial.theme?.fonts ?? {}) },
     },
     seo: { ...DEFAULT_SITE_CONFIG.seo, ...(partial.seo ?? {}) },
+    header: { ...DEFAULT_SITE_CONFIG.header, ...(partial.header ?? {}) },
     pages: { ...DEFAULT_SITE_CONFIG.pages, ...(partial.pages ?? {}) },
     navigation: partial.navigation ?? DEFAULT_SITE_CONFIG.navigation,
-    footer: { ...DEFAULT_SITE_CONFIG.footer, ...(partial.footer ?? {}) },
+    footer: {
+      ...DEFAULT_SITE_CONFIG.footer,
+      ...(partial.footer ?? {}),
+      contact: { ...DEFAULT_SITE_CONFIG.footer.contact, ...(partial.footer?.contact ?? {}) },
+    },
     customCss: partial.customCss ?? DEFAULT_SITE_CONFIG.customCss,
   };
 }
 
 export const getSiteConfig = cache(async (): Promise<SiteConfigValue> => {
   try {
-    const res = await fetch(`${API_URL}/site-config`, {
-      cache: "no-store",
-    });
+    // Dynamic import next/headers: module này còn được client components import
+    // (DEFAULT_SITE_CONFIG) — import tĩnh server-only API sẽ vỡ client bundle.
+    const { cookies, draftMode } = await import("next/headers");
+    // Draft preview: khi admin bật draftMode (qua /api/preview), đọc bản DRAFT
+    // từ BE bằng cookie admin forward từ browser — cho phép "Xem trước" thật.
+    const { isEnabled: isDraft } = await draftMode();
+    if (isDraft) {
+      const cookieHeader = (await cookies()).toString();
+      const res = await fetch(`${API_URL}/site-config/draft`, {
+        cache: "no-store",
+        headers: { cookie: cookieHeader },
+      });
+      if (res.ok) {
+        const json = (await res.json()) as { data?: SiteConfigDto };
+        return mergeWithDefaults(json.data?.value as Partial<SiteConfigValue> | undefined);
+      }
+      // Không đủ quyền / draft lỗi → rơi xuống bản published
+    }
+    // Real-time 100%: không cache — admin publish là mọi lượt xem tiếp theo thấy ngay.
+    const res = await fetch(`${API_URL}/site-config`, { cache: "no-store" });
     if (!res.ok) return DEFAULT_SITE_CONFIG;
     const json = (await res.json()) as { data?: SiteConfigDto };
     return mergeWithDefaults(json.data?.value as Partial<SiteConfigValue> | undefined);
@@ -99,21 +135,5 @@ export const getSiteConfig = cache(async (): Promise<SiteConfigValue> => {
   }
 });
 
-/**
- * Generate inline CSS variables string từ theme — dùng cho `<html style="...">`.
- */
-export function themeCssVars(theme: SiteConfigValue["theme"]): string {
-  return [
-    `--vhd-color-primary:${theme.colors.primary}`,
-    `--vhd-color-accent:${theme.colors.accent}`,
-    `--vhd-color-highlight:${theme.colors.highlight}`,
-    `--vhd-color-danger:${theme.colors.danger}`,
-    `--vhd-color-background:${theme.colors.background}`,
-    `--vhd-color-surface:${theme.colors.surface}`,
-    `--vhd-color-text:${theme.colors.text}`,
-    `--vhd-font-heading:${theme.fonts.heading ?? "Be Vietnam Pro"}`,
-    `--vhd-font-body:${theme.fonts.body ?? "Inter"}`,
-    `--vhd-font-base:${(theme.fonts as { baseFontSize?: number; baseSize?: number }).baseFontSize ?? (theme.fonts as { baseFontSize?: number; baseSize?: number }).baseSize ?? 16}px`,
-    `--vhd-radius:${theme.borderRadius ?? 8}px`,
-  ].join(";");
-}
+// Theme utils tách sang lib/theme.ts (client-safe) — re-export để giữ import cũ.
+export { themeCssVars, googleFontsUrl, BUILTIN_FONTS } from "./theme";

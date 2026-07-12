@@ -7,19 +7,19 @@ Next.js 16 App Router · React 19 · Tailwind CSS v4 · shadcn/ui · TypeScript
 ## Khởi động
 
 ```bash
-cp .env.example .env.local   # điền NEXT_PUBLIC_API_URL=http://localhost:8333
+cp .env.example .env.local   # NEXT_PUBLIC_API_URL=http://localhost:8080/api
 yarn install
 ```
 
 ## Chạy
 
-| Lệnh           | Mô tả                                  |
-| -------------- | -------------------------------------- |
-| `yarn dev`     | Dev server tại <http://localhost:3000> |
-| `yarn dev:log` | Dev + ghi log → `logs/app.log`         |
-| `yarn build`   | Build production                       |
-| `yarn start`   | Chạy production build                  |
-| `yarn lint`    | Lint toàn bộ source                    |
+| Lệnh                 | Mô tả                                  |
+| -------------------- | -------------------------------------- |
+| `PORT=3001 yarn dev` | Dev server tại <http://localhost:3001> |
+| `yarn dev:log`       | Dev + ghi log → `logs/app.log`         |
+| `yarn build`         | Build production                       |
+| `yarn start`         | Chạy production build                  |
+| `yarn lint`          | Lint toàn bộ source                    |
 
 ## Xem log để debug
 
@@ -56,11 +56,11 @@ public/          # static assets (icons/, images/)
 
 ## Env quan trọng
 
-| Biến                                | Mô tả                                     |
-| ----------------------------------- | ----------------------------------------- |
-| `NEXT_PUBLIC_API_URL`               | URL backend, vd: `http://localhost:8333`  |
-| `NEXT_PUBLIC_APP_URL`               | URL frontend, vd: `http://localhost:3000` |
-| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name                     |
-| `NEXT_PUBLIC_GA_ID`                 | Google Analytics (tùy chọn)               |
+| Biến                                | Mô tả                                        |
+| ----------------------------------- | -------------------------------------------- |
+| `NEXT_PUBLIC_API_URL`               | URL backend, vd: `http://localhost:8080/api` |
+| `NEXT_PUBLIC_APP_URL`               | URL frontend, vd: `http://localhost:3001`    |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name                        |
+| `NEXT_PUBLIC_GA_ID`                 | Google Analytics (tùy chọn)                  |
 
 Xem mẫu đầy đủ tại `.env.example`.

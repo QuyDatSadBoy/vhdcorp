@@ -65,7 +65,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
   return (
     <article>
       {/* Article hero — title block on tinted brand surface */}
-      <header className="border-b border-foreground/8 bg-(--vhd-color-surface)/60">
+      <header className="border-b border-foreground/8 bg-(--vhd-color-surface)/60 dark:bg-white/[0.04]">
         <div className="container mx-auto max-w-4xl px-4 py-14 md:py-20">
           <nav aria-label="Breadcrumb" className="mb-6 flex flex-wrap items-center gap-1.5 text-sm text-foreground/55">
             <Link href="/" className="hover:text-foreground">
@@ -178,7 +178,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
         ) : null}
 
         {/* Author + share strip */}
-        <div className="mt-12 grid gap-4 rounded-3xl bg-(--vhd-color-surface)/60 p-6 sm:grid-cols-[1fr_auto] sm:items-center">
+        <div className="mt-12 grid gap-4 rounded-3xl bg-(--vhd-color-surface)/60 dark:bg-white/[0.04] p-6 sm:grid-cols-[1fr_auto] sm:items-center">
           <div className="flex items-center gap-4">
             <span className="grid h-12 w-12 place-items-center rounded-full bg-brand-primary text-base font-bold text-white">
               {post.author?.name?.[0]?.toUpperCase() ?? "V"}
@@ -215,7 +215,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
 
       {/* Related */}
       {related.length > 0 && (
-        <section className="border-t border-foreground/8 bg-(--vhd-color-surface)/40 py-16">
+        <section className="border-t border-foreground/8 bg-(--vhd-color-surface)/40 dark:bg-white/[0.03] py-16">
           <div className="container mx-auto max-w-5xl px-4">
             <div className="mb-8">
               <p className="type-eyebrow text-brand-primary">Có thể bạn quan tâm</p>

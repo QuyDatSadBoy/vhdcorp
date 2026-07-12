@@ -16,7 +16,7 @@ yarn prisma migrate dev
 
 | Lệnh               | Mô tả                          |
 | ------------------ | ------------------------------ |
-| `yarn start:dev`   | Dev với hot reload (port 8333) |
+| `yarn start:dev`   | Dev với hot reload (port 8080) |
 | `yarn start:log`   | Dev + ghi log → `logs/app.log` |
 | `yarn start:debug` | Debug mode                     |
 | `yarn start:prod`  | Production (`node dist/main`)  |
@@ -50,8 +50,8 @@ yarn prisma generate
 ## Seed / Reset
 
 ```bash
-yarn seed    # seed dữ liệu mẫu vào DB
-yarn reset   # xóa sạch và reset DB
+yarn prisma:seed    # seed dữ liệu mẫu vào DB
+yarn prisma:reset   # xóa sạch và reset DB
 ```
 
 ## Test
