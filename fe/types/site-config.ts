@@ -489,6 +489,12 @@ export interface SiteConfigValue {
   fixedBlocks?: FixedBlocksConfig;
   /** Cấu hình email hệ thống (branding + nội dung từng loại mail) */
   mail?: MailConfig;
+  /** Trợ lý AI: lời chào + câu hỏi mẫu (admin sửa trong Cài đặt site) */
+  chat?: {
+    greeting?: string;
+    subGreeting?: string;
+    suggestedPrompts?: string[];
+  };
   customCss?: string;
 }
 

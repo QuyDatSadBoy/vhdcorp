@@ -1,0 +1,40 @@
+# ============================================================
+# CI/CD: push lên nhánh main (hoặc bấm Run workflow) → SSH vào VPS
+# → git pull + build + restart PM2 (scripts/deploy.sh)
+#
+# Setup 1 lần trong GitHub repo → Settings → Secrets and variables → Actions:
+#   VPS_HOST     = IP VPS            (vd 103.x.x.x)
+#   VPS_USER     = user SSH          (vd root hoặc deploy)
+#   VPS_SSH_KEY  = private key SSH   (cat ~/.ssh/id_ed25519 — key đã add vào VPS)
+#   VPS_PORT     = port SSH          (mặc định 22 — optional)
+# VPS phải setup lần đầu theo docs/DEPLOY.md trước khi bật workflow.
+# ============================================================
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: SSH & deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 25m
+          script: |
+            set -e
+            export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -1)/bin:$PATH"
+            cd $HOME/vhdcorp
+            DEPLOY_BRANCH=main bash scripts/deploy.sh

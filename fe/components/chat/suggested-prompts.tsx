@@ -1,8 +1,9 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
+import { useSiteConfigStore } from "@/store/site-config.store";
 
-/** Câu hỏi mẫu khi hội thoại còn trống — vài câu kích hoạt gen-UI để demo */
+/** Câu hỏi mẫu mặc định — admin thay trong Cài đặt site → Brand → Trợ lý AI */
 const PROMPTS = [
   "Cho tôi xem vài sản phẩm cao su",
   "So sánh ống nhựa PVC D21 và tấm cao su non",
@@ -15,19 +16,24 @@ const PROMPTS = [
  * Click chip → gửi luôn câu hỏi đó.
  */
 export default function SuggestedPrompts({ onSelect }: { onSelect: (prompt: string) => void }) {
+  const chatCfg = useSiteConfigStore((st) => st.config?.chat);
+  const prompts = chatCfg?.suggestedPrompts?.length ? chatCfg.suggestedPrompts : PROMPTS;
   return (
     <div className="flex h-full flex-col items-center justify-center gap-5 px-6 py-8 text-center">
       <div className="grid h-14 w-14 place-items-center rounded-2xl bg-linear-to-br from-brand-primary to-brand-accent shadow-lg">
         <Sparkles className="h-7 w-7 text-white" aria-hidden />
       </div>
       <div className="space-y-1.5">
-        <p className="font-heading text-lg font-bold text-foreground">Xin chào! Tôi là trợ lý AI của VHD</p>
+        <p className="font-heading text-lg font-bold text-foreground">
+          {chatCfg?.greeting || "Xin chào! Tôi là trợ lý AI của VHD"}
+        </p>
         <p className="mx-auto max-w-sm text-sm text-muted-foreground">
-          Hỏi tôi về sản phẩm, giá cả, tư vấn kỹ thuật hoặc để lại thông tin liên hệ — tôi trả lời ngay.
+          {chatCfg?.subGreeting ||
+            "Hỏi tôi về sản phẩm, giá cả, tư vấn kỹ thuật hoặc để lại thông tin liên hệ — tôi trả lời ngay."}
         </p>
       </div>
       <div className="flex max-w-md flex-wrap items-center justify-center gap-2">
-        {PROMPTS.map((prompt) => (
+        {prompts.map((prompt) => (
           <button
             key={prompt}
             type="button"

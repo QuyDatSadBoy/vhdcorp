@@ -194,6 +194,40 @@ export default function AdminSettingsPage() {
                 />
               </div>
               <div className="space-y-2">
+                <Label>Lời chào trợ lý AI (màn hình chat trống)</Label>
+                <Input
+                  value={draft.chat?.greeting ?? ""}
+                  onChange={(e) => update("chat", { ...draft.chat, greeting: e.target.value })}
+                  placeholder="Xin chào! Tôi là trợ lý AI của VHD"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mô tả dưới lời chào</Label>
+                <Input
+                  value={draft.chat?.subGreeting ?? ""}
+                  onChange={(e) => update("chat", { ...draft.chat, subGreeting: e.target.value })}
+                  placeholder="Hỏi tôi về sản phẩm, giá cả…"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Câu hỏi mẫu trong chat (mỗi dòng 1 câu)</Label>
+                <textarea
+                  rows={4}
+                  className="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
+                  value={(draft.chat?.suggestedPrompts ?? []).join("\n")}
+                  onChange={(e) =>
+                    update("chat", {
+                      ...draft.chat,
+                      suggestedPrompts: e.target.value
+                        .split("\n")
+                        .map((l) => l.trim())
+                        .filter(Boolean),
+                    })
+                  }
+                  placeholder={"Cho tôi xem vài sản phẩm cao su\nSo sánh ống nhựa PVC D21 và tấm cao su non"}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Icon Trợ lý AI (mascot nút chat — để trống dùng mặc định)</Label>
                 <ImageUploader
                   value={draft.brand.assistantIcon?.url ?? ""}

@@ -755,3 +755,41 @@ Env: `agent/.env` (đã điền GOOGLE_API_KEY + 13 Tavily keys + model `gemini-
 - **3 card Lĩnh vực (icon minh họa)**: Builder → section "Lĩnh vực" → từng item có ô icon (dán URL hoặc bấm nút tải ảnh — key icon dạng đường dẫn tự hiện uploader).
 - Placeholder SĐT/địa chỉ đổi thành "VD: …" tránh nhầm là dữ liệu thật.
 - Google login: flow đã tối ưu sẵn (1 call /auth/me + redirect); độ trễ chủ yếu là consent Google + dev-mode compile route lần đầu — bản `next build` production nhanh hơn đáng kể.
+
+## 30. Cập nhật 2026-07-16 (4) — Panel builder LUÔN đủ thuộc tính + ma trận config 100% + audit service
+
+### Fix gốc "không thấy chỗ sửa ảnh": panel Thuộc tính giờ LUÔN hiện đủ mọi knob
+
+- Nguyên nhân: editor chỉ render các key ĐANG CÓ trong props — key tùy chọn chưa từng đặt (vd `bgImage` của Hero) không hiện ô sửa.
+- Fix: builder merge props với TEMPLATE đầy đủ của loại section trước khi đưa vào editor → chọn Hero là thấy đủ: **Ảnh nền (uploader), Độ mờ overlay, Video URL, Nhãn badge, Chip cam kết…** (verified browser). Template hero/feature-showcase bổ sung đủ key tùy chọn.
+- Câu hỏi mẫu + lời chào của chat cũng vào config: Cài đặt site → Brand → "Lời chào trợ lý AI" + "Câu hỏi mẫu trong chat" (mỗi dòng 1 câu); widget đọc từ store (fallback mặc định).
+
+### Ma trận "admin config 100% FE" (đọc code xác nhận — 1 nguồn SiteConfig JSONB)
+
+| Nhóm                                                                                                                                                       | Nguồn config                   | Chỉnh ở                            |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | ---------------------------------- |
+| Header (logo, menu, promo) / Footer (mô tả, cam kết, map, fanpage, liên hệ, social, cột link, copyright)                                                   | brand/navigation/header/footer | Cài đặt site + Builder (Toàn site) |
+| Theme (7 màu, font, cỡ chữ, spacing, radius), SEO, custom CSS                                                                                              | theme/seo/customCss            | Cài đặt site                       |
+| 21 loại section × mọi trang (text/ảnh/icon từng item — icon dạng URL tự hiện nút upload)                                                                   | pages.{page}.sections[].props  | Builder                            |
+| Hero: heading/sub/CTA/ảnh nền/overlay/video/badge/chip cam kết                                                                                             | hero props                     | Builder → Hero                     |
+| Khối cố định (form liên hệ, DS sản phẩm, DS bài viết): eyebrow/tiêu đề/mô tả/ảnh nền hero                                                                  | fixedBlocks                    | Builder → hàng "khối cố định"      |
+| Chat: tên trợ lý (brand.siteName), icon mascot, lời chào, câu hỏi mẫu                                                                                      | brand/chat                     | Cài đặt site → Brand               |
+| Email (logo, chân trang, subject/intro từng loại)                                                                                                          | mail                           | Cài đặt site → Email               |
+| Dữ liệu nghiệp vụ (SP + giá KM, bài viết, danh mục, banner, voucher, đơn, review, user)                                                                    | DB bảng riêng                  | Trang quản trị tương ứng           |
+| Còn lại NGOÀI config (chủ đích): microcopy chức năng (nhãn nút, thông báo lỗi), trang 404/auth, minh họa trang trí mặc định (có ảnh đè lên được qua props) | —                              | code                               |
+
+### Audit service BE↔FE
+
+- Quét 95 route BE ↔ toàn bộ FE: **không thiếu service nào** — 2 route không gọi từ FE là `/auth/google/callback` (Google gọi) và `/health` (monitoring), đúng thiết kế.
+
+### VPS 2 core / 4GB RAM / 35GB NVMe — ĐỦ (đo thực tế)
+
+- Đo RSS thật: BE ~340MB, agent ~35MB (LLM qua API ngoài), Postgres ~150MB; FE dev 1.1GB nhưng **production `next start` chỉ ~300-400MB** → tổng production ~1.2–1.5GB / 4GB ✓. Disk: code + node_modules ~4GB, ảnh nằm trên Cloudinary → 35GB dư. CPU 2 core đủ cho traffic khởi điểm.
+- Lưu ý vận hành: chạy bản **build production** (không dev mode); nên bật **swap 2–4GB** vì riêng lúc `next build` ăn ~2GB (hoặc build ở máy ngoài rồi copy); Postgres nên đặt cùng VPS qua Docker như hiện tại.
+
+## 31. Cập nhật 2026-07-16 (5) — Audit 21/21 section + CI/CD hoàn chỉnh
+
+- **Audit tự động type ↔ template cho 21 loại section**: phát hiện 15 loại thiếu key trong template (items/steps/rows/subheading/bgImage…) → đã bổ sung ĐỦ 100% (audit chạy lại: 21/21 ✓). Kết hợp editor-merge → panel Thuộc tính LUÔN hiện đủ mọi knob của mọi section, cả section cũ lẫn mới thêm.
+- **Mọi page đủ section**: home 13, about 6, contact 2 (+form cố định), products 1 (+listing cố định), posts nạp CTA liên hệ (+listing cố định) — publish xong.
+- **.gitignore chuẩn hóa**: bỏ track `agent/data/checkpoints.sqlite-shm/-wal` + `products.json` (file runtime tự sinh), thêm `be/uploads/`.
+- **CI/CD trọn bộ**: `scripts/deploy.sh` (pull→build BE/FE→uv sync→PM2 reload→health check, fail thì service cũ vẫn chạy) + `ecosystem.config.js` (PM2 3 service, tự hồi sinh) + `.github/workflows/deploy.yml` (push `main` → SSH VPS tự deploy; cần 3 secrets VPS_HOST/USER/SSH_KEY) + **`docs/DEPLOY.md`** hướng dẫn setup VPS 1 lần (swap 4GB, node/uv/pm2/docker postgres+unaccent, env, nginx khi có domain). Chưa test được vòng CI thật (chưa có VPS/secrets) — script đã `bash -n` + ecosystem parse OK.

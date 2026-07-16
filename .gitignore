@@ -104,6 +104,12 @@ agent/.venv/
 agent/data/*.db
 agent/data/*.sqlite
 agent/data/*.sqlite3
+# SQLite WAL/SHM runtime + catalog đồng bộ tự động — không commit
+agent/data/*.sqlite-shm
+agent/data/*.sqlite-wal
+agent/data/products.json
+# BE uploads local fallback (ảnh chạy qua Cloudinary)
+be/uploads/
 agent/**/__pycache__/
 agent/.pytest_cache/
 .opencode

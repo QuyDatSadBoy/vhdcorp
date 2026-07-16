@@ -48,6 +48,14 @@ import {
   defaultHomeSections,
   defaultListingSections,
 } from "@/lib/default-sections";
+// Nội dung mặc định của từng loại section — template "Thêm section" seed đủ 100% thuộc tính
+import { DEFAULT_COMPARISON_COLUMNS, DEFAULT_COMPARISON_ROWS } from "@/components/sections/comparison-table";
+import { DEFAULT_FAQ_ITEMS } from "@/components/sections/faq-accordion";
+import { DEFAULT_HERO_TRUST_ITEMS } from "@/components/sections/hero";
+import { DEFAULT_INDUSTRY_ITEMS } from "@/components/sections/industries";
+import { DEFAULT_PROCESS_STEPS } from "@/components/sections/process";
+import { DEFAULT_STORY_STEPS } from "@/components/sections/sticky-story";
+import { DEFAULT_USE_CASES } from "@/components/sections/use-cases";
 import ImageUploader from "@/components/admin/image-uploader";
 import SectionPropsEditor from "@/components/admin/section-props-editor";
 import { DEFAULT_SITE_CONFIG } from "@/lib/site-config";
@@ -78,6 +86,12 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
       ctaLink: "/products",
       align: "center",
       minHeight: 600,
+      bgImage: "",
+      overlayOpacity: 0.55,
+      videoUrl: "",
+      videoThumbnail: "",
+      badge: "B2B",
+      trustItems: DEFAULT_HERO_TRUST_ITEMS,
     },
   }),
   "featured-products": () => ({
@@ -85,14 +99,14 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
     type: "featured-products",
     order: 0,
     visible: true,
-    props: { heading: "Sản phẩm nổi bật", limit: 8 },
+    props: { heading: "Sản phẩm nổi bật", limit: 8, layout: "grid", categoryId: 0 },
   }),
   "category-grid": () => ({
     id: `cg-${Date.now()}`,
     type: "category-grid",
     order: 0,
     visible: true,
-    props: { heading: "Danh mục", categoryIds: [] },
+    props: { heading: "Danh mục", categoryIds: [], columns: 4 },
   }),
   "banner-slider": () => ({
     id: `bs-${Date.now()}`,
@@ -106,7 +120,7 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
     type: "blog-preview",
     order: 0,
     visible: true,
-    props: { heading: "Tin tức", limit: 3 },
+    props: { heading: "Tin tức", limit: 3, layout: "grid", tagFilter: "" },
   }),
   testimonials: () => ({
     id: `t-${Date.now()}`,
@@ -120,29 +134,35 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
     type: "contact-cta",
     order: 0,
     visible: true,
-    props: { heading: "Sẵn sàng hợp tác?", ctaText: "Liên hệ", ctaLink: "/contact" },
+    props: { heading: "Sẵn sàng hợp tác?", body: "", ctaText: "Liên hệ", ctaLink: "/contact", bgColor: "" },
   }),
   "stats-counter": () => ({
     id: `sc-${Date.now()}`,
     type: "stats-counter",
     order: 0,
     visible: true,
-    props: { stats: [{ label: "Khách hàng", value: 1000 }] },
+    props: { heading: "Con số nổi bật", stats: [{ label: "Khách hàng", value: 1000 }] },
   }),
-  partners: () => ({ id: `p-${Date.now()}`, type: "partners", order: 0, visible: true, props: { logos: [] } }),
+  partners: () => ({
+    id: `p-${Date.now()}`,
+    type: "partners",
+    order: 0,
+    visible: true,
+    props: { heading: "Đối tác của chúng tôi", logos: [], grayscale: true, speed: 30 },
+  }),
   industries: () => ({
     id: `ind-${Date.now()}`,
     type: "industries",
     order: 0,
     visible: true,
-    props: { heading: "Lĩnh vực kinh doanh" },
+    props: { heading: "Lĩnh vực kinh doanh", subheading: "", items: DEFAULT_INDUSTRY_ITEMS },
   }),
   process: () => ({
     id: `pro-${Date.now()}`,
     type: "process",
     order: 0,
     visible: true,
-    props: { heading: "Quy trình hợp tác" },
+    props: { heading: "Quy trình hợp tác", subheading: "", steps: DEFAULT_PROCESS_STEPS },
   }),
   "feature-showcase": () => ({
     id: `fs-${Date.now()}`,
@@ -158,6 +178,9 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
       ctaLink: "/about",
       imageSide: "right",
       badge: "EXCLUSIVE B2B",
+      videoUrl: "",
+      image: "",
+      thumbnailUrl: "",
     },
   }),
   "use-cases": () => ({
@@ -165,21 +188,38 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
     type: "use-cases",
     order: 0,
     visible: true,
-    props: { eyebrow: "Use Cases", heading: "Chúng tôi giải quyết bài toán B2B", columns: 4 },
+    props: {
+      eyebrow: "Use Cases",
+      heading: "Chúng tôi giải quyết bài toán B2B",
+      subheading: "",
+      columns: 4,
+      cases: DEFAULT_USE_CASES,
+    },
   }),
   "faq-accordion": () => ({
     id: `faq-${Date.now()}`,
     type: "faq-accordion",
     order: 0,
     visible: true,
-    props: { eyebrow: "Câu hỏi thường gặp", heading: "Mọi điều bạn cần biết về VHD Corp" },
+    props: {
+      eyebrow: "Câu hỏi thường gặp",
+      heading: "Mọi điều bạn cần biết về VHD Corp",
+      subheading: "",
+      items: DEFAULT_FAQ_ITEMS,
+    },
   }),
   "comparison-table": () => ({
     id: `ct-${Date.now()}`,
     type: "comparison-table",
     order: 0,
     visible: true,
-    props: { eyebrow: "So sánh gói", heading: "Chọn gói VHD phù hợp" },
+    props: {
+      eyebrow: "So sánh gói",
+      heading: "Chọn gói VHD phù hợp",
+      subheading: "",
+      columnHeaders: DEFAULT_COMPARISON_COLUMNS,
+      rows: DEFAULT_COMPARISON_ROWS,
+    },
   }),
   "sticky-story": () => ({
     id: `ss-${Date.now()}`,
@@ -190,6 +230,7 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
       eyebrow: "Cách VHD hoạt động",
       heading: "Bốn bước đến đối tác bền vững",
       subheading: "Quy trình minh bạch — từ tư vấn đến giao hàng.",
+      steps: DEFAULT_STORY_STEPS,
     },
   }),
   "custom-html": () => ({
@@ -225,7 +266,7 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
     type: "image-banner",
     order: 0,
     visible: true,
-    props: { image: "", link: "", alt: "Banner" },
+    props: { image: "", link: "", alt: "Banner", maxHeight: 480 },
   }),
 };
 
@@ -1237,7 +1278,17 @@ export default function AdminBuilderPage() {
                 <p className="text-xs text-muted-foreground">Loại</p>
                 <p className="font-medium">{TYPE_LABELS[selected.type]}</p>
               </div>
-              <SectionPropsEditor section={selected} onChange={updateSelected} />
+              <SectionPropsEditor
+                // Merge props với template đầy đủ của loại section → panel LUÔN hiện đủ
+                // mọi thuộc tính chỉnh được (kể cả key tùy chọn chưa từng đặt, vd bgImage)
+                section={
+                  {
+                    ...selected,
+                    props: { ...SECTION_TEMPLATES[selected.type]().props, ...selected.props },
+                  } as Section
+                }
+                onChange={updateSelected}
+              />
             </CardContent>
           </Card>
         )}
