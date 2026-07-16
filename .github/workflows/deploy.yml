@@ -35,6 +35,6 @@ jobs:
           command_timeout: 25m
           script: |
             set -e
-            export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -1)/bin:$PATH"
+            export PATH="$HOME/.local/bin:/usr/bin:/usr/local/bin:$PATH"
             cd $HOME/vhdcorp
             DEPLOY_BRANCH=main bash scripts/deploy.sh
