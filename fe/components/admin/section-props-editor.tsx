@@ -35,6 +35,9 @@ const FIELD_LABELS: Record<string, string> = {
   interval: "Thời gian chuyển (ms)",
   source: "Nguồn slide",
   trustItems: "Chip cam kết dưới hero",
+  headingSize: "Cỡ chữ tiêu đề",
+  headingColor: "Màu chữ tiêu đề",
+  highlightColor: "Màu từ nhấn (bọc *từ*)",
   bannerPosition: "Vị trí banner (trang Quản trị → Banner)",
   grayscale: "Icon trắng đen",
   speed: "Tốc độ chạy",
@@ -84,6 +87,12 @@ const labelOf = (k: string) => FIELD_LABELS[k] ?? k;
 
 /* ─── Field dạng lựa chọn cố định ─── */
 const ENUM_OPTIONS: Record<string, { value: string; label: string }[]> = {
+  headingSize: [
+    { value: "sm", label: "Nhỏ" },
+    { value: "md", label: "Vừa" },
+    { value: "lg", label: "Lớn" },
+    { value: "xl", label: "Rất lớn (mặc định)" },
+  ],
   source: [
     { value: "manual", label: "Tự nhập slide bên dưới" },
     { value: "banners", label: "Lấy từ trang Quản trị → Banner" },
@@ -245,6 +254,33 @@ function PrimitiveField({
       <div className="space-y-1">
         <Label className="text-xs">{labelOf(k)}</Label>
         <Textarea rows={compact ? 2 : 3} value={str} onChange={(e) => onChange(e.target.value)} />
+      </div>
+    );
+  }
+  // Key màu (headingColor/highlightColor/bgColor…) → có bảng chọn màu + ô hex, để trống = mặc định
+  if (/color/i.test(k)) {
+    return (
+      <div className="space-y-1">
+        <Label className="text-xs">{labelOf(k)}</Label>
+        <div className="flex items-center gap-1.5">
+          <input
+            type="color"
+            aria-label={labelOf(k)}
+            value={/^#[0-9a-f]{6}$/i.test(str) ? str : "#1B3A8C"}
+            onChange={(e) => onChange(e.target.value)}
+            className="h-9 w-10 shrink-0 cursor-pointer rounded border bg-transparent"
+          />
+          <Input value={str} placeholder="#hex — để trống dùng mặc định" onChange={(e) => onChange(e.target.value)} />
+          {str && (
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Xóa
+            </button>
+          )}
+        </div>
       </div>
     );
   }

@@ -92,6 +92,9 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
       videoThumbnail: "",
       badge: "B2B",
       trustItems: DEFAULT_HERO_TRUST_ITEMS,
+      headingSize: "xl" as const,
+      headingColor: "",
+      highlightColor: "",
     },
   }),
   "featured-products": () => ({

@@ -63,6 +63,12 @@ export type HeroSection = BaseSection<
     badge?: string;
     /** 3 chip cam kết dưới nút CTA — admin sửa label/desc, thêm/xóa */
     trustItems?: { label: string; desc: string }[];
+    /** Cỡ chữ tiêu đề hero: sm | md | lg | xl (mặc định xl) */
+    headingSize?: "sm" | "md" | "lg" | "xl";
+    /** Màu chữ tiêu đề (mặc định trắng) — mã màu #hex */
+    headingColor?: string;
+    /** Màu các từ được highlight bằng *từ* (mặc định vàng brand) */
+    highlightColor?: string;
   }
 >;
 

@@ -51,9 +51,12 @@ export default function Header() {
             {hotline && (
               <a
                 href={`tel:${hotline.replace(/\s+/g, "")}`}
-                className="inline-flex items-center gap-1.5 hover:text-brand-highlight"
+                className="inline-flex items-center gap-1.5 font-medium hover:text-brand-highlight"
               >
-                <Phone className="h-3 w-3" /> {hotline}
+                <span className="grid h-4.5 w-4.5 place-items-center rounded-full bg-brand-highlight text-brand-primary">
+                  <Phone className="h-2.5 w-2.5 fill-current" />
+                </span>
+                Hotline: {hotline}
               </a>
             )}
             <Link href="/contact" className="hover:text-brand-highlight">

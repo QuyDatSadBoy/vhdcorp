@@ -28,11 +28,21 @@ const Hero3DScene = dynamic(() => import("@/components/animations/hero-3d-scene"
   loading: () => null,
 });
 
-function AnimatedHeading({ text, className }: { text: string; className?: string }) {
+function AnimatedHeading({
+  text,
+  className,
+  color,
+  highlightColor,
+}: {
+  text: string;
+  className?: string;
+  color?: string;
+  highlightColor?: string;
+}) {
   // Tách từ theo whitespace, hỗ trợ cú pháp *từ* để admin highlight (cho phép có dấu câu kèm sau).
   const segments = text.split(" ");
   return (
-    <h1 className={className}>
+    <h1 className={className} style={color ? { color } : undefined}>
       {segments.map((rawWord, i) => {
         const m = /^\*([^*]+?)\*([,.;:!?…]*)$/.exec(rawWord);
         const isMarked = !!m;
@@ -47,7 +57,12 @@ function AnimatedHeading({ text, className }: { text: string; className?: string
             transition={{ duration: 0.7, delay: 0.15 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
             className="inline-block mr-[0.22em]"
           >
-            <span className={cn(isMarked && "text-shimmer-brand rounded-sm")}>{word}</span>
+            <span
+              className={cn(isMarked && !highlightColor && "text-shimmer-brand rounded-sm")}
+              style={isMarked && highlightColor ? { color: highlightColor } : undefined}
+            >
+              {word}
+            </span>
             {suffix}
           </motion.span>
         );
@@ -232,7 +247,21 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
           )}
         </motion.div>
 
-        <AnimatedHeading text={heading} className="type-display-xl max-w-[18ch] font-heading text-white" />
+        <AnimatedHeading
+          text={heading}
+          color={p.headingColor}
+          highlightColor={p.highlightColor}
+          className={cn(
+            "max-w-[20ch] font-heading font-black leading-[1.08] tracking-tight",
+            !p.headingColor && "text-white",
+            {
+              sm: "text-4xl md:text-5xl",
+              md: "text-5xl md:text-6xl",
+              lg: "text-6xl md:text-7xl",
+              xl: "type-display-xl",
+            }[p.headingSize ?? "xl"]
+          )}
+        />
 
         {subheading && (
           <motion.p
