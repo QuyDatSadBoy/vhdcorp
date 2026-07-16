@@ -1,3 +1,4 @@
+import pytest
 """A2A (§9.5): Agent Card + JSON-RPC message/send."""
 
 
@@ -14,6 +15,7 @@ async def test_agent_card(client):
     assert "capabilities" in card
 
 
+@pytest.mark.live
 async def test_a2a_message_send(client):
     body = {
         "jsonrpc": "2.0",

@@ -6,6 +6,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { personalizeEmail } from './mail-vars';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '@prisma/prisma.service';
 import { MailService } from '@service/mail/mail.service';
@@ -244,19 +245,10 @@ export class UserService {
     let sent = 0;
     let failed = 0;
     for (const u of users) {
-      // Thay biến; sau đó strip mọi {{...}} còn sót (vd admin lỡ sửa chữ bên trong ngoặc)
-      const stripLeftover = (t: string) =>
-        t.replace(/\{\{\s*([^}]*?)\s*\}\}/g, '$1');
-      const personalized = stripLeftover(
-        params.html
-          .replaceAll('{{name}}', u.name || u.email.split('@')[0])
-          .replaceAll('{{email}}', u.email),
-      );
-      const subject = stripLeftover(
-        params.subject
-          .replaceAll('{{name}}', u.name || u.email.split('@')[0])
-          .replaceAll('{{email}}', u.email),
-      );
+      // Thay biến + gỡ {{...}} sót (helper thuần, có test đơn vị)
+      const nm = u.name || u.email.split('@')[0];
+      const personalized = personalizeEmail(params.html, nm, u.email);
+      const subject = personalizeEmail(params.subject, nm, u.email);
       try {
         await this.mail.sendCustomEmail(u.email, subject, personalized);
         sent++;

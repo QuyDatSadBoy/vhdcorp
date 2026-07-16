@@ -1,3 +1,4 @@
+import pytest
 """Image search (§9.4): POST /api/chat kèm `image` → emit ui image-search-result.
 
 Mock vision (mô tả ảnh) để test ổn định; lời trả lời vẫn qua Gemini thật.
@@ -19,6 +20,7 @@ def _green_jpeg_data_url() -> str:
     return f"data:image/jpeg;base64,{b64}"
 
 
+@pytest.mark.live
 async def test_image_chat_emits_image_search_result(client, monkeypatch):
     # Mock mô tả ảnh → trả từ khóa khớp catalog để search có kết quả
     from app.services import vision

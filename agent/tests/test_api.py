@@ -42,6 +42,7 @@ async def test_chat_missing_user_header(client):
     assert resp.status_code == 422
 
 
+@pytest.mark.live
 async def test_chat_flow_and_conversation_crud(client, test_app):
     # 1) Message đầu → tạo conversation, stream trả lời (Gemini thật)
     events = await _collect_sse(client, {"message": "Bên bạn có bán ống nhựa PVC không?"})

@@ -72,11 +72,14 @@ jobs:
         run: yarn build
 
       # ---------- Agent ----------
-      - name: Agent · sync + pytest (57 test)
+      - name: Agent · sync + pytest (tất định, bỏ test LLM live)
         working-directory: agent
+        env:
+          GOOGLE_API_KEY: ci-dummy-key          # test tất định không gọi Gemini thật
+          TAVILY_API_KEYS: ci-dummy
         run: |
           uv sync --frozen
-          uv run pytest -q
+          uv run pytest -q -m "not live"
 
   deploy:
     name: Deploy lên VPS (chỉ khi test xanh)

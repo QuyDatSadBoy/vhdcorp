@@ -1,3 +1,4 @@
+import pytest
 """Gen-UI (§9.2): tool render ghi lệnh vào channel + ChatService emit event `ui`."""
 
 import json
@@ -72,6 +73,7 @@ async def test_show_faq_emits_items():
     assert all("question" in it and "answer" in it for it in items)
 
 
+@pytest.mark.live
 async def test_chat_emits_ui_event_for_product_request(client):
     """API e2e: khách xin xem sản phẩm → luồng SSE có event `ui` product-carousel (Gemini thật)."""
     events = []
