@@ -100,4 +100,10 @@ jobs:
             set -e
             export PATH="$HOME/.local/bin:/usr/bin:/usr/local/bin:$PATH"
             cd $HOME/vhdcorp
+            # Cập nhật checkout TRƯỚC khi chạy deploy.sh — nếu không, lần deploy trước
+            # rollback để lại deploy.sh CŨ và bản cũ đó chính là script được thực thi
+            # (sửa deploy.sh sẽ không bao giờ có hiệu lực).
+            git fetch origin main
+            git checkout -B main origin/main
+            git reset --hard origin/main
             DEPLOY_BRANCH=main bash scripts/deploy.sh
