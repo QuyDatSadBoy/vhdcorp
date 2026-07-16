@@ -1,6 +1,6 @@
 # Deploy VHD Corp lên VPS Ubuntu + CI/CD
 
-> **Stack triển khai**: PostgreSQL **cài thẳng trên Ubuntu** (không Docker) · 3 service Node/Python chạy qua **PM2** · **Kong Gateway** làm reverse proxy + TLS + rate-limit trước toàn bộ · GitHub Actions tự deploy khi push `main`.
+> **Stack triển khai**: PostgreSQL **cài thẳng trên Ubuntu** (không Docker) · 3 service Node/Python chạy qua **PM2** · **Nginx** làm reverse proxy (nhẹ, hợp VPS nhỏ) + **Cloudflare** lo TLS/CDN/WAF · GitHub Actions tự deploy khi push `main`.
 > VPS tối thiểu: **2 core / 4GB RAM / 35GB NVMe** (đo thực tế: 3 service production + Postgres ~1.2–1.5GB RAM). Bật swap 4GB vì `next build` cần ~2GB đỉnh.
 
 ---
@@ -97,83 +97,62 @@ pm2 startup && pm2 save                     # 3 service tự chạy lại sau re
 
 ---
 
-## 2. Kong Gateway — reverse proxy + TLS + rate-limit
+## 2. Nginx — reverse proxy (nhẹ nhất, ~10MB)
 
-> Kong đứng trước, route theo path: `/` → FE(3001), `/api` → BE(8080), `/agent` → Agent(8001). Dùng **Kong DB-less** (khai báo bằng file YAML — nhẹ, hợp VPS nhỏ, versioned được).
-
-### 2.1 Cài Kong
+> Nginx đứng trước, route theo path: `/` → FE(3001), `/api` → BE(8080), `/agent` → Agent(8001). TLS/CDN/WAF để **Cloudflare** lo (mục 5) — origin chỉ cần HTTP port 80.
 
 ```bash
-curl -Lo kong.deb "https://packages.konghq.com/public/gateway-3.x/deb/ubuntu/pool/$(lsb_release -cs)/main/k/ko/kong_3.8.0/kong_3.8.0_amd64.deb" || \
-  echo "→ nếu link đổi, xem https://docs.konghq.com/gateway/latest/install/linux/ubuntu/"
-sudo apt install -y ./kong.deb
+sudo apt-get install -y nginx
+sudo tee /etc/nginx/sites-available/vhdcorp > /dev/null <<'NGINX'
+server {
+    listen 80 default_server;
+    server_name _;
+    client_max_body_size 12M;                # upload ảnh (limit 10M)
+
+    location /api/ {                          # NestJS (giữ prefix /api)
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;                  # SSE chat stream
+        proxy_read_timeout 300s;
+    }
+    location /agent/ {                        # AI agent (A2A/MCP/SSE) — strip /agent
+        proxy_pass http://127.0.0.1:8001/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+    }
+    location / {                             # Frontend Next.js
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+NGINX
+sudo ln -sf /etc/nginx/sites-available/vhdcorp /etc/nginx/sites-enabled/vhdcorp
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx && sudo systemctl enable nginx
 ```
 
-### 2.2 Cấu hình DB-less (`/etc/kong/kong.conf`)
+> **Quan trọng về cookie**: BE đặt cookie `secure` khi `NODE_ENV=production` → **đăng nhập chỉ hoạt động qua HTTPS**. Truy cập trực tiếp `http://IP` (chưa TLS) thì trang public xem được nhưng login KHÔNG lưu được cookie. Login hoạt động ngay khi có Cloudflare HTTPS (mục 5). Cloudflare gửi `X-Forwarded-Proto: https` nên BE hiểu là HTTPS.
 
-```
-database = off
-declarative_config = /etc/kong/kong.yml
-proxy_listen = 0.0.0.0:80, 0.0.0.0:443 ssl
-```
-
-### 2.3 Khai báo route (`/etc/kong/kong.yml`) — repo có sẵn mẫu `deploy/kong.yml`, copy vào rồi sửa domain
-
-```yaml
-_format_version: "3.0"
-services:
-  - name: vhd-fe
-    url: http://localhost:3001
-    routes:
-      - name: fe
-        paths: ["/"]
-    plugins:
-      - name: rate-limiting
-        config: { minute: 300, policy: local }
-  - name: vhd-be
-    url: http://localhost:8080/api
-    routes:
-      - name: be
-        paths: ["/api"]
-        strip_path: true
-    plugins:
-      - name: rate-limiting
-        config: { minute: 600, policy: local }
-      - name: cors
-        config: { origins: ["https://<domain>"], credentials: true }
-  - name: vhd-agent
-    url: http://localhost:8001
-    routes:
-      - name: agent
-        paths: ["/agent"]
-        strip_path: true
-    plugins:
-      - name: rate-limiting
-        config: { minute: 120, policy: local }
-```
+### Firewall
 
 ```bash
-sudo systemctl enable --now kong    # hoặc: kong start -c /etc/kong/kong.conf
+sudo ufw allow 22/tcp && sudo ufw allow 80/tcp && sudo ufw allow 443/tcp
+sudo ufw --force enable    # chặn 3001/8080/8001 khỏi truy cập ngoài
 ```
-
-### 2.4 TLS (Let's Encrypt)
-
-```bash
-# Kong đọc chứng chỉ qua certbot (webroot) hoặc dùng plugin acme:
-sudo apt install -y certbot
-sudo certbot certonly --standalone -d <domain>   # tạm dừng Kong lúc cấp, hoặc dùng plugin acme của Kong
-# Trỏ certificate trong kong.yml (mục certificates) hoặc bật plugin `acme` để tự gia hạn.
-```
-
-> Đơn giản hơn nếu muốn: dùng **plugin `acme`** của Kong để tự xin + gia hạn Let's Encrypt, khỏi certbot thủ công. Xem https://docs.konghq.com/hub/kong-inc/acme/
-
-### 2.5 Sau khi có domain qua Kong
-
-- `be/.env`: `FRONTEND_URL` + `CORS_ORIGIN` = `https://<domain>`, `GOOGLE_CALLBACK_URL=https://<domain>/api/auth/google/callback` (thêm URI này vào Google Cloud Console).
-- `fe/.env.local`: `NEXT_PUBLIC_API_URL=https://<domain>/api`, `NEXT_PUBLIC_AGENT_URL=https://<domain>/agent`.
-- Chạy lại `bash scripts/deploy.sh` để build FE với env mới.
-
----
 
 ## 3. CI/CD — push `main` là VPS tự cập nhật
 
@@ -200,3 +179,30 @@ sudo -u postgres pg_dump vhdcorp_prod > ~/backup_$(date +%F).sql   # backup DB (
 - [ ] SPF/DKIM/DMARC cho domain email (giảm spam); hoặc chuyển sang SES/SendGrid khi gửi số lượng lớn.
 - [ ] Google OAuth: thêm redirect URI production vào Google Cloud Console; **reset client secret** nếu từng lộ.
 - [ ] Cron `pg_dump` hằng đêm + kiểm tra khôi phục thử 1 lần.
+
+---
+
+## 5. Cloudflare — TLS + CDN + WAF (làm sau khi site chạy qua nginx)
+
+> Cloudflare cho HTTPS miễn phí + CDN + chống DDoS, đứng trước nginx. Origin (VPS) chỉ chạy HTTP:80.
+
+1. **Trỏ domain về Cloudflare**: mua domain → trong Cloudflare thêm site → đổi 2 nameserver của domain sang NS Cloudflare cấp.
+2. **DNS record**: thêm `A` record `@` (và `www`) trỏ về IP VPS `116.118.6.61`, bật **Proxied** (đám mây cam).
+3. **SSL/TLS mode**: Cloudflare → SSL/TLS → chọn **Full** (Cloudflare↔origin qua HTTP:80 vẫn OK vì origin sau firewall; muốn chặt hơn thì cài Origin Certificate rồi chọn **Full (strict)**).
+4. **Always Use HTTPS**: SSL/TLS → Edge Certificates → bật _Always Use HTTPS_ + _Automatic HTTPS Rewrites_.
+5. **Cập nhật env sang domain rồi build lại** (FE nhúng URL lúc build):
+   ```bash
+   # be/.env
+   FRONTEND_URL=https://<domain>
+   CORS_ORIGIN=https://<domain>
+   GOOGLE_CALLBACK_URL=https://<domain>/api/auth/google/callback
+   # fe/.env.local
+   NEXT_PUBLIC_API_URL=https://<domain>/api
+   NEXT_PUBLIC_AGENT_URL=https://<domain>/agent
+   # rồi:
+   cd ~/vhdcorp && bash scripts/deploy.sh
+   ```
+6. **Google OAuth**: thêm `https://<domain>/api/auth/google/callback` vào Authorized redirect URIs trong Google Cloud Console.
+7. **(Khuyến nghị)** Cloudflare → Rules: cache tĩnh `/_next/static/*`; Security → Bot Fight Mode; giới hạn upload `client_max_body_size` đã đặt 12M ở nginx.
+
+> Nếu muốn TLS ngay trên VPS không qua Cloudflare: `sudo apt install certbot python3-certbot-nginx && sudo certbot --nginx -d <domain>` (tự sửa nginx + gia hạn).
