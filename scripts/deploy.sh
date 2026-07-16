@@ -15,6 +15,7 @@ cd "$APP_DIR"
 
 log "1/6 Kéo code mới nhất (nhánh $BRANCH)"
 git fetch origin "$BRANCH"
+git checkout -B "$BRANCH" "origin/$BRANCH"   # chuyển hẳn sang nhánh production, sạch
 git reset --hard "origin/$BRANCH"
 
 log "2/6 Backend: cài deps + migrate + build"
