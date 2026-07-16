@@ -27,10 +27,14 @@ interface JwtPayload {
   role: Role;
 }
 
+/** Phiên khách và phiên quản trị lưu refresh hash ở 2 cột riêng → không đè nhau. */
+type SessionScope = 'client' | 'admin';
+
 export type SafeUser = Omit<
   User,
   | 'password'
   | 'refreshTokenHash'
+  | 'adminRefreshTokenHash'
   | 'deletedAt'
   | 'updatedAt'
   | 'verifyCodeHash'
@@ -215,7 +219,8 @@ export class AuthenticationService {
         password: hash,
         resetCodeHash: null,
         resetCodeExpiresAt: null,
-        refreshTokenHash: null, // đăng xuất mọi thiết bị cũ
+        refreshTokenHash: null, // đăng xuất mọi thiết bị cũ (cả 2 scope)
+        adminRefreshTokenHash: null,
         // Đặt lại mật khẩu qua email = đã chứng minh sở hữu email
         emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
       },
@@ -258,12 +263,17 @@ export class AuthenticationService {
       email: user.email,
       role: user.role,
     });
-    await this.persistRefreshHash(user.id, tokens.refreshToken);
+    await this.persistRefreshHash(
+      user.id,
+      tokens.refreshToken,
+      opts.isAdmin ? 'admin' : 'client',
+    );
     return { user: this.toSafeUser(user), tokens };
   }
 
   async refresh(
     refreshToken: string | undefined,
+    scope: SessionScope = 'client',
   ): Promise<{ tokens: TokenPair; user: SafeUser }> {
     if (!refreshToken) throw new UnauthorizedException('Thiếu refresh token');
 
@@ -279,16 +289,22 @@ export class AuthenticationService {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
     });
-    if (!user || user.deletedAt || !user.refreshTokenHash) {
+    // So khớp refresh hash theo ĐÚNG scope (admin/khách) — 2 phiên độc lập.
+    const storedHash =
+      scope === 'admin' ? user?.adminRefreshTokenHash : user?.refreshTokenHash;
+    if (!user || user.deletedAt || !storedHash) {
       throw new UnauthorizedException('Phiên đăng nhập không tồn tại');
     }
 
-    const matched = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+    const matched = await bcrypt.compare(refreshToken, storedHash);
     if (!matched) {
-      // Token reuse detection — revoke session
+      // Token reuse detection — chỉ thu hồi phiên của scope này, không đụng scope kia
       await this.prisma.user.update({
         where: { id: user.id },
-        data: { refreshTokenHash: null },
+        data:
+          scope === 'admin'
+            ? { adminRefreshTokenHash: null }
+            : { refreshTokenHash: null },
       });
       throw new UnauthorizedException('Refresh token đã bị thu hồi');
     }
@@ -298,14 +314,18 @@ export class AuthenticationService {
       email: user.email,
       role: user.role,
     });
-    await this.persistRefreshHash(user.id, tokens.refreshToken);
+    await this.persistRefreshHash(user.id, tokens.refreshToken, scope);
     return { tokens, user: this.toSafeUser(user) };
   }
 
-  async logout(userId: number): Promise<void> {
+  async logout(userId: number, scope: SessionScope = 'client'): Promise<void> {
+    // Chỉ xóa phiên của scope đang đăng xuất — tab admin/khách còn lại giữ nguyên
     await this.prisma.user.update({
       where: { id: userId },
-      data: { refreshTokenHash: null },
+      data:
+        scope === 'admin'
+          ? { adminRefreshTokenHash: null }
+          : { refreshTokenHash: null },
     });
   }
 
@@ -400,11 +420,15 @@ export class AuthenticationService {
   private async persistRefreshHash(
     userId: number,
     refreshToken: string,
+    scope: SessionScope = 'client',
   ): Promise<void> {
     const hash = await bcrypt.hash(refreshToken, 10);
     await this.prisma.user.update({
       where: { id: userId },
-      data: { refreshTokenHash: hash },
+      data:
+        scope === 'admin'
+          ? { adminRefreshTokenHash: hash }
+          : { refreshTokenHash: hash },
     });
   }
 
@@ -455,6 +479,7 @@ export class AuthenticationService {
     const {
       password: _p,
       refreshTokenHash: _r,
+      adminRefreshTokenHash: _ar,
       deletedAt: _d,
       updatedAt: _u,
       verifyCodeHash: _v,

@@ -141,7 +141,10 @@ export class AuthenticationController {
     const scope = requestScope(req);
     const refreshToken = req.signedCookies?.[cookieNamesFor(scope).refresh];
     if (!refreshToken) throw new UnauthorizedException('Thiếu refresh token');
-    const { user, tokens } = await this.authService.refresh(refreshToken);
+    const { user, tokens } = await this.authService.refresh(
+      refreshToken,
+      scope,
+    );
     setAuthCookies(res, tokens.accessToken, tokens.refreshToken, scope);
     return { user };
   }
@@ -154,9 +157,10 @@ export class AuthenticationController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    await this.authService.logout(user.sub);
-    // Chỉ xóa cookie của scope đang đăng xuất — tab admin/khách còn lại không bị văng
-    clearAuthCookies(res, requestScope(req));
+    // Chỉ xóa phiên + cookie của scope đang đăng xuất — tab admin/khách còn lại không bị văng
+    const scope = requestScope(req);
+    await this.authService.logout(user.sub, scope);
+    clearAuthCookies(res, scope);
     return { message: 'Đăng xuất thành công' };
   }
 

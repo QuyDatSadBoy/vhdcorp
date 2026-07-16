@@ -202,7 +202,11 @@ export class UserService {
     const hash = await bcrypt.hash(newPassword, 10);
     await this.prisma.user.update({
       where: { id: targetUserId },
-      data: { password: hash, refreshTokenHash: null },
+      data: {
+        password: hash,
+        refreshTokenHash: null,
+        adminRefreshTokenHash: null,
+      },
     });
     return { message: 'Đã đặt lại mật khẩu' };
   }
@@ -305,7 +309,11 @@ export class UserService {
     const hash = await bcrypt.hash(newPassword, 10);
     await this.prisma.user.update({
       where: { id: userId },
-      data: { password: hash, refreshTokenHash: null },
+      data: {
+        password: hash,
+        refreshTokenHash: null,
+        adminRefreshTokenHash: null,
+      },
     });
     return { message: 'Đổi mật khẩu thành công' };
   }
