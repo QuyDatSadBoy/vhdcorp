@@ -23,6 +23,10 @@ jobs:
     name: Test toàn diện (BE + FE + Agent)
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      # Prisma 7 cần DATABASE_URL để load config lúc generate/build (KHÔNG kết nối thật;
+      # migrate/seed chỉ chạy trên server thật). Giá trị giả cho generate/tsc/jest/build.
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci?schema=public"
     steps:
       - uses: actions/checkout@v4
 
