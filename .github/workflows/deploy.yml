@@ -1,31 +1,87 @@
 # ============================================================
-# CI/CD: push lên nhánh main (hoặc bấm Run workflow) → SSH vào VPS
-# → git pull + build + restart PM2 (scripts/deploy.sh)
-#
-# Setup 1 lần trong GitHub repo → Settings → Secrets and variables → Actions:
-#   VPS_HOST     = IP VPS            (vd 103.x.x.x)
-#   VPS_USER     = user SSH          (vd root hoặc deploy)
-#   VPS_SSH_KEY  = private key SSH   (cat ~/.ssh/id_ed25519 — key đã add vào VPS)
-#   VPS_PORT     = port SSH          (mặc định 22 — optional)
-# VPS phải setup lần đầu theo docs/DEPLOY.md trước khi bật workflow.
+# CI/CD — test TOÀN DIỆN trước, PASS hết mới deploy.
+#   - PR vào main / push main / bấm tay → chạy job `test`.
+#   - CHỈ khi `test` xanh + là push vào main → job `deploy` SSH vào VPS.
+#   - test đỏ → deploy KHÔNG chạy → server giữ nguyên bản cũ.
+# Secrets cần (Settings → Secrets → Actions): VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_PORT
 # ============================================================
-name: Deploy to VPS
+name: CI/CD
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch: {}
 
 concurrency:
-  group: deploy-production
-  cancel-in-progress: false
+  group: cicd-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  deploy:
+  test:
+    name: Test toàn diện (BE + FE + Agent)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: SSH & deploy
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Python + uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+
+      # ---------- Backend ----------
+      - name: BE · install
+        working-directory: be
+        run: yarn install --frozen-lockfile
+      - name: BE · prisma generate
+        working-directory: be
+        run: yarn prisma:generate
+      - name: BE · typecheck
+        working-directory: be
+        run: yarn tsc --noEmit
+      - name: BE · unit tests (voucher, giá KM…)
+        working-directory: be
+        run: yarn test
+      - name: BE · build
+        working-directory: be
+        run: yarn build
+
+      # ---------- Frontend ----------
+      - name: FE · install
+        working-directory: fe
+        run: yarn install --frozen-lockfile
+      - name: FE · lint
+        working-directory: fe
+        run: yarn lint
+      - name: FE · typecheck
+        working-directory: fe
+        run: yarn tsc --noEmit
+      - name: FE · build
+        working-directory: fe
+        run: yarn build
+
+      # ---------- Agent ----------
+      - name: Agent · sync + pytest (57 test)
+        working-directory: agent
+        run: |
+          uv sync --frozen
+          uv run pytest -q
+
+  deploy:
+    name: Deploy lên VPS (chỉ khi test xanh)
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: SSH & deploy (có rollback nếu health fail)
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}

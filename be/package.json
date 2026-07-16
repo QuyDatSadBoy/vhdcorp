@@ -112,6 +112,20 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@authentication/(.*)$": "<rootDir>/authentication/$1",
+      "^@provider/(.*)$": "<rootDir>/providers/$1",
+      "^@guard/(.*)$": "<rootDir>/common/guards/$1",
+      "^@model/(.*)$": "<rootDir>/models/$1",
+      "^@pipe/(.*)$": "<rootDir>/common/pipes/$1",
+      "^@interceptor/(.*)$": "<rootDir>/common/interceptors/$1",
+      "^@decorator/(.*)$": "<rootDir>/common/decorators/$1",
+      "^@util/(.*)$": "<rootDir>/common/utils/$1",
+      "^@database/(.*)$": "<rootDir>/database/$1",
+      "^@pagination/(.*)$": "<rootDir>/pagination/$1",
+      "^@service/(.*)$": "<rootDir>/services/$1",
+      "^@prisma/prisma\\.(service|module)$": "<rootDir>/prisma/prisma.$1"
+    }
   }
 }

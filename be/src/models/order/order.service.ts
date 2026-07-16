@@ -9,18 +9,8 @@ import { MailService } from '@service/mail/mail.service';
 import { OrderStatus, Prisma } from '@vhd/prisma-client';
 import { VoucherService } from '../voucher/voucher.service';
 import { CreateOrderDto } from './dto/order.dto';
-
-/** Giá hiệu lực của sản phẩm: salePrice khi còn hạn khuyến mãi, ngược lại price. */
-export function effectivePrice(p: {
-  price: Prisma.Decimal;
-  salePrice: Prisma.Decimal | null;
-  saleEndsAt: Date | null;
-}): number {
-  const sale = p.salePrice ? Number(p.salePrice) : null;
-  if (sale != null && sale > 0 && (!p.saleEndsAt || p.saleEndsAt > new Date()))
-    return sale;
-  return Number(p.price);
-}
+import { effectivePrice } from './pricing';
+export { effectivePrice };
 
 @Injectable()
 export class OrderService {
