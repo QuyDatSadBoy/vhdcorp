@@ -56,9 +56,9 @@ axiosInstance.interceptors.response.use(
       !originalRequest._retry &&
       !originalRequest.url?.includes("/auth/refresh") &&
       !originalRequest.url?.includes("/auth/login") &&
-      !originalRequest.url?.includes("/auth/register") &&
-      // Anonymous /auth/me là trạng thái hợp lệ — không cần auto-refresh.
-      !originalRequest.url?.endsWith("/auth/me")
+      !originalRequest.url?.includes("/auth/register")
+      // /auth/me: CHO auto-refresh — khi access hết hạn (15m) thì refresh ngầm,
+      // không đá user ra login. (me() chỉ gọi khi đã đăng nhập nhờ sessionHint.)
     ) {
       originalRequest._retry = true;
       try {
@@ -66,12 +66,14 @@ axiosInstance.interceptors.response.use(
         return axiosInstance(originalRequest);
       } catch {
         // Chỉ redirect về login nếu đang ở trang yêu cầu xác thực (account/*)
-        const PROTECTED_PREFIXES = ["/account"];
+        const PROTECTED_PREFIXES = ["/account", "/admin"];
         const isProtectedPath =
           typeof window !== "undefined" &&
           PROTECTED_PREFIXES.some((prefix) => window.location.pathname.startsWith(prefix));
         if (isProtectedPath) {
-          window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+          const path = window.location.pathname;
+          const loginUrl = path.startsWith("/admin") ? "/admin/login" : "/login";
+          window.location.href = `${loginUrl}?next=${encodeURIComponent(path)}`;
         }
         return Promise.reject(error);
       }
