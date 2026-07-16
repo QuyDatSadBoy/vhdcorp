@@ -10,7 +10,13 @@ export function proxy(request: NextRequest) {
   // Phiên admin và phiên khách dùng bộ cookie RIÊNG (mở 2 tab không đè nhau):
   // /admin* đọc admin_access_token, còn lại đọc access_token.
   const isAdminRoute = pathname.startsWith(ADMIN_PREFIX);
-  const token = request.cookies.get(isAdminRoute ? "admin_access_token" : "access_token")?.value;
+  // Gác cổng theo "CÓ phiên hay không" = có access HOẶC refresh token.
+  // Access token hết hạn (15m/1h) → trình duyệt tự xóa cookie, NHƯNG refresh (7 ngày) còn.
+  // Nếu chỉ kiểm access → hết hạn là đá ra login dù refresh còn → client auto-refresh vô dụng.
+  // Cho qua khi còn refresh → trang tải → interceptor client tự refresh ngầm (ở lại, không văng).
+  const access = request.cookies.get(isAdminRoute ? "admin_access_token" : "access_token")?.value;
+  const refresh = request.cookies.get(isAdminRoute ? "admin_refresh_token" : "refresh_token")?.value;
+  const token = access || refresh;
 
   const isAdminLogin = pathname === ADMIN_LOGIN;
   const isAccountRoute = pathname.startsWith(ACCOUNT_PREFIX);
