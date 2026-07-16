@@ -13,7 +13,7 @@ export default function BannerSlider({ section }: { section: Section }) {
   // Nguồn "banners": lấy slide từ Quản trị → Banner theo vị trí (đổi banner không cần sửa layout)
   const fromBanners = p.source === "banners";
   const bannersQ = useBanners(fromBanners ? p.bannerPosition || "home-hero" : undefined);
-  const slides = fromBanners
+  const slides: { image?: string; link?: string; alt?: string; title?: string; caption?: string }[] = fromBanners
     ? (bannersQ.data ?? []).map((b) => ({ image: b.imageUrl, link: b.link ?? undefined, alt: b.alt ?? undefined }))
     : (p.slides ?? []);
   const [idx, setIdx] = useState(0);
@@ -40,7 +40,7 @@ export default function BannerSlider({ section }: { section: Section }) {
   return (
     <section ref={sectionRef}>
       <div className="container mx-auto px-4">
-        <div className="relative aspect-21/9 w-full overflow-hidden rounded-2xl">
+        <div className="relative aspect-21/9 w-full overflow-hidden rounded-2xl bg-brand-primary">
           <AnimatePresence mode="wait">
             <motion.div
               key={idx}
@@ -51,12 +51,39 @@ export default function BannerSlider({ section }: { section: Section }) {
               transition={{ duration: 0.7 }}
               className="absolute inset-0"
             >
-              {cur.link ? (
-                <Link href={cur.link}>
+              {/* Nền slide: ảnh nếu admin cung cấp, nếu chưa có → gradient thương hiệu
+                  để slide "giới thiệu" vẫn đẹp khi chỉ có chữ. */}
+              {cur.image ? (
+                cur.link ? (
+                  <Link href={cur.link}>
+                    <Image src={cur.image} alt={cur.alt ?? ""} fill priority sizes="100vw" className="object-cover" />
+                  </Link>
+                ) : (
                   <Image src={cur.image} alt={cur.alt ?? ""} fill priority sizes="100vw" className="object-cover" />
-                </Link>
+                )
               ) : (
-                <Image src={cur.image} alt={cur.alt ?? ""} fill priority sizes="100vw" className="object-cover" />
+                <div
+                  aria-hidden
+                  className="absolute inset-0 [background:radial-gradient(90%_90%_at_15%_20%,color-mix(in_srgb,var(--vhd-color-accent)_45%,transparent),transparent),radial-gradient(90%_90%_at_100%_100%,color-mix(in_srgb,var(--vhd-color-primary)_75%,transparent),transparent)]"
+                >
+                  <div className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(rgba(255,255,255,0.9)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.9)_1px,transparent_1px)] [background-size:44px_44px]" />
+                </div>
+              )}
+
+              {/* Lớp chữ giới thiệu — admin nhập tiêu đề & mô tả cho từng slide */}
+              {(cur.title || cur.caption) && (
+                <div className="pointer-events-none absolute inset-0 flex items-end bg-linear-to-t from-black/70 via-black/25 to-transparent p-6 md:p-12">
+                  <div className="max-w-2xl">
+                    {cur.title && (
+                      <h3 className="font-heading text-2xl font-black tracking-tight text-white md:text-4xl">
+                        {cur.title}
+                      </h3>
+                    )}
+                    {cur.caption && (
+                      <p className="mt-2 max-w-xl text-sm text-white/85 md:mt-3 md:text-base">{cur.caption}</p>
+                    )}
+                  </div>
+                </div>
               )}
             </motion.div>
           </AnimatePresence>

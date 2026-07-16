@@ -94,7 +94,7 @@ export type CategoryGridSection = BaseSection<
 export type BannerSliderSection = BaseSection<
   "banner-slider",
   {
-    slides: { image: string; link?: string; alt?: string }[];
+    slides: { image?: string; link?: string; alt?: string; title?: string; caption?: string }[];
     autoplay?: boolean;
     interval?: number;
     /** "banners" → lấy slide từ trang Quản trị → Banner (theo vị trí bên dưới) thay vì slides tự nhập */

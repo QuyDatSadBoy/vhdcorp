@@ -73,9 +73,9 @@ function AnimatedHeading({
 
 /** Chip cam kết mặc định — seed vào props layout mẫu để admin sửa được trong builder */
 export const DEFAULT_HERO_TRUST_ITEMS = [
-  { label: "Cam kết chất lượng", desc: "Kiểm định ISO 9001" },
-  { label: "Giao hàng toàn quốc", desc: "B2B/B2C 24h nội thành" },
-  { label: "12+ năm kinh nghiệm", desc: "850+ sản phẩm cung cấp" },
+  { label: "Cam kết chất lượng", desc: "Hàng đúng mô tả, rõ nguồn gốc" },
+  { label: "Giao hàng toàn quốc", desc: "Hỗ trợ cả khách lẻ & doanh nghiệp" },
+  { label: "Tư vấn tận tâm", desc: "Phản hồi nhanh trong giờ làm việc" },
 ];
 
 export default function HeroSection({ section }: { section: HeroSectionType }) {

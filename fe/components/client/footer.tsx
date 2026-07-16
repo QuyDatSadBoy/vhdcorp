@@ -53,10 +53,10 @@ const TRUST_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
 
 /** Mặc định khi admin chưa cấu hình — giữ nguyên nội dung hiện tại */
 const TRUST_DEFAULT = [
-  { icon: "shield", label: "Cam kết chất lượng", desc: "Chứng nhận ISO" },
-  { icon: "truck", label: "Giao toàn quốc", desc: "B2B/B2C 24h" },
-  { icon: "headphones", label: "Hỗ trợ 7 ngày", desc: "Tư vấn chuyên gia" },
-  { icon: "award", label: "12+ năm uy tín", desc: "850+ đối tác" },
+  { icon: "shield", label: "Cam kết chất lượng", desc: "Hàng đúng mô tả" },
+  { icon: "truck", label: "Giao hàng toàn quốc", desc: "Khách lẻ & doanh nghiệp" },
+  { icon: "headphones", label: "Hỗ trợ tận tâm", desc: "Tư vấn nhanh chóng" },
+  { icon: "thumbsup", label: "Uy tín", desc: "Giá hợp lý, minh bạch" },
 ];
 
 export default function Footer() {

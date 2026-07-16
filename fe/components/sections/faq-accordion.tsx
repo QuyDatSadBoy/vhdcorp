@@ -8,34 +8,33 @@ import { cn } from "@/lib/utils";
 
 export const DEFAULT_FAQ_ITEMS: NonNullable<FaqAccordionSection["props"]["items"]> = [
   {
-    question: "Đơn hàng tối thiểu là bao nhiêu?",
+    question: "VHD Corp cung cấp những sản phẩm gì?",
     answer:
-      "VHD Corp nhận đơn hàng từ 1 sản phẩm cho khách lẻ và từ 100 sản phẩm cho khách B2B. Với đơn hàng B2B trên 5 triệu VNĐ, chúng tôi miễn phí giao hàng nội thành.",
+      "Chúng tôi phân phối các sản phẩm nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam. Danh mục được cập nhật thường xuyên trên website.",
   },
   {
-    question: "Có hỗ trợ sản xuất OEM/Private Label không?",
+    question: "Đơn hàng tối thiểu là bao nhiêu?",
     answer:
-      "Có. Chúng tôi nhận sản xuất theo thương hiệu khách hàng — in logo bao bì, custom kích thước, đóng gói chuẩn xuất khẩu. MOQ tùy sản phẩm, từ 500 đơn vị.",
+      "VHD Corp nhận cả đơn lẻ cho khách cá nhân và đơn số lượng lớn cho doanh nghiệp. Bạn cứ liên hệ để được tư vấn số lượng và mức giá phù hợp.",
+  },
+  {
+    question: "Đặt hàng và thanh toán như thế nào?",
+    answer:
+      "Bạn thêm sản phẩm vào giỏ rồi gửi yêu cầu đặt hàng trên website. Đội ngũ VHD sẽ liên hệ xác nhận đơn, phương thức thanh toán và giao hàng.",
   },
   {
     question: "Thời gian giao hàng bao lâu?",
     answer:
-      "Hàng có sẵn trong kho: 24h nội thành TP.HCM, 2-3 ngày các tỉnh thành. Hàng đặt sản xuất theo yêu cầu: 7-15 ngày tùy độ phức tạp và số lượng.",
+      "Với hàng có sẵn, chúng tôi giao trong vài ngày làm việc tùy khu vực. Thời gian cụ thể sẽ được xác nhận khi bạn đặt hàng.",
   },
   {
-    question: "VHD Corp có chứng nhận chất lượng nào?",
-    answer:
-      "Sản phẩm của VHD đạt chuẩn ISO 9001 cho hệ thống quản lý chất lượng, TCVN cho ống nhựa & cao su, HACCP cho thực phẩm làng nghề. Chứng nhận đầy đủ giấy tờ truy xuất nguồn gốc.",
+    question: "Có hỗ trợ khách doanh nghiệp (B2B) không?",
+    answer: "Có. Chúng tôi hỗ trợ báo giá theo số lượng, xuất hóa đơn và tư vấn riêng cho các đơn hàng doanh nghiệp.",
   },
   {
-    question: "Thanh toán theo công nợ được không?",
+    question: "Làm sao để được tư vấn?",
     answer:
-      "Khách hàng B2B có hợp đồng dài hạn được hỗ trợ công nợ 15-30 ngày tùy đánh giá tín dụng. Chấp nhận chuyển khoản, thanh toán quốc tế qua T/T, L/C.",
-  },
-  {
-    question: "Có hỗ trợ xuất khẩu không?",
-    answer:
-      "Có. VHD Corp đã xuất khẩu sang 28 quốc gia. Hỗ trợ đầy đủ thủ tục hải quan, CO/CQ, packing list, đóng container chuẩn xuất khẩu.",
+      "Bạn có thể gọi hotline, nhắn tin qua các kênh liên hệ hoặc dùng trợ lý AI ngay trên website — chúng tôi luôn sẵn sàng hỗ trợ.",
   },
 ];
 

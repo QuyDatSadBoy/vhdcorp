@@ -221,7 +221,7 @@ async function seedSiteConfig(adminId: number) {
       contact: { sections: [] },
     },
     header: {
-      promoText: 'Miễn phí giao hàng cho đơn B2B trên 5 triệu',
+      promoText: 'Tư vấn miễn phí · Giao hàng toàn quốc',
       showPromo: true,
     },
     navigation: [
@@ -259,10 +259,10 @@ async function seedSiteConfig(adminId: number) {
       description:
         'VHD Corp — tổng kho nhựa, cao su và sản phẩm làng nghề Việt. Kết nối giá trị, hợp tác vững bền.',
       contact: {
-        email: 'contact@vhdcorp.vn',
-        phone: '',
-        hotline: '',
-        address: 'TP. Hồ Chí Minh, Việt Nam',
+        email: 'vhdcorp.contact@gmail.com',
+        phone: '0879.744.888',
+        hotline: '0879.744.888',
+        address: 'Hà Nội',
         floatingWidget: true,
         messengerUrl: '',
         zaloUrl: '',

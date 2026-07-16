@@ -1,24 +1,11 @@
 import type { Section } from "@/types/site-config";
 import { DEFAULT_HERO_TRUST_ITEMS } from "@/components/sections/hero";
-import { DEFAULT_INDUSTRY_ITEMS } from "@/components/sections/industries";
-import { DEFAULT_USE_CASES } from "@/components/sections/use-cases";
-import { DEFAULT_PROCESS_STEPS } from "@/components/sections/process";
 import { DEFAULT_FAQ_ITEMS } from "@/components/sections/faq-accordion";
-import { DEFAULT_COMPARISON_COLUMNS, DEFAULT_COMPARISON_ROWS } from "@/components/sections/comparison-table";
-
-/** Logo đối tác placeholder (chưa có ảnh → card chữ) — admin thay ảnh thật trong builder */
-const DEFAULT_PARTNER_LOGOS = [
-  "Sài Gòn Water",
-  "Đông Nam Mech",
-  "DMK Foods",
-  "VietPlast",
-  "Quốc Oai Coop",
-  "VHD Logistics",
-].map((name) => ({ image: "", name, link: "" }));
 
 /**
  * Sections mặc định cho trang chủ — dùng khi DB chưa có cấu hình.
- * Admin có thể chỉnh hoặc thay thế hoàn toàn từ Builder.
+ * Gọn gàng: Hero → Về chúng tôi (khối + slide giới thiệu) → Sản phẩm →
+ * Đánh giá → FAQ → Tin tức → Liên hệ. Admin chỉnh/thay hoàn toàn từ Builder.
  */
 export function defaultHomeSections(): Section[] {
   return [
@@ -28,11 +15,11 @@ export function defaultHomeSections(): Section[] {
       order: 1,
       visible: true,
       props: {
-        badge: "B2B",
+        badge: "B2B & B2C",
         trustItems: DEFAULT_HERO_TRUST_ITEMS,
         heading: "Tổng kho *nhựa*, cao su & *miến* truyền thống Việt",
         subheading:
-          "VHD Corp là cầu nối giữa các sản phẩm Việt Nam chất lượng cao và thị trường toàn cầu. Đặt hàng B2B/B2C, giao nhanh toàn quốc.",
+          "VHD Corp phân phối sản phẩm nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam — phục vụ cả khách lẻ và doanh nghiệp, giao hàng toàn quốc.",
         ctaText: "Khám phá sản phẩm",
         ctaLink: "/products",
         align: "left",
@@ -41,128 +28,84 @@ export function defaultHomeSections(): Section[] {
       },
     },
     {
-      id: "industries-default",
-      type: "industries",
+      id: "about-intro-default",
+      type: "feature-showcase",
       order: 2,
       visible: true,
       props: {
-        heading: "Ba trụ cột kinh doanh của VHD Corp",
+        eyebrow: "Về chúng tôi",
+        heading: "VHD Corp — kết nối sản phẩm Việt với khách hàng",
         subheading:
-          "Từ vật tư công nghiệp đến đặc sản làng nghề — VHD Corp là đối tác cung ứng đa ngành, kết nối chất lượng Việt Nam với thị trường B2B/B2C.",
-        items: DEFAULT_INDUSTRY_ITEMS,
+          "Chúng tôi là đơn vị phân phối sản phẩm nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam. Cam kết đơn giản: hàng đúng mô tả, giá hợp lý, hỗ trợ tận tâm.",
+        bullets: [
+          "Đa dạng sản phẩm nhựa, cao su và đặc sản làng nghề",
+          "Phục vụ cả khách lẻ (B2C) và doanh nghiệp (B2B)",
+          "Giao hàng toàn quốc, tư vấn nhanh chóng",
+        ],
+        ctaText: "Xem chi tiết",
+        ctaLink: "/about",
+        imageSide: "right",
       },
     },
     {
-      id: "use-cases-default",
-      type: "use-cases",
+      id: "about-slide-default",
+      type: "banner-slider",
       order: 3,
       visible: true,
       props: {
-        eyebrow: "Bài toán B2B",
-        heading: "Chúng tôi giải quyết mọi nhu cầu cung ứng",
-        subheading:
-          "Từ đơn hàng đầu tiên đến hợp đồng dài hạn — VHD Corp đồng hành cùng doanh nghiệp Việt trong chuỗi cung ứng.",
-        columns: 4,
-        cases: DEFAULT_USE_CASES,
-      },
-    },
-    {
-      id: "stats-default",
-      type: "stats-counter",
-      order: 4,
-      visible: true,
-      props: {
-        heading: "Con số nói lên sức mạnh VHD Corp",
-        stats: [
-          { label: "Đối tác doanh nghiệp", value: 120, unit: "+" },
-          { label: "Sản phẩm cung cấp", value: 850, unit: "+" },
-          { label: "Năm kinh nghiệm", value: 12, unit: "+" },
-          { label: "Tỉnh thành phục vụ", value: 63 },
+        source: "manual",
+        autoplay: true,
+        interval: 5000,
+        slides: [
+          {
+            image: "",
+            title: "Sản phẩm đa dạng",
+            caption:
+              "Nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam — một điểm mua sắm cho cả nhu cầu cá nhân và doanh nghiệp.",
+          },
+          {
+            image: "",
+            title: "Phục vụ tận tâm",
+            caption: "Đội ngũ VHD Corp luôn sẵn sàng tư vấn, báo giá và giúp bạn chọn đúng sản phẩm.",
+          },
+          {
+            image: "",
+            title: "Giao hàng toàn quốc",
+            caption: "Hàng được đóng gói cẩn thận và giao đến tận nơi trên khắp cả nước.",
+          },
         ],
       },
     },
     {
       id: "featured-default",
       type: "featured-products",
-      order: 5,
+      order: 4,
       visible: true,
       props: { heading: "Sản phẩm nổi bật", limit: 8, layout: "grid" },
     },
     {
-      id: "feature-showcase-default",
-      type: "feature-showcase",
-      order: 6,
-      visible: true,
-      props: {
-        eyebrow: "Tham quan VHD",
-        heading: "Nhà máy đạt chuẩn ISO 9001 — minh chứng cho cam kết chất lượng",
-        subheading:
-          "Khách hàng B2B có thể đặt lịch tham quan trực tiếp dây chuyền sản xuất, quan sát kiểm định chất lượng từ nguyên liệu đến thành phẩm.",
-        bullets: [
-          "Diện tích nhà xưởng 12.000m² tại KCN Tân Bình",
-          "Công suất 50.000 sản phẩm/tháng — sẵn đáp ứng đơn hàng OEM",
-          "Đội ngũ 200+ kỹ sư + chuyên viên QA/QC",
-          "Hệ thống ERP truy xuất nguồn gốc 100%",
-        ],
-        ctaText: "Đặt lịch tham quan",
-        ctaLink: "/contact",
-        badge: "EXCLUSIVE B2B",
-        imageSide: "right",
-      },
-    },
-    {
-      id: "process-default",
-      type: "process",
-      order: 7,
-      visible: true,
-      props: {
-        heading: "Quy trình hợp tác chuẩn hoá",
-        subheading:
-          "Năm bước minh bạch — từ tư vấn đến hậu mãi — đảm bảo trải nghiệm B2B/B2C nhất quán cho mọi khách hàng VHD.",
-        steps: DEFAULT_PROCESS_STEPS,
-      },
-    },
-    {
-      id: "comparison-default",
-      type: "comparison-table",
-      order: 8,
-      visible: true,
-      props: {
-        eyebrow: "So sánh gói dịch vụ",
-        heading: "Chọn gói VHD phù hợp với quy mô của bạn",
-        subheading:
-          "Chính sách giá theo từng cấp độ hợp tác, đáp ứng nhu cầu đa dạng từ khách lẻ đến doanh nghiệp lớn.",
-        columnHeaders: DEFAULT_COMPARISON_COLUMNS,
-        rows: DEFAULT_COMPARISON_ROWS,
-      },
-    },
-    {
       id: "testimonials-default",
       type: "testimonials",
-      order: 9,
+      order: 5,
       visible: true,
       props: {
+        autoplay: true,
         quotes: [
           {
             name: "Nguyễn Văn Thắng",
-            role: "Giám đốc kỹ thuật",
-            company: "Công ty CP Cấp nước Sài Gòn",
+            role: "Khách hàng doanh nghiệp",
             quote:
-              "Ống nhựa PVC của VHD đáp ứng đầy đủ TCVN, giao nhanh và đội kỹ thuật tư vấn tận tâm — chúng tôi tin tưởng hợp tác dài hạn.",
+              "Sản phẩm đúng như mô tả, giao hàng nhanh và đội ngũ tư vấn nhiệt tình. Chúng tôi sẽ tiếp tục hợp tác lâu dài.",
           },
           {
             name: "Trần Thị Hương",
-            role: "Trưởng phòng mua hàng",
-            company: "Tập đoàn thực phẩm DMK",
-            quote:
-              "Miến VHD đóng gói chuẩn xuất khẩu, đáp ứng tiêu chuẩn HACCP — chúng tôi đã đưa sản phẩm vào hệ thống siêu thị 28 quốc gia.",
+            role: "Khách hàng doanh nghiệp",
+            quote: "Đặt hàng dễ dàng, được tư vấn kỹ trước khi mua. Chất lượng ổn định qua nhiều lần đặt.",
           },
           {
             name: "Phạm Đức Minh",
-            role: "Tổng Giám đốc",
-            company: "Cty TNHH Cơ khí Đông Nam",
-            quote:
-              "Tấm cao su NBR của VHD chịu dầu chịu nhiệt tốt — bộ phận máy móc giảm hỏng hóc 40%, tiết kiệm chi phí bảo trì đáng kể.",
+            role: "Khách hàng cá nhân",
+            quote: "Giá hợp lý, hàng đóng gói cẩn thận. Mình rất hài lòng với dịch vụ của VHD.",
           },
         ],
       },
@@ -170,7 +113,7 @@ export function defaultHomeSections(): Section[] {
     {
       id: "faq-default",
       type: "faq-accordion",
-      order: 10,
+      order: 6,
       visible: true,
       props: {
         eyebrow: "Câu hỏi thường gặp",
@@ -181,41 +124,29 @@ export function defaultHomeSections(): Section[] {
     {
       id: "blog-default",
       type: "blog-preview",
-      order: 11,
+      order: 7,
       visible: true,
       props: { heading: "Tin tức & Cập nhật", limit: 4, layout: "grid" },
     },
     {
       id: "cta-default",
       type: "contact-cta",
-      order: 12,
+      order: 8,
       visible: true,
       props: {
-        heading: "Sẵn sàng hợp tác cùng VHD Corp?",
-        body: "Đội ngũ chuyên gia của chúng tôi sẵn sàng tư vấn giải pháp phù hợp nhất cho doanh nghiệp của bạn.",
+        heading: "Cần tư vấn hoặc báo giá?",
+        body: "Liên hệ với VHD Corp — chúng tôi sẽ phản hồi bạn trong thời gian sớm nhất.",
         ctaText: "Liên hệ ngay",
         ctaLink: "/contact",
-      },
-    },
-    {
-      id: "partners-default",
-      type: "partners",
-      order: 13,
-      visible: true,
-      props: {
-        heading: "Hơn 120+ doanh nghiệp đồng hành cùng VHD",
-        logos: DEFAULT_PARTNER_LOGOS,
-        grayscale: true,
-        speed: 30,
       },
     },
   ];
 }
 
 /**
- * Sections mặc định cho trang Giới thiệu — tái tạo nội dung trang /about đang chạy
- * (sứ mệnh/tầm nhìn, hành trình, số liệu, giá trị cốt lõi) để admin chỉnh qua Builder.
- * Khi publish có section → client render PageRenderer thay giao diện dựng sẵn.
+ * Sections mặc định cho trang Giới thiệu — nội dung trung thực, không phóng đại:
+ * giới thiệu, chúng tôi làm gì, sứ mệnh/tầm nhìn/giá trị, giá trị cốt lõi, liên hệ.
+ * Admin chỉnh qua Builder; khi publish có section → client render PageRenderer.
  */
 export function defaultAboutSections(): Section[] {
   return [
@@ -225,28 +156,35 @@ export function defaultAboutSections(): Section[] {
       order: 1,
       visible: true,
       props: {
-        heading: "Kết nối giá trị – *Hợp tác vững bền*",
+        heading: "Về *VHD Corp*",
         subheading:
-          "VHD Corp là tổng kho cung cấp sản phẩm nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam. Hơn một thập kỷ phát triển, chúng tôi tự hào là cầu nối tin cậy giữa nhà sản xuất Việt và khách hàng B2B/B2C trên toàn quốc.",
-        ctaText: "Liên hệ hợp tác",
+          "VHD Corp là đơn vị phân phối sản phẩm nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam. Chúng tôi kết nối nhà sản xuất trong nước với khách hàng cá nhân và doanh nghiệp trên toàn quốc.",
+        ctaText: "Liên hệ với chúng tôi",
         ctaLink: "/contact",
         align: "left",
-        minHeight: 520,
+        minHeight: 480,
         animation: "fade-up",
       },
     },
     {
-      id: "about-stats-default",
-      type: "stats-counter",
+      id: "about-what-default",
+      type: "feature-showcase",
       order: 2,
       visible: true,
       props: {
-        stats: [
-          { label: "Năm kinh nghiệm", value: 12, unit: "+" },
-          { label: "Sản phẩm cung cấp", value: 850, unit: "+" },
-          { label: "Đối tác sản xuất", value: 120, unit: "+" },
-          { label: "Tỉnh thành phục vụ", value: 28 },
+        eyebrow: "Chúng tôi làm gì",
+        heading: "Đưa sản phẩm Việt đến tay khách hàng",
+        subheading:
+          "Từ khâu tuyển chọn nhà cung cấp đến khi giao hàng tận nơi, VHD Corp đồng hành để bạn mua đúng sản phẩm với trải nghiệm thuận tiện.",
+        bullets: [
+          "Tuyển chọn sản phẩm từ nhà sản xuất trong nước",
+          "Tư vấn giúp bạn chọn đúng sản phẩm và số lượng",
+          "Đóng gói cẩn thận, giao hàng toàn quốc",
+          "Hỗ trợ trước và sau khi mua hàng",
         ],
+        ctaText: "Xem sản phẩm",
+        ctaLink: "/products",
+        imageSide: "left",
       },
     },
     {
@@ -255,7 +193,7 @@ export function defaultAboutSections(): Section[] {
       order: 3,
       visible: true,
       props: {
-        eyebrow: "Về VHD Corp",
+        eyebrow: "Định hướng",
         heading: "Sứ mệnh – Tầm nhìn – Giá trị cốt lõi",
         columns: 3,
         cases: [
@@ -263,51 +201,18 @@ export function defaultAboutSections(): Section[] {
             emoji: "🎯",
             title: "Sứ mệnh",
             description:
-              "Kết nối các nhà sản xuất Việt Nam với khách hàng B2B/B2C trên toàn quốc — sản phẩm chất lượng đồng nhất, giá hợp lý, dịch vụ tận tâm.",
+              "Kết nối các nhà sản xuất Việt Nam với khách hàng trên toàn quốc — sản phẩm chất lượng, giá hợp lý, dịch vụ tận tâm.",
           },
           {
             emoji: "👁️",
             title: "Tầm nhìn",
             description:
-              "Trở thành tổng kho phân phối uy tín hàng đầu Việt Nam về nhựa, cao su kỹ thuật và đặc sản làng nghề — hiện diện tại 30+ quốc gia vào 2030.",
+              "Trở thành địa chỉ phân phối đáng tin cậy về nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam.",
           },
           {
             emoji: "❤️",
             title: "Giá trị cốt lõi",
-            description:
-              "Chất lượng — Minh bạch — Hợp tác bền vững. Mỗi sản phẩm xuất kho là một cam kết về uy tín của VHD Corp.",
-          },
-        ],
-      },
-    },
-    {
-      id: "about-timeline-default",
-      type: "sticky-story",
-      order: 4,
-      visible: true,
-      props: {
-        eyebrow: "Hành trình",
-        heading: "12+ năm phát triển cùng doanh nghiệp Việt",
-        steps: [
-          {
-            title: "2014 — Thành lập VHD Corp",
-            description: "Khởi đầu với mảng phân phối ống nhựa PVC và phụ kiện công nghiệp.",
-          },
-          {
-            title: "2018 — Mở rộng cao su kỹ thuật",
-            description: "Tích hợp dòng tấm cao su non, cao su chống rung phục vụ nhà máy.",
-          },
-          {
-            title: "2021 — Đặc sản làng nghề",
-            description: "Bắt tay với các làng nghề Bắc Bộ — đưa miến, nông sản truyền thống ra thị trường.",
-          },
-          {
-            title: "2024 — Nền tảng e-commerce",
-            description: "Ra mắt website B2B/B2C, chuẩn hoá quy trình đặt hàng và giao nhận toàn quốc.",
-          },
-          {
-            title: "2030 — Vươn ra quốc tế",
-            description: "Mục tiêu phân phối tại 30+ quốc gia, ưu tiên Đông Nam Á và Đông Á.",
+            description: "Chất lượng — Minh bạch — Hợp tác bền vững. Chúng tôi giữ đúng cam kết với từng khách hàng.",
           },
         ],
       },
@@ -315,32 +220,32 @@ export function defaultAboutSections(): Section[] {
     {
       id: "about-values-default",
       type: "use-cases",
-      order: 5,
+      order: 4,
       visible: true,
       props: {
-        eyebrow: "Văn hóa",
-        heading: "Giá trị làm nên VHD Corp",
+        eyebrow: "Giá trị",
+        heading: "Điều làm nên VHD Corp",
         columns: 4,
         cases: [
           {
             emoji: "🤝",
             title: "Hợp tác",
-            description: "Đồng hành cùng nhà sản xuất và khách hàng — cùng phát triển dài hạn.",
+            description: "Đồng hành cùng nhà sản xuất và khách hàng để cùng phát triển lâu dài.",
           },
           {
             emoji: "🛡️",
             title: "Tin cậy",
-            description: "Sản phẩm có chứng nhận ISO, kiểm định kỹ thuật và bảo hành rõ ràng.",
+            description: "Hàng đúng mô tả, rõ nguồn gốc — điều chúng tôi cam kết với mọi đơn hàng.",
+          },
+          {
+            emoji: "💬",
+            title: "Tận tâm",
+            description: "Đội ngũ tư vấn sẵn sàng hỗ trợ, phản hồi nhanh trong giờ làm việc.",
           },
           {
             emoji: "✨",
-            title: "Đổi mới",
-            description: "Liên tục cập nhật quy trình, công nghệ và mở rộng danh mục sản phẩm.",
-          },
-          {
-            emoji: "💙",
-            title: "Tận tâm",
-            description: "Đội ngũ tư vấn sẵn sàng hỗ trợ 7 ngày/tuần — đặt khách hàng làm trọng tâm.",
+            title: "Minh bạch",
+            description: "Giá cả và thông tin sản phẩm rõ ràng, không phóng đại.",
           },
         ],
       },
@@ -348,12 +253,12 @@ export function defaultAboutSections(): Section[] {
     {
       id: "about-cta-default",
       type: "contact-cta",
-      order: 6,
+      order: 5,
       visible: true,
       props: {
-        heading: "Trở thành đối tác của VHD Corp",
-        body: "Nhận tư vấn giải pháp cung ứng và báo giá B2B trong 24 giờ làm việc.",
-        ctaText: "Liên hệ hợp tác",
+        heading: "Cần tư vấn hay hợp tác?",
+        body: "Liên hệ với VHD Corp — chúng tôi sẽ phản hồi bạn trong thời gian sớm nhất.",
+        ctaText: "Liên hệ ngay",
         ctaLink: "/contact",
       },
     },
@@ -385,7 +290,7 @@ export function defaultContactSections(): Section[] {
           },
           {
             title: "Chốt đơn & chuẩn bị",
-            description: "Ký hợp đồng/xác nhận đơn — kho chuẩn bị hàng, kiểm định chất lượng.",
+            description: "Ký hợp đồng/xác nhận đơn — kho chuẩn bị hàng, kiểm tra chất lượng.",
           },
           {
             title: "Giao nhận & hậu mãi",
@@ -406,19 +311,19 @@ export function defaultContactSections(): Section[] {
           {
             question: "Thời gian phản hồi báo giá là bao lâu?",
             answer:
-              "Trong vòng 24 giờ làm việc kể từ khi nhận yêu cầu — đơn B2B số lượng lớn có chuyên viên phụ trách riêng.",
+              "Trong vòng 24 giờ làm việc kể từ khi nhận yêu cầu — đơn số lượng lớn có chuyên viên phụ trách riêng.",
           },
           {
             question: "VHD Corp làm việc khung giờ nào?",
             answer: "Thứ 2 – Thứ 7, 8:00 – 17:30. Ngoài giờ vẫn nhận yêu cầu qua form/email và trợ lý AI trên website.",
           },
           {
-            question: "Có hỗ trợ xuất hóa đơn VAT và hợp đồng B2B?",
-            answer: "Có — đầy đủ hóa đơn VAT, hợp đồng nguyên tắc và công nợ linh hoạt cho đối tác doanh nghiệp.",
+            question: "Có hỗ trợ xuất hóa đơn và hợp đồng B2B?",
+            answer: "Có — đầy đủ hóa đơn và hợp đồng cho đối tác doanh nghiệp.",
           },
           {
             question: "Giao hàng những khu vực nào?",
-            answer: "Toàn quốc: nội thành Hà Nội 1–2 ngày, tỉnh thành khác 3–5 ngày làm việc tùy khu vực.",
+            answer: "Toàn quốc — thời gian giao cụ thể sẽ được xác nhận khi bạn đặt hàng, tùy khu vực.",
           },
         ],
       },
@@ -440,7 +345,7 @@ export function defaultListingSections(page: "products" | "posts"): Section[] {
         visible: true,
         props: {
           heading: "Đơn B2B số lượng lớn? Nhận báo giá riêng trong 24h",
-          body: "Chiết khấu theo số lượng, hỗ trợ hóa đơn VAT và công nợ linh hoạt cho doanh nghiệp.",
+          body: "Chiết khấu theo số lượng và hỗ trợ hóa đơn cho doanh nghiệp.",
           ctaText: "Nhận báo giá B2B",
           ctaLink: "/contact",
         },
@@ -455,7 +360,7 @@ export function defaultListingSections(page: "products" | "posts"): Section[] {
       visible: true,
       props: {
         heading: "Cần tư vấn sâu hơn về sản phẩm?",
-        body: "Đội ngũ chuyên gia VHD sẵn sàng giải đáp mọi câu hỏi kỹ thuật và báo giá.",
+        body: "Đội ngũ VHD sẵn sàng giải đáp mọi câu hỏi và báo giá.",
         ctaText: "Liên hệ chuyên gia",
         ctaLink: "/contact",
       },
