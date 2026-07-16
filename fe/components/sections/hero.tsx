@@ -39,15 +39,26 @@ function AnimatedHeading({
   color?: string;
   highlightColor?: string;
 }) {
-  // Tách từ theo whitespace, hỗ trợ cú pháp *từ* để admin highlight (cho phép có dấu câu kèm sau).
-  const segments = text.split(" ");
+  // Cú pháp *từ* hoặc *nhiều từ* để admin highlight. Tách theo cặp dấu * trước,
+  // rồi mới tách từng từ (giữ animation theo từ); dấu câu liền sau *…* dính vào từ cuối.
+  const tokens: { word: string; marked: boolean; suffix: string }[] = [];
+  for (const part of text.split(/(\*[^*]+\*)/g)) {
+    const m = /^\*([^*]+)\*$/.exec(part);
+    if (m) {
+      for (const w of m[1].trim().split(/\s+/).filter(Boolean)) tokens.push({ word: w, marked: true, suffix: "" });
+      continue;
+    }
+    let rest = part;
+    const pm = /^([,.;:!?…]+)/.exec(rest);
+    if (pm && tokens.length) {
+      tokens[tokens.length - 1].suffix += pm[1];
+      rest = rest.slice(pm[1].length);
+    }
+    for (const w of rest.trim().split(/\s+/).filter(Boolean)) tokens.push({ word: w, marked: false, suffix: "" });
+  }
   return (
     <h1 className={className} style={color ? { color } : undefined}>
-      {segments.map((rawWord, i) => {
-        const m = /^\*([^*]+?)\*([,.;:!?…]*)$/.exec(rawWord);
-        const isMarked = !!m;
-        const word = m ? m[1] : rawWord;
-        const suffix = m ? m[2] : "";
+      {tokens.map(({ word, marked: isMarked, suffix }, i) => {
         return (
           <motion.span
             key={i}
