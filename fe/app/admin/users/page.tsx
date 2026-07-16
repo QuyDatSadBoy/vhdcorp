@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { KeyRound, Pencil, RotateCcw, Search, Trash2, UserPlus } from "lucide-react";
+import { KeyRound, Mail, Pencil, RotateCcw, Search, Trash2, UserPlus } from "lucide-react";
 import {
   useAdminUsers,
   useCreateUser,
@@ -13,6 +13,8 @@ import {
   useSoftDeleteUser,
 } from "@/services/user.service";
 import { AdminTable } from "@/components/admin/admin-table";
+import SendMailDialog from "@/components/admin/send-mail-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useConfirm } from "@/components/admin/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,8 +36,14 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [email, setEmail] = useState(""); // giá trị đã submit (Enter/blur) — tránh refetch từng phím
   const [showDeleted, setShowDeleted] = useState(false);
+  /** Lọc theo vai trò — mặc định xem tất cả; "Khách hàng" = client thuần */
+  const [roleFilter, setRoleFilter] = useState<"" | AdminUser["role"]>("CUSTOMER"); // mặc định: khách hàng
 
-  const { data, isLoading } = useAdminUsers({ email: email || undefined, deletedOnly: showDeleted || undefined });
+  const { data, isLoading } = useAdminUsers({
+    email: email || undefined,
+    deletedOnly: showDeleted || undefined,
+    role: roleFilter || undefined,
+  });
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const updateRole = useUpdateUserRole();
@@ -43,6 +51,17 @@ export default function AdminUsersPage() {
   const restoreUser = useRestoreUser();
   const softDelete = useSoftDeleteUser();
   const confirm = useConfirm();
+
+  /** Chọn nhiều user để gửi email */
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [mailOpen, setMailOpen] = useState(false);
+  const toggleSelect = (id: number) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   /** Dialog tạo user */
   const [createOpen, setCreateOpen] = useState(false);
@@ -123,9 +142,34 @@ export default function AdminUsersPage() {
                 className="h-9 w-56 pl-8"
               />
             </div>
+            {/* Lọc vai trò */}
+            <div className="flex items-center rounded-lg border p-0.5">
+              {(
+                [
+                  ["", "Tất cả"],
+                  ["CUSTOMER", "Khách hàng"],
+                  ["STAFF", "Nhân viên"],
+                  ["ADMIN", "Quản trị"],
+                ] as const
+              ).map(([value, label]) => (
+                <Button
+                  key={label}
+                  size="sm"
+                  variant={roleFilter === value ? "default" : "ghost"}
+                  className="h-7 px-2.5 text-xs"
+                  onClick={() => setRoleFilter(value)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
             <Button variant={showDeleted ? "default" : "outline"} size="sm" onClick={() => setShowDeleted((v) => !v)}>
               <Trash2 className="mr-1.5 h-3.5 w-3.5" />
               {showDeleted ? "Đang xem: Đã xóa" : "Thùng rác"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setMailOpen(true)}>
+              <Mail className="mr-1.5 h-4 w-4" />
+              {selectedIds.size > 0 ? `Gửi email (${selectedIds.size})` : "Gửi email tất cả"}
             </Button>
             <Button size="sm" onClick={() => setCreateOpen(true)}>
               <UserPlus className="mr-1.5 h-4 w-4" /> Thêm người dùng
@@ -133,7 +177,32 @@ export default function AdminUsersPage() {
           </div>
         }
         columns={[
-          { key: "name", header: "Tên", render: (u) => <p className="font-medium">{u.name}</p> },
+          {
+            key: "select",
+            header: "",
+            className: "w-10",
+            render: (u) => (
+              <Checkbox
+                checked={selectedIds.has(u.id)}
+                onCheckedChange={() => toggleSelect(u.id)}
+                aria-label={`Chọn ${u.email}`}
+              />
+            ),
+          },
+          {
+            key: "name",
+            header: "Tên",
+            render: (u) => (
+              <p className="font-medium">
+                {u.name}
+                {u.isRoot && (
+                  <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600">
+                    ROOT
+                  </span>
+                )}
+              </p>
+            ),
+          },
           { key: "email", header: "Email", render: (u) => u.email },
           {
             key: "role",
@@ -189,6 +258,8 @@ export default function AdminUsersPage() {
                 >
                   <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Khôi phục
                 </Button>
+              ) : u.isRoot ? (
+                <span className="text-xs text-muted-foreground">Tài khoản tối cao</span>
               ) : (
                 <div className="flex items-center justify-end gap-0.5">
                   <Button
@@ -242,6 +313,16 @@ export default function AdminUsersPage() {
               ),
           },
         ]}
+      />
+
+      {/* ── Dialog: gửi email hàng loạt ───────────────────────────── */}
+      <SendMailDialog
+        open={mailOpen}
+        onOpenChange={setMailOpen}
+        userIds={[...selectedIds]}
+        recipientLabel={
+          selectedIds.size > 0 ? `${selectedIds.size} người được chọn` : "TẤT CẢ người dùng đang hoạt động"
+        }
       />
 
       {/* ── Dialog: tạo tài khoản mới ─────────────────────────────── */}

@@ -27,6 +27,18 @@ vhdcorp/
 
 ## Khởi động
 
+**Yêu cầu**: Node.js ≥ 20 + `yarn`, Python 3.13 + [`uv`](https://docs.astral.sh/uv/), PostgreSQL 16 (khuyên dùng Docker), tài khoản Cloudinary (ảnh) + Gmail app-password (email/OTP).
+
+### 0. PostgreSQL (Docker)
+
+```bash
+docker run -d --name vhdcorp-postgres --restart unless-stopped \
+  -e POSTGRES_PASSWORD=<mật_khẩu> -e POSTGRES_DB=vhdcorp_dev -p 5432:5432 postgres:16
+# DATABASE_URL=postgresql://postgres:<mật_khẩu>@localhost:5432/vhdcorp_dev
+```
+
+> Sau khi reboot máy: `docker start vhdcorp-postgres` (flag `--restart unless-stopped` đã tự làm việc này).
+
 ### 1. Backend
 
 ```bash
@@ -54,14 +66,23 @@ yarn dev:log                # dev + ghi log → fe/logs/app.log
 
 ```bash
 cd agent
-cp .env.example .env        # điền GOOGLE_API_KEY, TAVILY_API_KEYS, GMAIL_IMAP_*, MINIMAX_API_KEY, LANGSMITH_*
+cp .env.example .env        # điền GOOGLE_API_KEY, CATALOG_DATABASE_URL (đọc DB trực tiếp), TAVILY_API_KEYS, GMAIL_IMAP_*, MINIMAX_API_KEY, LANGSMITH_*
 ./run.sh                    # FastAPI + LangGraph — cổng 8001
 uv run pytest               # test (57 test)
 ```
 
-Trợ lý AI: hỏi đáp sản phẩm **real-time 100% từ DB** (admin sửa → BE webhook đồng bộ ~0.25s, + auto-sync 30s dự phòng; cần `AGENT_URL`/`AGENT_RESYNC_SECRET`/`AGENT_ADMIN_SECRET` trong `be/.env`), thông tin công ty sửa tại **Admin → Kiến thức AI** (hoặc file `agent/data/knowledge.md`), gen-UI trong chat (carousel/form/so sánh/FAQ — **reload vẫn giữ nguyên**), voice (Web Speech + MiniMax TTS có cache), tìm sản phẩm bằng ảnh, gửi liên hệ, A2A (`/.well-known/agent-card.json`), MCP (`/mcp`), đọc Gmail (endpoint admin). Đồng bộ catalog thủ công: `POST /api/admin/resync-products` (header `X-Resync-Secret`). FE cần `NEXT_PUBLIC_AGENT_URL=http://localhost:8001` trong `fe/.env.local`.
+Trợ lý AI phủ **đủ mọi module của web**: sản phẩm/giá/tồn kho + bài viết + danh mục + gợi ý "khách xem X cũng xem Y" (tracking thật) + thông tin công ty — tất cả **đọc TRỰC TIẾP PostgreSQL** qua `CATALOG_DATABASE_URL` (fallback `data/products.json` đồng bộ webhook ~0.25s khi DB lỗi). Thông tin chính sách sửa tại **Admin → Kiến thức AI**. Gen-UI trong chat: carousel sản phẩm, thẻ bài viết, chip danh mục, form liên hệ/báo giá, bảng so sánh, FAQ — **reload vẫn giữ nguyên**; lần đầu vào web panel tự mở kèm câu hỏi mẫu. Voice (Web Speech + MiniMax TTS cache), tìm sản phẩm bằng ảnh, gửi liên hệ, A2A (`/.well-known/agent-card.json`), MCP (`/mcp`), đọc Gmail (endpoint admin). Đồng bộ catalog thủ công: `POST /api/admin/resync-products` (header `X-Resync-Secret`). FE cần `NEXT_PUBLIC_AGENT_URL=http://localhost:8001` trong `fe/.env.local`.
 
-> 📄 **Tài liệu**: [docs/BAO_CAO.md](docs/BAO_CAO.md) (báo cáo bàn giao tổng quan) · [docs/AGENT_PLAN.md](docs/AGENT_PLAN.md) (kiến trúc agent) · [docs/HANDOVER.md](docs/HANDOVER.md) (chi tiết kỹ thuật).
+> 📄 **Tài liệu**: [docs/TINH_NANG.md](docs/TINH_NANG.md) (**đọc file này trước** — toàn bộ tính năng + kiến trúc + agent) · [docs/BAO_CAO.md](docs/BAO_CAO.md) (báo cáo bàn giao) · [docs/AGENT_PLAN.md](docs/AGENT_PLAN.md) (kiến trúc agent) · [docs/HANDOVER.md](docs/HANDOVER.md) (changelog kỹ thuật từng đợt) · [docs/DATABASE.md](docs/DATABASE.md) · [docs/PRD.md](docs/PRD.md).
+
+## Nghiệm thu tự động
+
+```bash
+# Chạy khi cả 3 service đang bật (BE 8080, FE 3001, Agent 8001)
+S=/tmp/vhd-test BELOG=<đường_dẫn_log_be> bash scripts/round-full.sh   # PASS khi in ROUND_RESULT=0
+cd agent && uv run pytest                                             # 57 test
+cd fe && yarn tsc --noEmit && cd ../be && yarn tsc --noEmit           # typecheck
+```
 
 ## Xem log để debug
 
@@ -118,6 +139,11 @@ yarn prisma:generate
 | `COOKIE_SECRET`      | Secret cho cookie-parser signing        |
 | `CORS_ORIGIN`        | `*` khi dev, domain cụ thể khi prod     |
 | `FRONTEND_URL`       | URL FE để BE redirect OAuth callback    |
+
+## Tài khoản mặc định (sau `yarn prisma:seed`)
+
+- **Root admin (TỐI CAO)**: `vhdcorp.contact@gmail.com` / `admin123` — đổi mật khẩu ngay khi lên production. Không ai xóa/đổi role/reset được tài khoản này.
+- Đăng ký khách mới cần Gmail thật (OTP 6 số gửi về mail).
 
 ## Kiến trúc nhanh
 

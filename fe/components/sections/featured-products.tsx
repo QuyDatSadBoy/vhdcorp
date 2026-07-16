@@ -3,6 +3,7 @@
 import { useEffect, useRef, type MouseEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { PriceTag } from "@/components/client/price-tag";
 import { ArrowRight } from "lucide-react";
 import { Reveal, Stagger, StaggerItem, fadeUpItem } from "@/components/animations/reveal";
 import { useProducts } from "@/services/product.service";
@@ -137,10 +138,7 @@ export default function FeaturedProducts({ section }: { section: Section }) {
                     {prod.name}
                   </h3>
                   {prod.price !== undefined && prod.price !== null && Number(prod.price) > 0 && (
-                    <p className="pt-1 text-base font-extrabold text-brand-primary">
-                      {Number(prod.price).toLocaleString("vi-VN")}{" "}
-                      <span className="text-xs font-bold text-foreground/55">₫</span>
-                    </p>
+                    <PriceTag product={prod} className="mt-2" />
                   )}
                 </div>
               </SpotlightCard>

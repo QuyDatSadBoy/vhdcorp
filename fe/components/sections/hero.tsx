@@ -56,6 +56,13 @@ function AnimatedHeading({ text, className }: { text: string; className?: string
   );
 }
 
+/** Chip cam kết mặc định — seed vào props layout mẫu để admin sửa được trong builder */
+export const DEFAULT_HERO_TRUST_ITEMS = [
+  { label: "Cam kết chất lượng", desc: "Kiểm định ISO 9001" },
+  { label: "Giao hàng toàn quốc", desc: "B2B/B2C 24h nội thành" },
+  { label: "12+ năm kinh nghiệm", desc: "850+ sản phẩm cung cấp" },
+];
+
 export default function HeroSection({ section }: { section: HeroSectionType }) {
   const p = section.props;
   const align = p.align ?? "left";
@@ -108,11 +115,12 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
     p.subheading ??
     "VHD Corp — tổng kho ống nhựa PVC, tấm cao su kỹ thuật và miến làng nghề chất lượng cao. Đặt hàng B2B/B2C, giao nhanh toàn quốc.";
 
-  const trustItems = [
-    { icon: ShieldCheck, label: "Cam kết chất lượng", desc: "Kiểm định ISO 9001" },
-    { icon: Truck, label: "Giao hàng toàn quốc", desc: "B2B/B2C 24h nội thành" },
-    { icon: Sparkles, label: "12+ năm kinh nghiệm", desc: "850+ sản phẩm cung cấp" },
-  ];
+  // Chip cam kết: admin sửa trong builder (icon xoay vòng theo thứ tự)
+  const TRUST_ICONS = [ShieldCheck, Truck, Sparkles];
+  const trustItems = (p.trustItems?.length ? p.trustItems : DEFAULT_HERO_TRUST_ITEMS).map((it, i) => ({
+    ...it,
+    icon: TRUST_ICONS[i % TRUST_ICONS.length],
+  }));
 
   return (
     // -mt-16 md:-mt-20: kéo hero lên sau sticky header trong suốt (h-16/h-20)
@@ -217,9 +225,11 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
               {brand?.tagline ?? "KẾT NỐI GIÁ TRỊ - HỢP TÁC VỮNG BỀN"}
             </span>
           </span>
-          <span className="ml-1 inline-flex h-4 items-center rounded-full bg-(--vhd-color-highlight)/25 px-1.5 text-[10px] font-bold text-brand-highlight">
-            B2B
-          </span>
+          {(p.badge ?? "B2B") && (
+            <span className="ml-1 inline-flex h-4 items-center rounded-full bg-(--vhd-color-highlight)/25 px-1.5 text-[10px] font-bold text-brand-highlight">
+              {p.badge ?? "B2B"}
+            </span>
+          )}
         </motion.div>
 
         <AnimatedHeading text={heading} className="type-display-xl max-w-[18ch] font-heading text-white" />

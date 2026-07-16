@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { chatAgentService, streamChat } from "@/services/chat-agent.service";
+import { chatAgentService, streamChat, getChatUserId } from "@/services/chat-agent.service";
 import type { Conversation, UiBlock, UiChatMessage } from "@/types/chat";
 
 /** localStorage key nhớ hội thoại đang mở — mở lại panel giữ nguyên */
-const ACTIVE_ID_KEY = "vhd_chat_active_id";
+const ACTIVE_ID_KEY = "vhd_chat_active_id"; // + hậu tố danh tính
 
 const GENERIC_ERROR = "Không kết nối được trợ lý. Vui lòng thử lại.";
 
@@ -34,8 +34,8 @@ export function useChat() {
 
   const persistActiveId = useCallback((id: string | null) => {
     if (typeof window === "undefined") return;
-    if (id) window.localStorage.setItem(ACTIVE_ID_KEY, id);
-    else window.localStorage.removeItem(ACTIVE_ID_KEY);
+    if (id) window.localStorage.setItem(`${ACTIVE_ID_KEY}:${getChatUserId()}`, id);
+    else window.localStorage.removeItem(`${ACTIVE_ID_KEY}:${getChatUserId()}`);
   }, []);
 
   /** Nạp lịch sử tin nhắn của một hội thoại từ server */
@@ -75,7 +75,8 @@ export function useChat() {
     try {
       const list = await chatAgentService.listConversations();
       setConversations(list);
-      const savedId = typeof window !== "undefined" ? window.localStorage.getItem(ACTIVE_ID_KEY) : null;
+      const savedId =
+        typeof window !== "undefined" ? window.localStorage.getItem(`${ACTIVE_ID_KEY}:${getChatUserId()}`) : null;
       if (savedId && list.some((c) => c.id === savedId)) {
         setActiveId(savedId);
         void loadMessages(savedId);

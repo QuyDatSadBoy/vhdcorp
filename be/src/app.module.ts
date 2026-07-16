@@ -8,6 +8,7 @@ import { AgentModule } from '@service/agent/agent.module';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
 import { PrismaExceptionFilter } from './common/exceptions/prisma-exception.filter';
+import { AllExceptionsFilter } from './common/exceptions/all-exceptions.filter';
 import { ValidationPipe } from '@pipe/validation.pipe';
 import { TransformInterceptor } from '@interceptor/transform.interceptor';
 import { AuthenticationModule } from '@authentication/authentication.module';
@@ -28,6 +29,11 @@ import { HealthModule } from './health/health.module';
   ],
   controllers: [],
   providers: [
+    {
+      // Catch-all — đăng ký ĐẦU TIÊN để làm fallback cuối (Nest chọn filter từ cuối lên)
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,

@@ -10,6 +10,8 @@ import {
   FolderTree,
   FileText,
   Star,
+  ShoppingCart,
+  BadgePercent,
   Mail,
   Image as ImageIcon,
   Megaphone,
@@ -25,6 +27,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { useLogout } from "@/services/auth.service";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/client/theme-toggle";
+import { usePublishedSiteConfig } from "@/services/site-config.service";
 
 interface NavItem {
   href: Route;
@@ -54,6 +57,13 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: "Bán hàng",
+    items: [
+      { href: "/admin/orders", label: "Đơn hàng", icon: ShoppingCart },
+      { href: "/admin/vouchers", label: "Voucher", icon: BadgePercent },
+    ],
+  },
+  {
     label: "Tương tác",
     items: [
       { href: "/admin/reviews", label: "Đánh giá", icon: Star },
@@ -74,6 +84,9 @@ const navGroups: NavGroup[] = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
+  // Logo thật của site (config brand) cho chip thương hiệu — fallback chữ V
+  const configQ = usePublishedSiteConfig();
+  const logoUrl = configQ.data?.value?.brand?.logo?.url;
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const logout = useLogout();
   const router = useRouter();
@@ -89,10 +102,15 @@ export function AdminSidebar() {
       {/* Brand */}
       <div className="border-b border-foreground/8 px-5 py-4">
         <Link href="/admin/dashboard" className="group flex items-center gap-2.5">
-          <span className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-xl bg-linear-to-br from-brand-primary via-brand-primary to-brand-accent text-base font-bold text-white shadow-sm">
-            <span className="relative z-10">V</span>
-            <span className="absolute inset-0 bg-linear-to-br from-white/20 to-transparent" />
-          </span>
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- logo brand từ config
+            <img src={logoUrl} alt="" className="h-9 w-9 shrink-0 rounded-xl bg-white object-contain p-0.5 shadow-sm" />
+          ) : (
+            <span className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-xl bg-linear-to-br from-brand-primary via-brand-primary to-brand-accent text-base font-bold text-white shadow-sm">
+              <span className="relative z-10">V</span>
+              <span className="absolute inset-0 bg-linear-to-br from-white/20 to-transparent" />
+            </span>
+          )}
           <span className="flex flex-col leading-tight">
             <span className="text-sm font-bold tracking-tight">VHD Admin</span>
             <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -145,16 +163,28 @@ export function AdminSidebar() {
       <div className="border-t border-foreground/8 p-3">
         {user && (
           <div className="mb-2 flex items-center gap-2.5 rounded-lg bg-muted/40 p-2.5">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-linear-to-br from-brand-primary/15 to-brand-accent/15 text-xs font-bold text-brand-primary">
-              {user.name?.[0]?.toUpperCase() ?? "A"}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold">{user.name}</p>
-              <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                <Sparkles className="h-2.5 w-2.5 text-brand-primary" />
-                <span className="font-medium uppercase tracking-wider">{user.role}</span>
-              </p>
-            </div>
+            {/* Bấm vào tên/avatar → trang Thông tin cá nhân (sửa tên, đổi email, đổi mật khẩu) */}
+            <Link
+              href="/admin/profile"
+              className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md transition-colors hover:bg-muted/70"
+              title="Thông tin cá nhân"
+            >
+              {user.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element -- avatar admin (Cloudinary)
+                <img src={user.avatar} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+              ) : (
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-linear-to-br from-brand-primary/15 to-brand-accent/15 text-xs font-bold text-brand-primary">
+                  {user.name?.[0]?.toUpperCase() ?? "A"}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold">{user.name}</p>
+                <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <Sparkles className="h-2.5 w-2.5 text-brand-primary" />
+                  <span className="font-medium uppercase tracking-wider">{user.role}</span>
+                </p>
+              </div>
+            </Link>
             <ThemeToggle className="h-8 w-8 shrink-0" />
           </div>
         )}

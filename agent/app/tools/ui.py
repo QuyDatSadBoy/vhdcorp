@@ -12,7 +12,7 @@ import contextvars
 from langchain_core.tools import tool
 
 from app.tools.base import catch_tool_errors
-from app.tools.products import find_product_by_slug, find_products, format_price
+from app.tools.products import find_product_by_slug, find_products, format_price, load_catalog_live
 
 # Channel truyền lệnh render (mỗi lượt chat 1 list riêng để tránh rò rỉ giữa request).
 _ui_queue: contextvars.ContextVar[list[dict] | None] = contextvars.ContextVar(
@@ -39,8 +39,10 @@ def push_ui(component: str, props: dict) -> None:
 def product_to_props(p: dict) -> dict:
     """Chuẩn hóa 1 sản phẩm catalog → props FE (price là số VND, slug để build link)."""
     return {
+        "id": p.get("id"),
         "name": p.get("name", ""),
-        "price": p.get("price"),  # số nguyên VND
+        "price": p.get("price"),  # số nguyên VND (đã là giá KM nếu đang giảm)
+        "originalPrice": p.get("original_price"),  # giá gốc khi đang KM — FE hiện gạch ngang
         "image": p.get("image") or p.get("image_url") or "",  # catalog hiện chưa có ảnh
         "slug": p.get("slug", ""),
         "stock": p.get("stock", 0),
@@ -89,6 +91,7 @@ async def show_product_carousel(query: str) -> str:
     """Hiển thị CAROUSEL sản phẩm trực quan cho khách (thẻ có ảnh, giá, link).
     Dùng khi khách muốn XEM/DUYỆT sản phẩm hoặc hỏi 'có những sản phẩm gì'.
     query là từ khóa danh mục/tên (vd: 'cao su', 'ống nhựa', 'đặc sản', 'nón lá')."""
+    await load_catalog_live()
     products = find_products(query, limit=8)
     push_ui("product-carousel", {"products": [product_to_props(p) for p in products]})
     if not products:
@@ -139,6 +142,7 @@ async def show_quote_form(product_name: str = "") -> str:
 async def show_comparison(product_names: list[str]) -> str:
     """Hiển thị BẢNG SO SÁNH nhiều sản phẩm (giá, tồn kho, danh mục).
     Dùng khi khách muốn so sánh 2+ sản phẩm. product_names là list tên/slug sản phẩm."""
+    await load_catalog_live()
     found: list[dict] = []
     for name in product_names or []:
         p = find_product_by_slug(name) or (find_products(name, limit=1) or [None])[0]

@@ -28,9 +28,10 @@ def test_trim_drops_orphan_tool_message():
         HumanMessage(content="hỏi tiếp"),
     ]
     window = memory.trim(messages)
-    # Cửa sổ 3 cuối bắt đầu bằng ToolMessage mồ côi → bị loại
+    # Cửa sổ phải bắt đầu bằng HumanMessage (Gemini yêu cầu function-call
+    # đứng sau user/function-response) → ToolMessage + AIMessage lẻ bị loại
     assert not isinstance(window[0], ToolMessage)
-    assert len(window) == 2
+    assert len(window) == 1
 
 
 def test_short_term_patches_dangling_tool_call():

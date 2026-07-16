@@ -5,8 +5,8 @@ import { Check } from "lucide-react";
 import type { ComparisonTableSection } from "@/types/site-config";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_COLUMNS = ["Standard", "Premium", "Enterprise B2B"];
-const DEFAULT_ROWS: NonNullable<ComparisonTableSection["props"]["rows"]> = [
+export const DEFAULT_COMPARISON_COLUMNS = ["Standard", "Premium", "Enterprise B2B"];
+export const DEFAULT_COMPARISON_ROWS: NonNullable<ComparisonTableSection["props"]["rows"]> = [
   { label: "MOQ tối thiểu", values: ["1 sản phẩm", "100 sản phẩm", "1.000 sản phẩm"] },
   { label: "Giảm giá theo khối lượng", values: ["Không", "5-10%", "15-25%"] },
   { label: "Giao hàng nội thành", values: ["3-5 ngày", "24h", "Theo lịch định kỳ"] },
@@ -37,8 +37,8 @@ function CellValue({ v }: { v: string }) {
 
 export default function ComparisonTable({ section }: { section: ComparisonTableSection }) {
   const p = section.props;
-  const columns = p.columnHeaders?.length ? p.columnHeaders : DEFAULT_COLUMNS;
-  const rows = p.rows?.length ? p.rows : DEFAULT_ROWS;
+  const columns = p.columnHeaders?.length ? p.columnHeaders : DEFAULT_COMPARISON_COLUMNS;
+  const rows = p.rows?.length ? p.rows : DEFAULT_COMPARISON_ROWS;
 
   return (
     <section className="relative bg-(--vhd-color-surface)/40 dark:bg-white/[0.03] py-24">

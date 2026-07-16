@@ -34,7 +34,7 @@ _CACHE_MAX = 64
 def _get_client() -> httpx.AsyncClient:
     global _client
     if _client is None or _client.is_closed:
-        _client = httpx.AsyncClient(timeout=30)
+        _client = httpx.AsyncClient(timeout=15)
     return _client
 
 

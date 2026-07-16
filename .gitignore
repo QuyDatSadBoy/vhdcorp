@@ -106,3 +106,4 @@ agent/data/*.sqlite
 agent/data/*.sqlite3
 agent/**/__pycache__/
 agent/.pytest_cache/
+.opencode

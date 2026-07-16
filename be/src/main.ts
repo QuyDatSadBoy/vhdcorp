@@ -53,7 +53,8 @@ async function bootstrap() {
         ]
       : (origin, callback) => callback(null, origin ?? true),
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type,Authorization,X-CSRF-TOKEN,X-Requested-With',
+    allowedHeaders:
+      'Content-Type,Authorization,X-CSRF-TOKEN,X-Requested-With,X-Session-Scope',
     exposedHeaders: 'Content-Disposition',
     credentials: true,
   });

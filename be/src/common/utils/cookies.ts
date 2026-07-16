@@ -3,6 +3,26 @@ import { Response } from 'express';
 export const ACCESS_COOKIE = 'access_token';
 export const REFRESH_COOKIE = 'refresh_token';
 
+/**
+ * Phiên ADMIN và phiên KHÁCH dùng 2 bộ cookie riêng — mở 2 tab (1 admin, 1 khách)
+ * trong cùng trình duyệt không còn đè phiên/đăng xuất chéo nhau.
+ * FE gửi header `X-Session-Scope: admin` khi đang ở trang /admin.
+ */
+export type SessionScope = 'client' | 'admin';
+
+export const cookieNamesFor = (scope: SessionScope) =>
+  scope === 'admin'
+    ? { access: 'admin_access_token', refresh: 'admin_refresh_token' }
+    : { access: ACCESS_COOKIE, refresh: REFRESH_COOKIE };
+
+/** Suy ra scope từ request (header do FE đặt theo trang đang mở) */
+export const requestScope = (req: {
+  headers?: Record<string, unknown>;
+}): SessionScope =>
+  String(req.headers?.['x-session-scope'] ?? '') === 'admin'
+    ? 'admin'
+    : 'client';
+
 interface CookieEnv {
   NODE_ENV?: string;
   COOKIE_DOMAIN?: string;
@@ -41,6 +61,7 @@ export const setAuthCookies = (
   res: Response,
   accessToken: string,
   refreshToken: string,
+  scope: SessionScope = 'client',
   envInput: CookieEnv | NodeJS.ProcessEnv = process.env,
 ) => {
   const env = readEnv(envInput);
@@ -50,16 +71,19 @@ export const setAuthCookies = (
     7 * 24 * 60 * 60 * 1000,
   );
   const opts = baseCookieOptions(env);
-  res.cookie(ACCESS_COOKIE, accessToken, { ...opts, maxAge: accessMs });
-  res.cookie(REFRESH_COOKIE, refreshToken, { ...opts, maxAge: refreshMs });
+  const names = cookieNamesFor(scope);
+  res.cookie(names.access, accessToken, { ...opts, maxAge: accessMs });
+  res.cookie(names.refresh, refreshToken, { ...opts, maxAge: refreshMs });
 };
 
 export const clearAuthCookies = (
   res: Response,
+  scope: SessionScope = 'client',
   envInput: CookieEnv | NodeJS.ProcessEnv = process.env,
 ) => {
   const env = readEnv(envInput);
   const opts = baseCookieOptions(env);
-  res.clearCookie(ACCESS_COOKIE, opts);
-  res.clearCookie(REFRESH_COOKIE, opts);
+  const names = cookieNamesFor(scope);
+  res.clearCookie(names.access, opts);
+  res.clearCookie(names.refresh, opts);
 };

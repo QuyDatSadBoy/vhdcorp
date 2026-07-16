@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { MessageSquareText, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { Bot, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { useSiteConfigStore } from "@/store/site-config.store";
 import { cn } from "@/lib/utils";
 import ChatInput from "./chat-input";
 import ConversationSidebar from "./conversation-sidebar";
@@ -14,9 +15,19 @@ import { useChat } from "./use-chat";
  * (sidebar hội thoại + khung chat streaming). Desktop popup ~800×620,
  * mobile (<640px) full-screen.
  */
+const HINT_KEY = "vhd_chat_hint_seen";
+
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  /** Bong bóng chào lần đầu — chỉ dẫn user biết đây là trợ lý AI */
+  const [showHint, setShowHint] = useState(false);
+  /** Ảnh mascot AI (fe/public/images/ai-agent.png) — thiếu thì fallback icon robot */
+  const [mascotOk, setMascotOk] = useState(true);
+  // Tên trợ lý theo brand trong Cài đặt site — đổi tên site là widget đổi theo
+  const siteName = useSiteConfigStore((st) => st.config?.brand?.siteName) || "VHD";
+  // Icon mascot admin cấu hình (Cài đặt site → Brand) — fallback file mặc định
+  const assistantIcon = useSiteConfigStore((st) => st.config?.brand?.assistantIcon?.url) || "/images/ai-agent.png";
   const panelRef = useRef<HTMLDivElement>(null);
   const chat = useChat();
 
@@ -50,6 +61,32 @@ export default function ChatWidget() {
     void chat.init();
   }, [chat]);
 
+  // Khách lần đầu: desktop TỰ MỞ trợ lý sau 2.5s (thấy ngay câu hỏi mẫu);
+  // mobile chỉ hiện bong bóng chào (tự mở full-screen sẽ che mất nội dung).
+  useEffect(() => {
+    if (typeof window === "undefined" || localStorage.getItem(HINT_KEY)) return;
+    const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
+    if (isDesktop) {
+      const t = setTimeout(() => {
+        localStorage.setItem(HINT_KEY, "1");
+        openPanel();
+      }, 2500);
+      return () => clearTimeout(t);
+    }
+    const show = setTimeout(() => setShowHint(true), 1500);
+    const hide = setTimeout(() => setShowHint(false), 16_500);
+    return () => {
+      clearTimeout(show);
+      clearTimeout(hide);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy 1 lần khi mount
+  }, []);
+
+  const dismissHint = () => {
+    setShowHint(false);
+    if (typeof window !== "undefined") localStorage.setItem(HINT_KEY, "1");
+  };
+
   // Esc đóng panel
   useEffect(() => {
     if (!open) return;
@@ -67,18 +104,75 @@ export default function ChatWidget() {
   return (
     <>
       {/* ─── Nút chat nổi (vị trí bottom-right chính) ─────────────── */}
+      {/* Bong bóng chào lần đầu — chỉ dẫn user biết có trợ lý AI */}
+      <AnimatePresence>
+        {showHint && !open && (
+          <motion.div
+            suppressHydrationWarning
+            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            className="fixed bottom-7 right-24 z-50 w-64 rounded-2xl rounded-br-sm border border-brand-primary/20 bg-background p-3.5 shadow-2xl"
+          >
+            <button
+              type="button"
+              onClick={dismissHint}
+              aria-label="Đóng gợi ý"
+              className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-foreground text-background shadow"
+            >
+              <X className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                dismissHint();
+                openPanel();
+              }}
+              className="text-left"
+            >
+              <p className="text-sm font-bold text-foreground">👋 Chào bạn! Tôi là trợ lý AI của VHD</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Hỏi giá, tìm sản phẩm (kể cả bằng ảnh), đặt hàng hay để lại liên hệ — tôi trả lời ngay 24/7.
+              </p>
+              <span className="mt-2 inline-block text-xs font-semibold text-brand-primary">Bấm để trò chuyện →</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Nhãn nhỏ "Trợ lý AI" luôn hiện cạnh nút (desktop) để user biết chức năng */}
+      {!open && (
+        <span
+          aria-hidden
+          className="fixed bottom-10 right-22 z-40 hidden rounded-full bg-foreground/85 px-2.5 py-1 text-[11px] font-semibold text-background shadow-lg backdrop-blur sm:block"
+        >
+          Trợ lý AI
+        </span>
+      )}
       <motion.button
         type="button"
-        onClick={() => (open ? setOpen(false) : openPanel())}
+        onClick={() => {
+          dismissHint();
+          return open ? setOpen(false) : openPanel();
+        }}
         aria-label={open ? "Đóng trợ lý VHD" : "Mở trợ lý VHD"}
         aria-expanded={open}
         initial={{ opacity: 0, scale: 0.6 }}
         animate={{ opacity: 1, scale: 1 }}
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.94 }}
-        className="fixed bottom-6 right-6 z-50 grid h-14 w-14 place-items-center rounded-full bg-linear-to-br from-brand-primary to-brand-accent text-white shadow-xl ring-4 ring-brand-primary/20 animate-cta-glow"
+        className="fixed bottom-6 right-6 z-50 grid h-15 w-15 place-items-center rounded-full p-[3px] shadow-xl animate-cta-glow [background:conic-gradient(from_210deg,#F5A623,#1B3A8C_40%,#C8102E_75%,#F5A623)]"
       >
-        {open ? <X className="h-6 w-6" aria-hidden /> : <MessageSquareText className="h-6 w-6" aria-hidden />}
+        <span className="grid h-full w-full place-items-center overflow-hidden rounded-full bg-white">
+          {open ? (
+            <X className="h-6 w-6 text-brand-primary" aria-hidden />
+          ) : mascotOk ? (
+            // Mascot AI của VHD — thay ảnh tại fe/public/images/ai-agent.png
+            // eslint-disable-next-line @next/next/no-img-element -- mascot nhỏ, tự fallback icon
+            <img src={assistantIcon} alt="" className="h-full w-full object-cover" onError={() => setMascotOk(false)} />
+          ) : (
+            <Bot className="h-7 w-7 text-brand-primary" aria-hidden />
+          )}
+        </span>
         {/* Badge chấm xanh "online" */}
         {!open && (
           <span className="absolute right-0.5 top-0.5 flex h-3.5 w-3.5" aria-hidden>
@@ -132,7 +226,7 @@ export default function ChatWidget() {
                 VHD
               </span>
               <div className="min-w-0 flex-1 leading-tight">
-                <p className="truncate font-heading text-sm font-bold">Trợ lý VHD</p>
+                <p className="truncate font-heading text-sm font-bold">Trợ lý {siteName}</p>
                 <p className="flex items-center gap-1.5 text-[11px] text-white/80">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
                   AI · trả lời tức thì

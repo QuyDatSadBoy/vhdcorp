@@ -113,6 +113,23 @@ export class ProductService {
     return product;
   }
 
+  /** Lấy nhiều sản phẩm PUBLISHED theo danh sách id — giữ nguyên thứ tự truyền vào */
+  async findManyPublishedByIds(ids: number[]) {
+    if (ids.length === 0) return [];
+    const products = await this.prisma.product.findMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+        status: ProductStatus.PUBLISHED,
+      },
+      include: { category: { select: { id: true, name: true, slug: true } } },
+    });
+    const order = new Map(ids.map((id, i) => [id, i]));
+    return products.sort(
+      (a, b) => (order.get(a.id) ?? 99) - (order.get(b.id) ?? 99),
+    );
+  }
+
   /** Sản phẩm liên quan: cùng category, khác id, PUBLISHED */
   async related(productId: number, take = 8) {
     const current = await this.findById(productId);
@@ -140,6 +157,8 @@ export class ProductService {
         slug,
         description: dto.description,
         price: dto.price,
+        salePrice: dto.salePrice || null,
+        saleEndsAt: dto.saleEndsAt ? new Date(dto.saleEndsAt) : null,
         stock: dto.stock ?? 0,
         images: dto.images,
         categoryId: dto.categoryId,
@@ -168,6 +187,14 @@ export class ProductService {
         slug,
         description: dto.description,
         price: dto.price,
+        salePrice:
+          dto.salePrice !== undefined ? dto.salePrice || null : undefined,
+        saleEndsAt:
+          dto.saleEndsAt !== undefined
+            ? dto.saleEndsAt
+              ? new Date(dto.saleEndsAt)
+              : null
+            : undefined,
         stock: dto.stock,
         images: dto.images,
         categoryId: dto.categoryId,
@@ -179,6 +206,51 @@ export class ProductService {
     });
     this.agent.notifyProductsChanged();
     return updated;
+  }
+
+  /**
+   * Autocomplete: khớp tên/mô tả/danh mục KHÔNG DẤU (unaccent) — trả top 6
+   * kèm giá + giá KM + ảnh để render dropdown gợi ý.
+   */
+  async suggest(q: string) {
+    const query = q.trim();
+    if (query.length < 1) return [];
+    const like = `%${query}%`;
+    const rows = await this.prisma.$queryRaw<
+      {
+        id: number;
+        slug: string;
+        name: string;
+        price: unknown;
+        salePrice: unknown;
+        saleEndsAt: Date | null;
+        images: string[];
+        category_name: string | null;
+      }[]
+    >`
+      SELECT p.id, p.slug, p.name, p.price, p."salePrice", p."saleEndsAt", p.images,
+             c.name AS category_name
+      FROM products p
+      LEFT JOIN categories c ON c.id = p."categoryId"
+      WHERE p.status = 'PUBLISHED' AND p."deletedAt" IS NULL
+        AND (
+          unaccent(lower(p.name)) LIKE unaccent(lower(${like}))
+          OR unaccent(lower(c.name)) LIKE unaccent(lower(${like}))
+          OR unaccent(lower(p.description)) LIKE unaccent(lower(${like}))
+        )
+      ORDER BY (unaccent(lower(p.name)) LIKE unaccent(lower(${like}))) DESC, p."createdAt" DESC
+      LIMIT 6
+    `;
+    return rows.map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      name: r.name,
+      price: r.price,
+      salePrice: r.salePrice,
+      saleEndsAt: r.saleEndsAt,
+      image: r.images?.[0] ?? '',
+      category: r.category_name ?? '',
+    }));
   }
 
   async softDelete(id: number) {

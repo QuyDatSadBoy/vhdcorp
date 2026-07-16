@@ -21,7 +21,7 @@ export const setSessionHint = (on: boolean) => {
   else localStorage.removeItem(SESSION_HINT_KEY);
 };
 
-const authApi = {
+export const authApi = {
   // Anonymous user trả về null thay vì throw — tránh nhiễu log 401 trên trang public.
   me: async (): Promise<AuthUser | null> => {
     if (!hasSessionHint()) return null;
@@ -42,6 +42,14 @@ const authApi = {
     axios.post<{ data: { user: AuthUser } }>("/auth/register", payload).then(unwrap),
   google: (idToken: string) => axios.post<{ data: { user: AuthUser } }>("/auth/google", { idToken }).then(unwrap),
   logout: () => axios.post("/auth/logout").then(() => undefined),
+  verifyEmail: (payload: { email: string; code: string }) =>
+    axios.post<{ data: { user: AuthUser } }>("/auth/verify-email", payload).then(unwrap),
+  resendVerification: (email: string) =>
+    axios.post<{ data: { message: string } }>("/auth/resend-verification", { email }).then(unwrap),
+  forgotPassword: (email: string) =>
+    axios.post<{ data: { message: string } }>("/auth/forgot-password", { email }).then(unwrap),
+  resetPassword: (payload: { email: string; code: string; newPassword: string }) =>
+    axios.post<{ data: { message: string } }>("/auth/reset-password", payload).then(unwrap),
 };
 
 export function useMe(enabled = true) {
@@ -77,9 +85,15 @@ export function useAdminLogin() {
 }
 
 export function useRegister() {
+  // Đăng ký KHÔNG auto-login — user phải xác minh email bằng mã OTP trước
+  return useMutation({ mutationFn: authApi.register });
+}
+
+export function useVerifyEmail() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: authApi.register,
+    mutationFn: authApi.verifyEmail,
+    // Verify thành công = BE set cookie đăng nhập luôn
     onSuccess: (result) => {
       setSessionHint(true);
       qc.setQueryData(authKeys.me, result.user);

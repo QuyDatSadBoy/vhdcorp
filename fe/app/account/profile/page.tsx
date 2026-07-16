@@ -17,6 +17,8 @@ export default function ProfilePage() {
   const setUser = useAuthStore((s) => s.setUser);
   const [name, setName] = useState(user?.name ?? "");
   const [avatar, setAvatar] = useState(user?.avatar ?? "");
+  const [phone, setPhone] = useState(user?.phone ?? "");
+  const [address, setAddress] = useState(user?.address ?? "");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -25,6 +27,8 @@ export default function ProfilePage() {
     if (user) {
       setName(user.name ?? "");
       setAvatar(user.avatar ?? "");
+      setPhone(user.phone ?? "");
+      setAddress(user.address ?? "");
     }
   }, [user]);
 
@@ -33,7 +37,10 @@ export default function ProfilePage() {
       setUploading(true);
       const media = await uploadToCloudinary(file, "avatars");
       setAvatar(media.url);
-      toast.success("Tải ảnh thành công");
+      // LƯU NGAY vào hồ sơ — không bắt user phải bấm "Lưu thay đổi" nữa (reload không mất)
+      const { data } = await axios.put("/users/me", { avatar: media.url });
+      setUser(data?.data ?? { ...user!, avatar: media.url });
+      toast.success("Đã cập nhật ảnh đại diện");
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Tải ảnh thất bại");
     } finally {
@@ -45,8 +52,8 @@ export default function ProfilePage() {
     e?.preventDefault();
     try {
       setSaving(true);
-      const { data } = await axios.put("/users/me", { name, avatar });
-      setUser(data?.data ?? { ...user!, name, avatar });
+      const { data } = await axios.put("/users/me", { name, avatar, phone, address });
+      setUser(data?.data ?? { ...user!, name, avatar, phone, address });
       toast.success("Đã lưu hồ sơ");
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Lưu thất bại");
@@ -115,6 +122,29 @@ export default function ProfilePage() {
             <Label htmlFor="name">Họ tên</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="phone">Số điện thoại</Label>
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="VD: 0901 234 567"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Địa chỉ giao hàng</Label>
+              <Input
+                id="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="VD: 12 Nguyễn Huệ, Quận 1, TP.HCM"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            SĐT + địa chỉ sẽ được tự điền sẵn khi bạn đặt hàng — đặt đơn chỉ mất vài giây.
+          </p>
           <Button type="submit" disabled={saving}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Lưu thay đổi

@@ -10,7 +10,12 @@ export interface AuthUser {
   name: string;
   role: Role;
   avatar?: string | null;
+  phone?: string | null;
+  address?: string | null;
   googleId?: string | null;
+  /** Tài khoản quản trị tối cao */
+  isRoot?: boolean;
+  emailVerifiedAt?: string | null;
   createdAt?: string;
 }
 

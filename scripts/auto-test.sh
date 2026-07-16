@@ -83,17 +83,17 @@ check "Post detail has content"   "$(expect_body "$API/posts/slug/$PSLUG" '"cont
 hr; log "[4] Auth flow — admin email/password login"
 LOGIN_BODY=$(curl -s -c "$COOK" -X POST "$API/auth/admin/login" \
   -H 'Content-Type: application/json' \
-  -d '{"email":"admin@vhdcorp.com","password":"admin123"}')
+  -d '{"email":"vhdcorp.contact@gmail.com","password":"admin123"}')
 echo "$LOGIN_BODY" | grep -q '"role":"ADMIN"' && check "admin login returns ADMIN role" "ok" || check "admin login returns ADMIN role" "missing role:ADMIN"
 check "access_token cookie set"  "$(grep -q access_token "$COOK" && echo ok || echo no-cookie)"
 check "refresh_token cookie set" "$(grep -q refresh_token "$COOK" && echo ok || echo no-cookie)"
 check "GET /auth/me 200"         "$(expect_code GET "$API/auth/me" 200)"
-check "GET /auth/me email match" "$(expect_body "$API/auth/me" 'admin@vhdcorp.com')"
+check "GET /auth/me email match" "$(expect_body "$API/auth/me" 'vhdcorp.contact@gmail.com')"
 
 hr; log "[5] Bad-creds login should be 401"
 BAD=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/auth/admin/login" \
   -H 'Content-Type: application/json' \
-  -d '{"email":"admin@vhdcorp.com","password":"WRONG"}')
+  -d '{"email":"vhdcorp.contact@gmail.com","password":"WRONG"}')
 [[ "$BAD" == "401" || "$BAD" == "400" ]] && check "wrong password rejected (4xx)" "ok" || check "wrong password rejected (4xx)" "got $BAD"
 
 hr; log "[6] Authenticated admin endpoints"
@@ -187,7 +187,7 @@ echo "$HTML" | grep -q 'BreadcrumbList'  && check "BreadcrumbList JSON-LD" "ok" 
 hr; log "[15] Cloudinary signed-upload endpoint reachable"
 # admin login again for media test
 curl -s -c "$COOK" -X POST "$API/auth/admin/login" -H 'Content-Type: application/json' \
-  -d '{"email":"admin@vhdcorp.com","password":"admin123"}' >/dev/null
+  -d '{"email":"vhdcorp.contact@gmail.com","password":"admin123"}' >/dev/null
 SIGN=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOK" -X POST "$API/media/sign" -H 'Content-Type: application/json' -d '{"folder":"products"}')
 [[ "$SIGN" =~ ^[24] ]] && check "POST /media/sign reachable ($SIGN)" "ok" || check "/media/sign" "got $SIGN"
 

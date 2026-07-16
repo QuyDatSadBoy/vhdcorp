@@ -22,7 +22,8 @@ async def send_contact_request(
 ) -> str:
     """Gửi yêu cầu liên hệ/báo giá của khách hàng tới đội ngũ VHD Corp.
     CHỈ gọi khi khách đã đồng ý và đã cung cấp đủ: tên (name), email và nội dung (message).
-    phone, subject là tùy chọn. Sau khi gửi thành công, xác nhận lại với khách."""
+    LƯU Ý: phone (số điện thoại) là BẮT BUỘC — nếu khách chưa cho, hãy hỏi xin SĐT
+    trước khi gọi tool. subject là tùy chọn. Sau khi gửi thành công, xác nhận lại với khách."""
     settings = get_settings()
     payload: dict = {
         "name": name.strip()[:100],

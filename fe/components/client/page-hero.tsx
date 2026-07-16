@@ -12,13 +12,15 @@ interface PageHeroProps {
   description?: string;
   breadcrumbs?: BreadcrumbItem[];
   variant?: "light" | "dark";
+  /** Ảnh nền hero (admin cấu hình trong Builder — khối cố định) */
+  bgImage?: string;
 }
 
 /**
  * Page hero — dùng cho mọi trang nội dung (list/detail/info) để giữ nhất quán visual hierarchy:
  * eyebrow brand-accent → display heading brand-primary (hoặc white nếu dark) → underline yellow → description.
  */
-export function PageHero({ eyebrow, title, description, breadcrumbs, variant = "light" }: PageHeroProps) {
+export function PageHero({ eyebrow, title, description, breadcrumbs, variant = "light", bgImage }: PageHeroProps) {
   const isDark = variant === "dark";
   return (
     <section
@@ -29,7 +31,21 @@ export function PageHero({ eyebrow, title, description, breadcrumbs, variant = "
           : "border-b border-foreground/8 bg-(--vhd-color-surface)/60 dark:bg-white/[0.04]")
       }
     >
-      {isDark && (
+      {bgImage && (
+        <>
+          {/* Ảnh nền admin cấu hình + overlay tối đảm bảo chữ luôn đọc được */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${bgImage})` }}
+          />
+          <div
+            aria-hidden
+            className={"pointer-events-none absolute inset-0 " + (isDark ? "bg-brand-primary/70" : "bg-background/80")}
+          />
+        </>
+      )}
+      {isDark && !bgImage && (
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-25 [background:radial-gradient(60%_55%_at_85%_30%,color-mix(in_srgb,var(--vhd-color-accent)_40%,transparent)_0%,transparent_70%),radial-gradient(45%_45%_at_15%_80%,color-mix(in_srgb,var(--vhd-color-highlight)_30%,transparent)_0%,transparent_70%)]"

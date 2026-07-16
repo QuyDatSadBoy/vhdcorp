@@ -56,17 +56,46 @@ model User {
   name             String    @default("")
   role             Role      @default(CUSTOMER)
   avatar           String?
+  /// SĐT + địa chỉ giao hàng — gợi ý tự điền khi khách đặt đơn
+  phone            String?
+  address          String?
   googleId         String?   @unique
   refreshTokenHash String?
+  /// Tài khoản quản trị TỐI CAO — không ai xóa/đổi role/reset mật khẩu được (kể cả ADMIN khác)
+  isRoot           Boolean   @default(false)
+  /// Thời điểm xác minh email (đăng ký phải xác minh bằng mã OTP gửi về email thật)
+  emailVerifiedAt  DateTime?
+  /// Mã xác minh email (bcrypt hash) + hạn dùng
+  verifyCodeHash      String?
+  verifyCodeExpiresAt DateTime?
+  /// Mã quên mật khẩu (bcrypt hash) + hạn dùng
+  resetCodeHash      String?
+  resetCodeExpiresAt DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   deletedAt        DateTime?
 
+  orders  Order[]
   reviews Review[]
   posts   Post[]
 
   @@index([deletedAt])
   @@map("users")
+}
+
+/// Sự kiện xem sản phẩm — nền tảng tracking & recommendation (khách nhận diện bằng sessionId từ localStorage)
+model ViewEvent {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sessionId String
+  userId    Int?
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("view_events")
 }
 
 // ─── Category (cây đa cấp) ─────────────────────────────────────────────────
@@ -101,6 +130,9 @@ model Product {
   name        String
   description String        @db.Text
   price       Decimal       @db.Decimal(12, 2)
+  /// Giá khuyến mãi (kiểu Shopee) — hiển thị khi có giá trị và saleEndsAt còn hạn
+  salePrice   Decimal?      @db.Decimal(12, 2)
+  saleEndsAt  DateTime?
   stock       Int           @default(0)
   images      String[]
   categoryId  Int
@@ -113,7 +145,9 @@ model Product {
   updatedAt   DateTime      @updatedAt
   deletedAt   DateTime?
 
-  reviews Review[]
+  reviews    Review[]
+  viewEvents ViewEvent[]
+  orderItems OrderItem[]
 
   @@index([categoryId])
   @@index([status])
@@ -254,4 +288,87 @@ model SiteConfigHistory {
 
   @@index([configId])
   @@map("site_config_histories")
+}
+
+
+/// ── Voucher giảm giá (admin quản lý: loại %/tiền, hạn, số lượt) ──
+enum VoucherType {
+  PERCENT
+  FIXED
+}
+
+model Voucher {
+  id        Int         @id @default(autoincrement())
+  code      String      @unique
+  type      VoucherType @default(PERCENT)
+  /// PERCENT: 1-100 (%); FIXED: số tiền VND
+  value     Decimal     @db.Decimal(12, 2)
+  /// Giá trị đơn tối thiểu để áp dụng (VND) — 0 = không giới hạn
+  minOrder  Decimal     @default(0) @db.Decimal(12, 2)
+  /// Tổng số lượt dùng tối đa — 0 = không giới hạn
+  maxUses   Int         @default(0)
+  usedCount Int         @default(0)
+  startsAt  DateTime    @default(now())
+  endsAt    DateTime
+  active    Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  orders Order[]
+
+  @@index([code, active])
+  @@map("vouchers")
+}
+
+/// ── Đơn hàng (không thanh toán online — admin nhận mail và liên hệ chốt) ──
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPING
+  DONE
+  CANCELLED
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  /// Mã đơn hiển thị cho khách (VHD-xxxxx)
+  code        String      @unique
+  name        String
+  email       String
+  phone       String
+  address     String
+  note        String?     @db.Text
+  status      OrderStatus @default(PENDING)
+  /// Tổng tiền hàng trước giảm (snapshot server-side)
+  subtotal    Decimal     @db.Decimal(14, 2)
+  discount    Decimal     @default(0) @db.Decimal(14, 2)
+  total       Decimal     @db.Decimal(14, 2)
+  voucherId   Int?
+  voucher     Voucher?    @relation(fields: [voucherId], references: [id])
+  voucherCode String?
+  userId      Int?
+  user        User?       @relation(fields: [userId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  items OrderItem[]
+
+  @@index([status])
+  @@index([email])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  /// Snapshot tại thời điểm đặt — đổi giá sau này không ảnh hưởng đơn cũ
+  name      String
+  price     Decimal @db.Decimal(12, 2)
+  qty       Int
+
+  @@index([orderId])
+  @@map("order_items")
 }

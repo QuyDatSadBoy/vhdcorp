@@ -9,6 +9,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { OAuth2Client } from 'google-auth-library';
+import { randomInt } from 'crypto';
+import { MailService } from '@service/mail/mail.service';
 import { PrismaService } from '@prisma/prisma.service';
 import { Role, User } from '@vhd/prisma-client';
 import { LoginDto } from './dto/login.dto';
@@ -27,7 +29,14 @@ interface JwtPayload {
 
 export type SafeUser = Omit<
   User,
-  'password' | 'refreshTokenHash' | 'deletedAt' | 'updatedAt'
+  | 'password'
+  | 'refreshTokenHash'
+  | 'deletedAt'
+  | 'updatedAt'
+  | 'verifyCodeHash'
+  | 'verifyCodeExpiresAt'
+  | 'resetCodeHash'
+  | 'resetCodeExpiresAt'
 >;
 
 const SAFE_USER_SELECT = {
@@ -36,7 +45,11 @@ const SAFE_USER_SELECT = {
   name: true,
   role: true,
   avatar: true,
+  phone: true,
+  address: true,
   googleId: true,
+  isRoot: true,
+  emailVerifiedAt: true,
   createdAt: true,
 } as const;
 
@@ -48,6 +61,7 @@ export class AuthenticationService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly mail: MailService,
   ) {
     const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
     const clientSecret = this.config.get<string>('GOOGLE_CLIENT_SECRET');
@@ -60,9 +74,11 @@ export class AuthenticationService {
     }
   }
 
-  async register(
-    dto: RegisterDto,
-  ): Promise<{ user: SafeUser; tokens: TokenPair }> {
+  /**
+   * Đăng ký: tạo tài khoản CHƯA xác minh + gửi mã OTP về email thật.
+   * KHÔNG auto-login — user phải nhập mã (verifyEmail) mới đăng nhập được.
+   */
+  async register(dto: RegisterDto): Promise<{ user: SafeUser }> {
     const existed = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -78,13 +94,135 @@ export class AuthenticationService {
       },
       select: SAFE_USER_SELECT,
     });
+    await this.issueOtp(user.id, user.email, user.name, 'verify');
+    return { user };
+  }
+
+  /** Sinh mã OTP 6 số, lưu bcrypt hash + hạn 10 phút, gửi email */
+  private async issueOtp(
+    userId: number,
+    email: string,
+    name: string,
+    purpose: 'verify' | 'reset',
+  ): Promise<void> {
+    const code = String(randomInt(100000, 1000000)); // 6 chữ số, crypto-safe
+    const hash = await bcrypt.hash(code, 10);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data:
+        purpose === 'verify'
+          ? { verifyCodeHash: hash, verifyCodeExpiresAt: expiresAt }
+          : { resetCodeHash: hash, resetCodeExpiresAt: expiresAt },
+    });
+    // Gửi mail nền — lỗi SMTP không chặn response (user có thể bấm gửi lại)
+    void this.mail
+      .sendOtpEmail(email, name, code, purpose)
+      .catch((e: Error) =>
+        this.loggerWarnMail(purpose, email, e?.message ?? String(e)),
+      );
+  }
+
+  private loggerWarnMail(purpose: string, email: string, msg: string): void {
+    // eslint-disable-next-line no-console -- cảnh báo gửi OTP thất bại, không throw
+    console.warn(
+      `[Auth] Gửi mail OTP (${purpose}) tới ${email} thất bại: ${msg}`,
+    );
+  }
+
+  /** Xác minh email bằng mã OTP → kích hoạt + đăng nhập luôn */
+  async verifyEmail(
+    email: string,
+    code: string,
+  ): Promise<{ user: SafeUser; tokens: TokenPair }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user || user.deletedAt)
+      throw new UnauthorizedException('Mã không đúng hoặc đã hết hạn');
+    if (user.emailVerifiedAt) {
+      // Đã xác minh rồi → coi như thành công, đăng nhập luôn
+    } else {
+      if (
+        !user.verifyCodeHash ||
+        !user.verifyCodeExpiresAt ||
+        user.verifyCodeExpiresAt < new Date() ||
+        !(await bcrypt.compare(code, user.verifyCodeHash))
+      ) {
+        throw new UnauthorizedException('Mã không đúng hoặc đã hết hạn');
+      }
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          emailVerifiedAt: new Date(),
+          verifyCodeHash: null,
+          verifyCodeExpiresAt: null,
+        },
+      });
+    }
     const tokens = await this.issueTokens({
       sub: user.id,
       email: user.email,
       role: user.role,
     });
     await this.persistRefreshHash(user.id, tokens.refreshToken);
-    return { user, tokens };
+    return { user: this.toSafeUser(user), tokens };
+  }
+
+  /** Gửi lại mã xác minh (luôn trả thông báo chung — không lộ email tồn tại) */
+  async resendVerification(email: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (user && !user.deletedAt && !user.emailVerifiedAt) {
+      await this.issueOtp(user.id, user.email, user.name, 'verify');
+    }
+    return {
+      message:
+        'Nếu email tồn tại và chưa xác minh, mã mới đã được gửi tới hộp thư',
+    };
+  }
+
+  /** Quên mật khẩu: gửi mã OTP về email (luôn trả thông báo chung) */
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (user && !user.deletedAt && user.password) {
+      await this.issueOtp(user.id, user.email, user.name, 'reset');
+    }
+    return {
+      message:
+        'Nếu email đã đăng ký, mã đặt lại mật khẩu đã được gửi tới hộp thư',
+    };
+  }
+
+  /** Đặt lại mật khẩu bằng mã OTP — thu hồi mọi phiên đăng nhập cũ */
+  async resetPassword(
+    email: string,
+    code: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (
+      !user ||
+      user.deletedAt ||
+      !user.resetCodeHash ||
+      !user.resetCodeExpiresAt ||
+      user.resetCodeExpiresAt < new Date() ||
+      !(await bcrypt.compare(code, user.resetCodeHash))
+    ) {
+      throw new UnauthorizedException('Mã không đúng hoặc đã hết hạn');
+    }
+    const hash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hash,
+        resetCodeHash: null,
+        resetCodeExpiresAt: null,
+        refreshTokenHash: null, // đăng xuất mọi thiết bị cũ
+        // Đặt lại mật khẩu qua email = đã chứng minh sở hữu email
+        emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
+      },
+    });
+    return {
+      message: 'Đặt lại mật khẩu thành công — hãy đăng nhập bằng mật khẩu mới',
+    };
   }
 
   async login(
@@ -104,6 +242,12 @@ export class AuthenticationService {
     }
     const ok = await bcrypt.compare(dto.password, user.password);
     if (!ok) throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+
+    if (!user.emailVerifiedAt && !user.googleId) {
+      throw new ForbiddenException(
+        'Email chưa được xác minh — vui lòng nhập mã đã gửi tới hộp thư (hoặc bấm gửi lại mã)',
+      );
+    }
 
     if (opts.isAdmin && user.role !== Role.ADMIN && user.role !== Role.STAFF) {
       throw new ForbiddenException('Tài khoản không có quyền quản trị');
@@ -215,6 +359,7 @@ export class AuthenticationService {
           avatar: profile.picture ?? null,
           googleId: profile.sub,
           role: Role.CUSTOMER,
+          emailVerifiedAt: new Date(), // email do Google xác thực sẵn
         },
       });
     } else if (!user.googleId) {
@@ -283,6 +428,7 @@ export class AuthenticationService {
           avatar: profile.picture ?? null,
           googleId: profile.googleId,
           role: Role.CUSTOMER,
+          emailVerifiedAt: new Date(), // email do Google xác thực sẵn
         },
       });
     } else if (!user.googleId) {
@@ -311,12 +457,20 @@ export class AuthenticationService {
       refreshTokenHash: _r,
       deletedAt: _d,
       updatedAt: _u,
+      verifyCodeHash: _v,
+      verifyCodeExpiresAt: _ve,
+      resetCodeHash: _rc,
+      resetCodeExpiresAt: _re,
       ...safe
     } = user;
     void _p;
     void _r;
     void _d;
     void _u;
+    void _v;
+    void _ve;
+    void _rc;
+    void _re;
     return safe;
   }
 }

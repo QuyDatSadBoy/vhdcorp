@@ -16,6 +16,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageFallback } from "@/components/client/image-fallback";
 import { PageHero } from "@/components/client/page-hero";
+import { PriceTag } from "@/components/client/price-tag";
+import { effectivePrice, saleActive } from "@/lib/price";
+import { useCartStore } from "@/store/cart.store";
+import { toast } from "sonner";
+import { ShoppingCart } from "lucide-react";
+import { useSiteConfigStore } from "@/store/site-config.store";
 
 interface ProductsPageClientProps {
   /** Trang 1 đã fetch server-side (SSR) — giúp link sản phẩm có mặt trong HTML đầu cho crawler. */
@@ -55,14 +61,21 @@ function ProductsContent({ initialData }: ProductsPageClientProps) {
   };
 
   const products = data?.records ?? [];
+  const addToCart = useCartStore((s) => s.add);
+  // Chữ hero admin sửa trong Builder (khối cố định trang Sản phẩm)
+  const fb = useSiteConfigStore((st) => st.config?.fixedBlocks?.products);
 
   return (
     <>
       <PageHero
-        eyebrow="Bộ sưu tập sản phẩm"
-        title="Sản phẩm VHD Corp"
-        description="Tổng kho ống nhựa PVC, tấm cao su kỹ thuật và đặc sản miến làng nghề Việt Nam — chất lượng đồng nhất, giao hàng toàn quốc cho khách hàng B2B/B2C."
+        eyebrow={fb?.eyebrow || "Bộ sưu tập sản phẩm"}
+        title={fb?.title || "Sản phẩm VHD Corp"}
+        description={
+          fb?.description ||
+          "Tổng kho ống nhựa PVC, tấm cao su kỹ thuật và đặc sản miến làng nghề Việt Nam — chất lượng đồng nhất, giao hàng toàn quốc cho khách hàng B2B/B2C."
+        }
         breadcrumbs={[{ label: "Trang chủ", href: "/" }, { label: "Sản phẩm" }]}
+        bgImage={fb?.heroImage}
       />
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8 grid gap-3 md:grid-cols-[1fr_240px_200px]">
@@ -148,9 +161,36 @@ function ProductsContent({ initialData }: ProductsPageClientProps) {
                     </div>
                     <CardContent className="p-4">
                       <h3 className="line-clamp-2 text-sm font-semibold">{p.name}</h3>
-                      {Number(p.price) > 0 && (
-                        <p className="mt-2 font-bold text-brand-primary">{Number(p.price).toLocaleString("vi-VN")} ₫</p>
-                      )}
+                      <div className="mt-2 flex items-end justify-between gap-2">
+                        {Number(p.price) > 0 ? <PriceTag product={p} /> : <span />}
+                        {Number(p.price) > 0 && p.stock > 0 && (
+                          <button
+                            type="button"
+                            aria-label={`Thêm ${p.name} vào giỏ`}
+                            title="Thêm vào giỏ"
+                            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-primary/10 text-brand-primary transition hover:bg-brand-primary hover:text-white"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              addToCart(
+                                {
+                                  productId: p.id,
+                                  slug: p.slug,
+                                  name: p.name,
+                                  image: p.images?.[0] ?? "",
+                                  price: Number(p.price),
+                                  salePrice: saleActive(p) ? effectivePrice(p) : null,
+                                  stock: p.stock,
+                                },
+                                1
+                              );
+                              toast.success(`Đã thêm "${p.name}" vào giỏ`);
+                            }}
+                          >
+                            <ShoppingCart className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 </Link>

@@ -12,6 +12,8 @@ export interface ChatProduct {
   name: string;
   /** VND, null = liên hệ báo giá */
   price: number | null;
+  /** Giá gốc khi đang khuyến mãi — hiện gạch ngang */
+  originalPrice?: number | null;
   /** URL ảnh; "" = không có → dùng placeholder brand */
   image: string;
   slug: string;

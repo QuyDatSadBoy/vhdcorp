@@ -24,6 +24,7 @@ import { Role } from '@vhd/prisma-client';
 import { ChangePasswordDto, UpdateMeDto } from './dto/update-me.dto';
 import { AdminResetPasswordDto, CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { SendMailDto } from './dto/send-mail.dto';
 
 @Controller('users')
 @ApiTags('User')
@@ -41,11 +42,16 @@ export class UserController {
     @Query('email') email?: string,
     @Query('orderBy') orderBy?: string,
     @Query('deletedOnly') deletedOnly?: string,
+    @Query('role') role?: string,
   ) {
+    const roleFilter = ['ADMIN', 'STAFF', 'CUSTOMER'].includes(role ?? '')
+      ? (role as Role)
+      : undefined;
     return this.userService.list({
       where: {
         // deletedOnly=true → thùng rác (chỉ user đã xóa, để khôi phục)
         deletedAt: deletedOnly === 'true' ? { not: null } : null,
+        ...(roleFilter ? { role: roleFilter } : {}),
         ...(email && email.trim() !== ''
           ? { email: { contains: email, mode: 'insensitive' } }
           : {}),
@@ -71,6 +77,16 @@ export class UserController {
     return this.userService.updateMe(user.sub, dto);
   }
 
+  /** Đổi email chính chủ — yêu cầu xác nhận mật khẩu hiện tại */
+  @Put('me/email')
+  @Roles(Role.ADMIN, Role.STAFF, Role.CUSTOMER)
+  async changeEmail(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: { newEmail: string; password: string },
+  ) {
+    return this.userService.changeEmail(user.sub, dto.newEmail, dto.password);
+  }
+
   @Put('me/password')
   @Roles(Role.ADMIN, Role.STAFF, Role.CUSTOMER)
   async changePassword(
@@ -93,6 +109,13 @@ export class UserController {
     @Body() body: { role: Role },
   ) {
     return this.userService.updateRole(current.sub, id, body.role);
+  }
+
+  /** Admin gửi email tới 1/nhiều/tất cả user — hỗ trợ biến {{name}}, {{email}} */
+  @Post('send-mail')
+  @Roles(Role.ADMIN)
+  async sendMail(@Body() dto: SendMailDto) {
+    return this.userService.sendBulkEmail(dto);
   }
 
   /** Admin sửa thông tin user (tên hiển thị) */

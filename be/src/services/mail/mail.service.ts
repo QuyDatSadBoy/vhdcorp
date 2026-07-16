@@ -1,5 +1,27 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '@prisma/prisma.service';
+
+/** Cấu hình email admin chỉnh trong Cài đặt site → tab Email (lưu trong SiteConfig.mail) */
+interface MailTemplateOverride {
+  subject?: string;
+  intro?: string;
+}
+interface MailConfig {
+  logoUrl?: string;
+  siteName?: string;
+  tagline?: string;
+  address?: string;
+  copyright?: string;
+  footerNote?: string;
+  templates?: {
+    contactNotify?: MailTemplateOverride;
+    contactConfirm?: MailTemplateOverride;
+    orderNotify?: MailTemplateOverride;
+    orderConfirm?: MailTemplateOverride;
+    otp?: { intro?: string };
+  };
+}
 import { randomUUID } from 'node:crypto';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
@@ -12,6 +34,21 @@ export interface ContactMailPayload {
   phone?: string | null;
   subject?: string | null;
   message: string;
+}
+
+/** Dữ liệu đơn hàng tối thiểu để render email (tương thích Prisma Order + items) */
+export interface OrderMailPayload {
+  code: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  note?: string | null;
+  subtotal: unknown;
+  discount: unknown;
+  total: unknown;
+  voucherCode?: string | null;
+  items: { name: string; price: unknown; qty: number }[];
 }
 
 /** Kết quả render 1 email: đủ subject + html + text (plain-text alternative) */
@@ -62,7 +99,14 @@ export class MailService {
   private readonly transporter: Transporter;
   private readonly dryRun: boolean;
 
-  constructor(private config: ConfigService) {
+  /** Cache cấu hình mail từ DB — refresh mỗi lần gửi (TTL 60s) */
+  private mailCfg: MailConfig = {};
+  private mailCfgAt = 0;
+
+  constructor(
+    private config: ConfigService,
+    private prisma: PrismaService,
+  ) {
     const host = this.config.get<string>('SMTP_HOST');
     const user = this.config.get<string>('SMTP_USER');
     const pass = this.config.get<string>('SMTP_PASS');
@@ -89,6 +133,7 @@ export class MailService {
 
   /** Thông báo liên hệ mới cho admin (ADMIN_EMAIL). Reply-To = email khách. */
   async sendContactNotification(contact: ContactMailPayload): Promise<void> {
+    await this.refreshMailConfig();
     const adminEmail = this.config.get<string>('ADMIN_EMAIL');
     if (!adminEmail) {
       this.logger.warn('ADMIN_EMAIL trống — bỏ qua email thông báo admin');
@@ -107,9 +152,199 @@ export class MailService {
 
   /** Email xác nhận đã nhận yêu cầu, gửi cho khách. Reply-To = VHD. */
   async sendContactConfirmation(contact: ContactMailPayload): Promise<void> {
+    await this.refreshMailConfig();
     const { subject, html, text } = this.buildContactConfirmation(contact);
     await this.send({
       to: contact.email,
+      subject,
+      html,
+      text,
+      replyTo: this.getFrom(),
+      listUnsubscribe: `<mailto:${this.senderEmail()}?subject=Unsubscribe>`,
+    });
+  }
+
+  /** Email mã OTP (xác minh email đăng ký / quên mật khẩu) — hạn 10 phút. */
+
+  /** ── Đơn hàng mới → mail cho ADMIN_EMAIL (reply thẳng cho khách) ── */
+  async sendOrderNotification(order: OrderMailPayload): Promise<void> {
+    await this.refreshMailConfig();
+    const adminEmail = this.config.get<string>('ADMIN_EMAIL');
+    if (!adminEmail) {
+      this.logger.warn('ADMIN_EMAIL trống — bỏ qua email thông báo đơn hàng');
+      return;
+    }
+    const { subject, html, text } = this.buildOrderMail(order, 'admin');
+    await this.send({
+      to: adminEmail,
+      subject,
+      html,
+      text,
+      replyTo: this.formatReplyTo(order.name, order.email),
+    });
+  }
+
+  /** ── Xác nhận đã nhận đơn → mail cho khách ── */
+  async sendOrderConfirmation(order: OrderMailPayload): Promise<void> {
+    await this.refreshMailConfig();
+    const { subject, html, text } = this.buildOrderMail(order, 'customer');
+    await this.send({ to: order.email, subject, html, text });
+  }
+
+  private buildOrderMail(
+    order: OrderMailPayload,
+    audience: 'admin' | 'customer',
+  ): RenderedMail {
+    const vnd = (v: unknown) => `${Number(v).toLocaleString('vi-VN')}đ`;
+    const rows = order.items
+      .map(
+        (i) => `<tr>
+          <td style="padding:8px 12px;border-bottom:1px solid #e5e9f2;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:${BRAND.text};">${i.name}</td>
+          <td align="center" style="padding:8px 12px;border-bottom:1px solid #e5e9f2;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:${BRAND.text};">×${i.qty}</td>
+          <td align="right" style="padding:8px 12px;border-bottom:1px solid #e5e9f2;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:${BRAND.text};">${vnd(Number(i.price) * i.qty)}</td>
+        </tr>`,
+      )
+      .join('');
+    const totals = `
+      <tr><td colspan="2" align="right" style="padding:8px 12px;font-family:Arial;font-size:14px;color:${BRAND.text};">Tạm tính</td><td align="right" style="padding:8px 12px;font-family:Arial;font-size:14px;">${vnd(order.subtotal)}</td></tr>
+      ${Number(order.discount) > 0 ? `<tr><td colspan="2" align="right" style="padding:8px 12px;font-family:Arial;font-size:14px;color:${BRAND.text};">Giảm giá${order.voucherCode ? ` (${order.voucherCode})` : ''}</td><td align="right" style="padding:8px 12px;font-family:Arial;font-size:14px;color:${BRAND.red};">-${vnd(order.discount)}</td></tr>` : ''}
+      <tr><td colspan="2" align="right" style="padding:10px 12px;font-family:Arial;font-size:15px;font-weight:bold;color:${BRAND.blue};">TỔNG CỘNG</td><td align="right" style="padding:10px 12px;font-family:Arial;font-size:16px;font-weight:bold;color:${BRAND.blue};">${vnd(order.total)}</td></tr>`;
+    const info = `
+      <p style="margin:0 0 4px;font-family:Arial;font-size:14px;color:${BRAND.text};"><b>Khách hàng:</b> ${order.name} — ${order.phone}</p>
+      <p style="margin:0 0 4px;font-family:Arial;font-size:14px;color:${BRAND.text};"><b>Email:</b> ${order.email}</p>
+      <p style="margin:0 0 4px;font-family:Arial;font-size:14px;color:${BRAND.text};"><b>Địa chỉ nhận:</b> ${order.address}</p>
+      ${order.note ? `<p style="margin:0 0 4px;font-family:Arial;font-size:14px;color:${BRAND.text};"><b>Ghi chú:</b> ${order.note}</p>` : ''}`;
+    const table = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e9f2;border-radius:8px;overflow:hidden;">
+        <tr style="background:${BRAND.blue};">
+          <td style="padding:10px 12px;font-family:Arial;font-size:13px;color:#fff;font-weight:bold;">Sản phẩm</td>
+          <td align="center" style="padding:10px 12px;font-family:Arial;font-size:13px;color:#fff;font-weight:bold;">SL</td>
+          <td align="right" style="padding:10px 12px;font-family:Arial;font-size:13px;color:#fff;font-weight:bold;">Thành tiền</td>
+        </tr>${rows}${totals}</table>`;
+
+    const isAdmin = audience === 'admin';
+    const ovOrder = this.tplOverride(isAdmin ? 'orderNotify' : 'orderConfirm');
+    const orderTokens = {
+      name: order.name,
+      code: order.code,
+      total: vnd(order.total),
+      siteName: this.mailSiteName(),
+    };
+    const subject = ovOrder.subject?.trim()
+      ? this.fillTokens(ovOrder.subject, orderTokens)
+      : isAdmin
+        ? `🛒 Đơn hàng mới ${order.code} — ${vnd(order.total)} từ ${order.name}`
+        : `${this.mailSiteName()} đã nhận đơn hàng ${order.code} của bạn`;
+    const heading = isAdmin
+      ? `Đơn hàng mới ${order.code}`
+      : 'Cảm ơn bạn đã đặt hàng!';
+    const intro = ovOrder.intro?.trim()
+      ? this.fillTokens(this.escape(ovOrder.intro), orderTokens)
+      : isAdmin
+        ? 'Khách vừa đặt đơn trên website — liên hệ lại để xác nhận và chốt giao hàng.'
+        : `Đơn hàng <b>${order.code}</b> của bạn đã được ghi nhận. ${this.mailSiteName()} sẽ liên hệ qua điện thoại/email để xác nhận và giao hàng (đơn hàng KHÔNG cần thanh toán online).`;
+    const html = this.wrapLayout({
+      preheader: subject,
+      contentHtml: `<h1 style="margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;font-size:22px;color:${BRAND.blue};">${heading}</h1><p style="margin:0 0 12px;font-family:Arial;font-size:15px;color:${BRAND.text};">${intro}</p>${info}${table}`,
+      autoReplyNote: !isAdmin,
+    });
+    const text = [
+      heading,
+      `Khách: ${order.name} — ${order.phone} — ${order.email}`,
+      `Địa chỉ: ${order.address}`,
+      ...order.items.map(
+        (i) => `- ${i.name} x${i.qty} = ${vnd(Number(i.price) * i.qty)}`,
+      ),
+      `Tổng: ${vnd(order.total)}`,
+    ].join('\n');
+    return { subject, html, text };
+  }
+
+  async sendOtpEmail(
+    to: string,
+    name: string,
+    code: string,
+    purpose: 'verify' | 'reset',
+  ): Promise<void> {
+    await this.refreshMailConfig();
+    const isVerify = purpose === 'verify';
+    const subject = isVerify
+      ? `${code} là mã xác minh email VHD Corp của bạn`
+      : `${code} là mã đặt lại mật khẩu VHD Corp của bạn`;
+    const title = isVerify ? 'Xác minh email của bạn' : 'Đặt lại mật khẩu';
+    const intro = isVerify
+      ? `Chào ${name || 'bạn'}, cảm ơn bạn đã đăng ký tài khoản VHD Corp. Nhập mã bên dưới để hoàn tất xác minh email:`
+      : `Chào ${name || 'bạn'}, chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn. Nhập mã bên dưới để tiếp tục:`;
+
+    const contentHtml = `
+      <h1 class="h1" style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:22px;line-height:1.3;font-weight:800;color:${BRAND.blue};">${title}</h1>
+      <p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:${BRAND.text};">${intro}</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:8px auto 8px;">
+        <tr>
+          <td style="background:${BRAND.blue};border-radius:12px;padding:16px 32px;">
+            <span style="font-family:Arial,Helvetica,sans-serif;font-size:32px;font-weight:800;letter-spacing:10px;color:#ffffff;">${code}</span>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:16px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.6;color:${BRAND.muted};">Mã có hiệu lực trong <b>10 phút</b>. Nếu bạn không yêu cầu, hãy bỏ qua email này — tài khoản của bạn vẫn an toàn.</p>`;
+
+    const html = this.wrapLayout({
+      preheader: `${code} — ${title} (hiệu lực 10 phút)`,
+      contentHtml,
+      autoReplyNote: true,
+    });
+    const text = [
+      'VHD CORP',
+      '========',
+      '',
+      title.toUpperCase(),
+      '',
+      intro,
+      '',
+      `MÃ CỦA BẠN: ${code}`,
+      '',
+      'Mã có hiệu lực trong 10 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.',
+    ].join('\n');
+
+    await this.send({ to, subject, html, text, replyTo: this.getFrom() });
+  }
+
+  /**
+   * Admin gửi email tùy chỉnh tới 1 user — nội dung HTML tự soạn (đã thay {{name}}),
+   * bọc trong layout brand chuẩn (header/footer VHD).
+   */
+  async sendCustomEmail(
+    to: string,
+    subject: string,
+    bodyHtml: string,
+  ): Promise<void> {
+    await this.refreshMailConfig();
+    // Nội dung soạn từ Tiptap (không inline style) → bọc style base brand cho h1/p/ul
+    const styled = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:${BRAND.text};">
+      <style>
+        .vhd-body h1{color:${BRAND.blue};font-size:22px;margin:0 0 12px;font-weight:800;}
+        .vhd-body h2{color:${BRAND.blue};font-size:18px;margin:16px 0 8px;font-weight:700;}
+        .vhd-body p{margin:0 0 12px;}
+        .vhd-body ul,.vhd-body ol{margin:0 0 12px 20px;padding:0;}
+        .vhd-body li{margin:4px 0;}
+        .vhd-body a{color:${BRAND.blue};}
+        .vhd-body img{max-width:100%;border-radius:8px;}
+      </style>
+      <div class="vhd-body">${bodyHtml}</div>
+    </div>`;
+    const html = this.wrapLayout({
+      preheader: subject,
+      contentHtml: styled,
+      autoReplyNote: false,
+    });
+    // Bản text thô: bỏ tag HTML
+    const text = bodyHtml
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/(p|div|h[1-6]|li)>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    await this.send({
+      to,
       subject,
       html,
       text,
@@ -122,14 +357,18 @@ export class MailService {
 
   /** Dựng email admin (subject/html/text) — không gửi, tiện cho preview/test. */
   buildContactNotification(contact: ContactMailPayload): RenderedMail {
-    const subject = contact.subject
-      ? `Liên hệ mới từ ${contact.name} – ${contact.subject}`
-      : `Liên hệ mới từ ${contact.name}`;
+    const ov = this.tplOverride('contactNotify');
+    const tokens = { name: contact.name, siteName: this.mailSiteName() };
+    const subject = ov.subject?.trim()
+      ? this.fillTokens(ov.subject, tokens)
+      : contact.subject
+        ? `Liên hệ mới từ ${contact.name} – ${contact.subject}`
+        : `Liên hệ mới từ ${contact.name}`;
     const adminUrl = this.adminContactsUrl();
 
     const contentHtml = `
       <h1 class="h1" style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:22px;line-height:1.3;font-weight:800;color:${BRAND.blue};">Liên hệ mới từ khách hàng</h1>
-      <p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:${BRAND.text};">Bạn vừa nhận được một yêu cầu liên hệ mới gửi qua website VHD Corp. Chi tiết như bên dưới:</p>
+      <p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:${BRAND.text};">${ov.intro?.trim() ? this.fillTokens(this.escape(ov.intro), tokens) : `Bạn vừa nhận được một yêu cầu liên hệ mới gửi qua website ${this.mailSiteName()}. Chi tiết như bên dưới:`}</p>
       ${this.contactInfoTable(contact, true)}
       ${this.messageBlock(contact.message)}
       ${this.ctaButton(adminUrl, 'Xem trong trang quản trị')}
@@ -162,14 +401,18 @@ export class MailService {
 
   /** Dựng email xác nhận cho khách (subject/html/text) — không gửi. */
   buildContactConfirmation(contact: ContactMailPayload): RenderedMail {
-    const subject = 'VHD Corp đã nhận được yêu cầu của bạn';
+    const ov = this.tplOverride('contactConfirm');
+    const tokens = { name: contact.name, siteName: this.mailSiteName() };
+    const subject = ov.subject?.trim()
+      ? this.fillTokens(ov.subject, tokens)
+      : `${this.mailSiteName()} đã nhận được yêu cầu của bạn`;
     const orgHtml = this.orgContactHtml();
     const orgTextLines = this.orgContactTextLines();
 
     const contentHtml = `
       <h1 class="h1" style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:22px;line-height:1.3;font-weight:800;color:${BRAND.blue};">Cảm ơn bạn đã liên hệ với VHD Corp!</h1>
       <p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:${BRAND.text};">Xin chào <strong>${this.escape(contact.name)}</strong>,</p>
-      <p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:${BRAND.text};">Chúng tôi rất vui khi nhận được yêu cầu của bạn. Đội ngũ VHD Corp sẽ xem xét và phản hồi trong vòng <strong>24 giờ làm việc</strong>. Dưới đây là tóm tắt thông tin bạn đã gửi:</p>
+      <p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:${BRAND.text};">${ov.intro?.trim() ? this.fillTokens(this.escape(ov.intro), tokens) : `Chúng tôi rất vui khi nhận được yêu cầu của bạn. Đội ngũ ${this.mailSiteName()} sẽ xem xét và phản hồi trong vòng <strong>24 giờ làm việc</strong>. Dưới đây là tóm tắt thông tin bạn đã gửi:`}</p>
       ${this.contactInfoTable(contact, false)}
       ${this.messageBlock(contact.message)}
       ${orgHtml}
@@ -208,6 +451,66 @@ export class MailService {
   // ───────────────────────── Transport ─────────────────────────
 
   /** Gửi email — nuốt mọi lỗi, chỉ log. Đính kèm header chống spam. */
+  /** Địa chỉ công ty in ở footer email (giảm điểm spam, chuẩn bulk-sender) */
+  /** Đọc SiteConfig PUBLISHED → value.mail (admin sửa trong Cài đặt site, Xuất bản là áp dụng) */
+  private async refreshMailConfig(): Promise<void> {
+    if (Date.now() - this.mailCfgAt < 60_000) return;
+    try {
+      const row = await this.prisma.siteConfig.findFirst({
+        where: { key: 'main', status: 'PUBLISHED' },
+        orderBy: { version: 'desc' },
+        select: { value: true },
+      });
+      const value = row?.value as { mail?: MailConfig } | null;
+      this.mailCfg = value?.mail ?? {};
+    } catch {
+      this.mailCfg = {}; // DB lỗi → dùng env fallback, không chặn gửi mail
+    }
+    this.mailCfgAt = Date.now();
+  }
+
+  /** Thay token {name} {code} {total} {siteName} trong subject/intro admin nhập */
+  private fillTokens(tpl: string, tokens: Record<string, string>): string {
+    return tpl.replace(/\{(\w+)\}/g, (m, k: string) => tokens[k] ?? m);
+  }
+
+  private tplOverride(
+    key: 'contactNotify' | 'contactConfirm' | 'orderNotify' | 'orderConfirm',
+  ): MailTemplateOverride {
+    return this.mailCfg.templates?.[key] ?? {};
+  }
+
+  private mailSiteName(): string {
+    return this.mailCfg.siteName?.trim() || 'VHD Corp';
+  }
+
+  private mailTagline(): string {
+    return this.mailCfg.tagline?.trim() || 'Kết nối giá trị – Hợp tác vững bền';
+  }
+
+  private mailCopyright(): string {
+    return (
+      this.mailCfg.copyright?.trim() ||
+      `© 2026 ${this.mailSiteName()}. Bảo lưu mọi quyền.`
+    );
+  }
+
+  private companyAddress(): string {
+    return (
+      this.mailCfg.address?.trim() ||
+      this.config.get<string>('MAIL_COMPANY_ADDRESS') ||
+      'TP. Hồ Chí Minh, Việt Nam · Hotline: 1900 0000'
+    );
+  }
+
+  /** URL logo tuyệt đối cho email (env MAIL_LOGO_URL — nên là link public/Cloudinary) */
+  private logoUrl(): string {
+    return (
+      this.mailCfg.logoUrl?.trim() ||
+      (this.config.get<string>('MAIL_LOGO_URL') ?? '')
+    );
+  }
+
   private async send(opts: SendOptions): Promise<void> {
     try {
       const from = this.getFrom();
@@ -283,9 +586,14 @@ export class MailService {
         <table role="presentation" class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background-color:${BRAND.card};border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(27,58,140,0.08);">
           <!-- Header -->
           <tr>
-            <td style="background-color:${BRAND.blue};background:linear-gradient(135deg,${BRAND.blue} 0%,${BRAND.blueDark} 100%);padding:28px 32px;">
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:28px;font-weight:800;letter-spacing:0.5px;color:#ffffff;">VHD&nbsp;<span style="color:${BRAND.gold};">Corp</span></div>
-              <div style="margin-top:6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;letter-spacing:0.3px;color:#c3cfeb;">Kết nối giá trị – Hợp tác vững bền</div>
+            <td style="background-color:${BRAND.blue};background:linear-gradient(135deg,${BRAND.blue} 0%,${BRAND.blueDark} 100%);padding:24px 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+                ${this.logoUrl() ? `<td style="padding-right:14px;vertical-align:middle;"><img src="${this.logoUrl()}" alt="VHD Corp" width="52" height="52" style="display:block;width:52px;height:52px;border-radius:12px;background:#ffffff;padding:4px;" /></td>` : ''}
+                <td style="vertical-align:middle;">
+                  <div style="font-family:Arial,Helvetica,sans-serif;font-size:28px;font-weight:800;letter-spacing:0.5px;color:#ffffff;">${this.mailSiteName()}</div>
+                  <div style="margin-top:4px;font-family:Arial,Helvetica,sans-serif;font-size:13px;letter-spacing:0.3px;color:#c3cfeb;">${this.mailTagline()}</div>
+                </td>
+              </tr></table>
             </td>
           </tr>
           <!-- Accent stripe -->
@@ -306,10 +614,12 @@ export class MailService {
           <!-- Footer -->
           <tr>
             <td style="background-color:${BRAND.softBg};border-top:1px solid ${BRAND.border};padding:22px 32px;text-align:center;">
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:${BRAND.blue};">VHD Corp</div>
-              <div style="margin-top:4px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:${BRAND.footMuted};">Kết nối giá trị – Hợp tác vững bền</div>
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:${BRAND.blue};">${this.mailSiteName()}</div>
+              <div style="margin-top:4px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:${BRAND.footMuted};">${this.mailTagline()}</div>
+              <div style="margin-top:4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:${BRAND.footMuted};">${this.companyAddress()}</div>
+              ${this.mailCfg.footerNote?.trim() ? `<div style="margin-top:6px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:${BRAND.footMuted};">${this.mailCfg.footerNote.trim()}</div>` : ''}
               ${autoNote}
-              <div style="margin-top:10px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#aeb6c4;">© 2026 VHD Corp. Bảo lưu mọi quyền.</div>
+              <div style="margin-top:10px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#aeb6c4;">${this.mailCopyright()}</div>
             </td>
           </tr>
         </table>

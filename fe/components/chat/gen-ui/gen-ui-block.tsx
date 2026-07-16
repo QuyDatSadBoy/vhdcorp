@@ -5,6 +5,9 @@ import ComparisonTable from "./comparison-table";
 import ContactForm from "./contact-form";
 import FaqBlock from "./faq-block";
 import ImageSearchResult from "./image-search-result";
+import AddToCartAction from "./add-to-cart-action";
+import PostList, { type ChatPost } from "./post-list";
+import CategoryList, { type ChatCategory } from "./category-list";
 import ProductCarousel from "./product-carousel";
 import QuoteRequest from "./quote-request";
 
@@ -46,6 +49,21 @@ export default function GenUiBlock({ component, props, onAction }: GenUiBlockPro
 
     case "faq":
       return <FaqBlock items={(props.items as { question: string; answer: string }[]) ?? []} />;
+
+    case "add-to-cart":
+      return (
+        <AddToCartAction
+          product={props.product as ChatProduct & { id?: number }}
+          qty={(props.qty as number) ?? 1}
+          actionId={(props.action_id as string) ?? ""}
+        />
+      );
+
+    case "post-list":
+      return <PostList posts={(props.posts as ChatPost[]) ?? []} />;
+
+    case "category-list":
+      return <CategoryList categories={(props.categories as ChatCategory[]) ?? []} />;
 
     case "image-search-result":
       return (

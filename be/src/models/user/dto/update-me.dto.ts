@@ -10,6 +10,18 @@ export class UpdateMeDto {
   @IsString()
   @MaxLength(2048)
   avatar?: string;
+
+  /** SĐT giao hàng — gợi ý tự điền khi đặt đơn */
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  phone?: string;
+
+  /** Địa chỉ giao hàng mặc định */
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  address?: string;
 }
 
 export class ChangePasswordDto {

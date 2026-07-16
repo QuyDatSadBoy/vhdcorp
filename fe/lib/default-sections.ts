@@ -1,4 +1,20 @@
 import type { Section } from "@/types/site-config";
+import { DEFAULT_HERO_TRUST_ITEMS } from "@/components/sections/hero";
+import { DEFAULT_INDUSTRY_ITEMS } from "@/components/sections/industries";
+import { DEFAULT_USE_CASES } from "@/components/sections/use-cases";
+import { DEFAULT_PROCESS_STEPS } from "@/components/sections/process";
+import { DEFAULT_FAQ_ITEMS } from "@/components/sections/faq-accordion";
+import { DEFAULT_COMPARISON_COLUMNS, DEFAULT_COMPARISON_ROWS } from "@/components/sections/comparison-table";
+
+/** Logo đối tác placeholder (chưa có ảnh → card chữ) — admin thay ảnh thật trong builder */
+const DEFAULT_PARTNER_LOGOS = [
+  "Sài Gòn Water",
+  "Đông Nam Mech",
+  "DMK Foods",
+  "VietPlast",
+  "Quốc Oai Coop",
+  "VHD Logistics",
+].map((name) => ({ image: "", name, link: "" }));
 
 /**
  * Sections mặc định cho trang chủ — dùng khi DB chưa có cấu hình.
@@ -12,6 +28,8 @@ export function defaultHomeSections(): Section[] {
       order: 1,
       visible: true,
       props: {
+        badge: "B2B",
+        trustItems: DEFAULT_HERO_TRUST_ITEMS,
         heading: "Tổng kho *nhựa*, cao su & *miến* truyền thống Việt",
         subheading:
           "VHD Corp là cầu nối giữa các sản phẩm Việt Nam chất lượng cao và thị trường toàn cầu. Đặt hàng B2B/B2C, giao nhanh toàn quốc.",
@@ -31,6 +49,7 @@ export function defaultHomeSections(): Section[] {
         heading: "Ba trụ cột kinh doanh của VHD Corp",
         subheading:
           "Từ vật tư công nghiệp đến đặc sản làng nghề — VHD Corp là đối tác cung ứng đa ngành, kết nối chất lượng Việt Nam với thị trường B2B/B2C.",
+        items: DEFAULT_INDUSTRY_ITEMS,
       },
     },
     {
@@ -44,6 +63,7 @@ export function defaultHomeSections(): Section[] {
         subheading:
           "Từ đơn hàng đầu tiên đến hợp đồng dài hạn — VHD Corp đồng hành cùng doanh nghiệp Việt trong chuỗi cung ứng.",
         columns: 4,
+        cases: DEFAULT_USE_CASES,
       },
     },
     {
@@ -99,6 +119,7 @@ export function defaultHomeSections(): Section[] {
         heading: "Quy trình hợp tác chuẩn hoá",
         subheading:
           "Năm bước minh bạch — từ tư vấn đến hậu mãi — đảm bảo trải nghiệm B2B/B2C nhất quán cho mọi khách hàng VHD.",
+        steps: DEFAULT_PROCESS_STEPS,
       },
     },
     {
@@ -111,6 +132,8 @@ export function defaultHomeSections(): Section[] {
         heading: "Chọn gói VHD phù hợp với quy mô của bạn",
         subheading:
           "Chính sách giá theo từng cấp độ hợp tác, đáp ứng nhu cầu đa dạng từ khách lẻ đến doanh nghiệp lớn.",
+        columnHeaders: DEFAULT_COMPARISON_COLUMNS,
+        rows: DEFAULT_COMPARISON_ROWS,
       },
     },
     {
@@ -152,6 +175,7 @@ export function defaultHomeSections(): Section[] {
       props: {
         eyebrow: "Câu hỏi thường gặp",
         heading: "Mọi điều bạn cần biết về VHD Corp",
+        items: DEFAULT_FAQ_ITEMS,
       },
     },
     {
@@ -180,7 +204,7 @@ export function defaultHomeSections(): Section[] {
       visible: true,
       props: {
         heading: "Hơn 120+ doanh nghiệp đồng hành cùng VHD",
-        logos: [],
+        logos: DEFAULT_PARTNER_LOGOS,
         grayscale: true,
         speed: 30,
       },

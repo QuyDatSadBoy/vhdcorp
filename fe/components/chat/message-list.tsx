@@ -5,6 +5,19 @@ import type { UiChatMessage } from "@/types/chat";
 import MessageBubble from "./message-bubble";
 import SuggestedPrompts from "./suggested-prompts";
 
+/** Gợi ý câu hỏi tiếp theo theo ngữ cảnh câu trả lời cuối (heuristic theo gen-UI vừa render). */
+function followupsFor(last: UiChatMessage | undefined): string[] {
+  if (!last || last.role !== "assistant" || last.streaming || last.error) return [];
+  const kinds = new Set((last.uiBlocks ?? []).map((b) => b.component));
+  if (kinds.has("add-to-cart")) return ["Xem thêm sản phẩm tương tự", "Áp mã giảm giá thế nào?", "Đặt hàng ngay"];
+  if (kinds.has("product-carousel") || kinds.has("image-search-result"))
+    return ["So sánh các sản phẩm này", "Thêm sản phẩm đầu tiên vào giỏ", "Có khuyến mãi gì không?"];
+  if (kinds.has("post-list")) return ["Có bài nào về làng nghề không?", "Cho mình xem sản phẩm nổi bật"];
+  if (kinds.has("category-list")) return ["Xem sản phẩm nhựa & cao su", "Sản phẩm nào đang khuyến mãi?"];
+  if (kinds.has("comparison-table")) return ["Thêm sản phẩm rẻ hơn vào giỏ", "Tư vấn giúp mình lựa chọn"];
+  return [];
+}
+
 interface MessageListProps {
   messages: UiChatMessage[];
   loading: boolean;
@@ -70,8 +83,24 @@ export default function MessageList({
               activeTool={i === lastIndex ? activeTool : null}
               onRetry={message.error ? onRetry : undefined}
               onAction={onAction}
+              isLast={i === lastIndex}
             />
           ))}
+          {/* Gợi ý câu hỏi tiếp theo — bấm là hỏi luôn */}
+          {followupsFor(messages[lastIndex]).length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pl-10">
+              {followupsFor(messages[lastIndex]).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => onSelectPrompt(f)}
+                  className="rounded-full border border-brand-primary/25 bg-brand-primary/5 px-3 py-1 text-xs font-medium text-brand-primary transition hover:bg-brand-primary hover:text-white"
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -7,7 +7,7 @@ import type { StickyStorySection } from "@/types/site-config";
 
 const ICONS = [Headphones, ClipboardList, ShieldCheck, Truck];
 
-const DEFAULT_STEPS = [
+export const DEFAULT_STORY_STEPS = [
   { title: "Lắng nghe", description: "Tư vấn 1-1 miễn phí, hiểu đúng nhu cầu B2B của bạn." },
   { title: "Báo giá rõ ràng", description: "Bảng giá minh bạch, không phụ phí ẩn, ký hợp đồng nhanh." },
   { title: "Sản xuất kiểm định", description: "ISO 9001 — kiểm tra chất lượng từng lô trước khi xuất kho." },
@@ -71,7 +71,7 @@ function StepVisual({
 
 export default function StickyStory({ section }: { section: StickyStorySection }) {
   const p = section.props;
-  const steps = p.steps?.length ? p.steps : DEFAULT_STEPS;
+  const steps = p.steps?.length ? p.steps : DEFAULT_STORY_STEPS;
 
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });

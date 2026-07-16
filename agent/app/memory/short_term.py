@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 
 from app.memory.base import BaseMemory
 
@@ -15,8 +15,10 @@ class ShortTermMemory(BaseMemory):
 
     def trim(self, messages: list[BaseMessage]) -> list[BaseMessage]:
         window = list(messages[-self.limit:])
-        # Không được bắt đầu cửa sổ bằng ToolMessage mồ côi (AIMessage gọi tool đã bị cắt)
-        while window and isinstance(window[0], ToolMessage):
+        # Gemini yêu cầu function-call đứng ngay sau user-turn hoặc function-response:
+        # cửa sổ phải BẮT ĐẦU bằng HumanMessage (bỏ AIMessage/ToolMessage lẻ đầu cửa sổ —
+        # ngữ cảnh cũ đã nằm trong summary nên không mất thông tin).
+        while window and not isinstance(window[0], HumanMessage):
             window.pop(0)
         return self._sanitize_tool_pairs(window)
 

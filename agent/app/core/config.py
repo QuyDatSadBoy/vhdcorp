@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     chat_db_path: str = str(AGENT_DIR / "data" / "chat.db")
     checkpoint_db_path: str = str(AGENT_DIR / "data" / "checkpoints.sqlite")
     products_json_path: str = str(AGENT_DIR / "data" / "products.json")
+    # Đọc TRỰC TIẾP PostgreSQL của BE (real-time tuyệt đối) — rỗng thì fallback products.json
+    catalog_database_url: str = ""
     knowledge_md_path: str = str(AGENT_DIR / "data" / "knowledge.md")
 
     @property

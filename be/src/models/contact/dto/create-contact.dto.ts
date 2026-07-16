@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  MinLength,
 } from 'class-validator';
 
 export class CreateContactDto {
@@ -15,11 +16,12 @@ export class CreateContactDto {
   @IsEmail()
   email: string;
 
-  // Số điện thoại — không bắt buộc
-  @IsOptional()
+  // Số điện thoại — BẮT BUỘC (khách để lại SĐT mới liên hệ lại được)
+  @IsNotEmpty({ message: 'Vui lòng nhập số điện thoại' })
   @IsString()
+  @MinLength(8, { message: 'Số điện thoại tối thiểu 8 ký tự' })
   @MaxLength(20)
-  phone?: string;
+  phone: string;
 
   // Tiêu đề — không bắt buộc
   @IsOptional()

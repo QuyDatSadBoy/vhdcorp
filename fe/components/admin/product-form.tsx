@@ -34,6 +34,13 @@ export function ProductForm({ initial }: Props) {
   const slugLocked = useRef(!!initial?.slug);
   const [description, setDescription] = useState(initial?.description ?? "");
   const [price, setPrice] = useState(initial ? String(initial.price) : "0");
+  const [salePrice, setSalePrice] = useState(initial?.salePrice ? String(Number(initial.salePrice)) : "");
+  const [saleEndsAt, setSaleEndsAt] = useState(() => {
+    if (!initial?.saleEndsAt) return "";
+    const d = new Date(initial.saleEndsAt);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+  });
   const [stock, setStock] = useState(initial?.stock ?? 0);
   const [categoryId, setCategoryId] = useState<number | undefined>(initial?.categoryId);
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">(initial?.status ?? "DRAFT");
@@ -70,6 +77,8 @@ export function ProductForm({ initial }: Props) {
       slug,
       description,
       price: Number(price),
+      salePrice: salePrice ? Number(salePrice) : null,
+      saleEndsAt: saleEndsAt ? new Date(saleEndsAt).toISOString() : null,
       stock,
       categoryId,
       status,
@@ -210,6 +219,23 @@ export function ProductForm({ initial }: Props) {
             <div className="space-y-2">
               <Label>Giá (VND)</Label>
               <Input type="number" min={0} value={price} onChange={(e) => setPrice(e.target.value)} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Giá khuyến mãi (VND — bỏ trống nếu không giảm)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={salePrice}
+                onChange={(e) => setSalePrice(e.target.value)}
+                placeholder="VD: 19000"
+              />
+              {salePrice && Number(salePrice) >= Number(price) && (
+                <p className="text-xs text-amber-600">⚠ Giá KM nên nhỏ hơn giá gốc</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Hạn khuyến mãi (bỏ trống = không hết hạn)</Label>
+              <Input type="datetime-local" value={saleEndsAt} onChange={(e) => setSaleEndsAt(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Tồn kho</Label>

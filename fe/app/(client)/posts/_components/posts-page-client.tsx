@@ -9,6 +9,7 @@ import type { PaginatedResult, Post } from "@/types/domain";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageFallback } from "@/components/client/image-fallback";
 import { PageHero } from "@/components/client/page-hero";
+import { useSiteConfigStore } from "@/store/site-config.store";
 
 interface PostsPageClientProps {
   /** Trang 1 đã fetch server-side (SSR) — giúp link bài viết có mặt trong HTML đầu cho crawler. */
@@ -25,14 +26,20 @@ export default function PostsPageClient({ initialData }: PostsPageClientProps) {
     initialData,
   });
   const posts = data?.records ?? [];
+  // Chữ hero admin sửa trong Builder (khối cố định trang Tin tức)
+  const fb = useSiteConfigStore((st) => st.config?.fixedBlocks?.posts);
 
   return (
     <>
       <PageHero
-        eyebrow="Câu chuyện VHD"
-        title="Tin tức & Bài viết"
-        description="Cập nhật về sản phẩm mới, hoạt động hợp tác, kiến thức ngành nhựa - cao su và đặc sản làng nghề Việt Nam."
+        eyebrow={fb?.eyebrow || "Câu chuyện VHD"}
+        title={fb?.title || "Tin tức & Bài viết"}
+        description={
+          fb?.description ||
+          "Cập nhật về sản phẩm mới, hoạt động hợp tác, kiến thức ngành nhựa - cao su và đặc sản làng nghề Việt Nam."
+        }
         breadcrumbs={[{ label: "Trang chủ", href: "/" }, { label: "Tin tức" }]}
+        bgImage={fb?.heroImage}
       />
       <div className="container mx-auto px-4 py-12">
         {isLoading ? (

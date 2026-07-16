@@ -85,7 +85,8 @@ export default function Partners({ section }: { section: Section }) {
 
           <div ref={trackRef} className="flex w-max animate-marquee gap-14 py-2">
             {track!.map((l, i) => {
-              const img = (
+              // Chưa có ảnh logo → card chữ brand (giống placeholder) — admin thêm ảnh sau
+              const img = l.image?.trim() ? (
                 <Image
                   src={l.image}
                   alt={l.name}
@@ -93,6 +94,10 @@ export default function Partners({ section }: { section: Section }) {
                   height={56}
                   className={`h-10 w-auto object-contain transition-all duration-300 hover:scale-110 ${p.grayscale ? "grayscale opacity-50 hover:grayscale-0 hover:opacity-100" : ""}`}
                 />
+              ) : (
+                <span className="flex h-14 min-w-32 items-center justify-center rounded-xl border border-border/60 bg-card px-5 text-sm font-semibold text-foreground/60">
+                  {l.name}
+                </span>
               );
               return (
                 <div key={`${l.name}-${i}`} className="flex shrink-0 items-center justify-center">

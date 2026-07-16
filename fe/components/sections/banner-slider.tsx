@@ -6,10 +6,16 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import type { BannerSliderSection as Section } from "@/types/site-config";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useBanners } from "@/services/banner.service";
 
 export default function BannerSlider({ section }: { section: Section }) {
   const p = section.props;
-  const slides = p.slides ?? [];
+  // Nguồn "banners": lấy slide từ Quản trị → Banner theo vị trí (đổi banner không cần sửa layout)
+  const fromBanners = p.source === "banners";
+  const bannersQ = useBanners(fromBanners ? p.bannerPosition || "home-hero" : undefined);
+  const slides = fromBanners
+    ? (bannersQ.data ?? []).map((b) => ({ image: b.imageUrl, link: b.link ?? undefined, alt: b.alt ?? undefined }))
+    : (p.slides ?? []);
   const [idx, setIdx] = useState(0);
   const interval = p.interval ?? 5000;
   const autoplay = p.autoplay ?? true;

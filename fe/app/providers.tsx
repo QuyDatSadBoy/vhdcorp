@@ -78,7 +78,10 @@ export function Providers({ children, initialSiteConfig }: ProvidersProps) {
         <AuthSyncer />
         {children}
         <Toaster position="top-right" richColors closeButton />
-        {process.env.NODE_ENV === "development" && <ReactQueryDevtools initialIsOpen={false} />}
+        {/* Devtools chỉ hiện khi dev — để góc trái cho khỏi đè nút Trợ lý AI */}
+        {process.env.NODE_ENV === "development" && (
+          <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+        )}
       </QueryClientProvider>
     </ThemeProvider>
   );

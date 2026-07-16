@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ProductService } from './product.service';
+import { TrackService } from '@model/track/track.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { JwtAuthGuard } from '@guard/jwt-auth.guard';
@@ -23,7 +24,32 @@ import { ProductStatus, Role } from '@vhd/prisma-client';
 @Controller('products')
 @ApiTags('Product')
 export class ProductController {
-  constructor(private readonly service: ProductService) {}
+  constructor(
+    private readonly service: ProductService,
+    private readonly trackService: TrackService,
+  ) {}
+
+  /** Gợi ý "khách xem X cũng xem Y" (co-view từ tracking) — fallback cùng danh mục */
+  /** Gợi ý tìm kiếm thông minh (autocomplete header) — fuzzy tiếng Việt không dấu */
+  @Get('suggest')
+  @Public()
+  suggest(@Query('q') q?: string) {
+    return this.service.suggest(q ?? '');
+  }
+
+  @Get(':id/recommendations')
+  @Public()
+  async recommendations(@Param('id', ParseIntPipe) id: number) {
+    const ids = await this.trackService.recommendationsFor(id, 8);
+    const coViewed = ids.length
+      ? await this.service.findManyPublishedByIds(ids)
+      : [];
+    if (coViewed.length >= 4) return coViewed;
+    // Chưa đủ dữ liệu hành vi → bổ sung sản phẩm cùng danh mục
+    const related = await this.service.related(id, 8 - coViewed.length);
+    const seen = new Set(coViewed.map((p) => p.id));
+    return [...coViewed, ...related.filter((p) => !seen.has(p.id))];
+  }
 
   /** Public — chỉ trả PUBLISHED */
   @Get()

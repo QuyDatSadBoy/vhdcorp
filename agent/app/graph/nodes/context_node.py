@@ -21,7 +21,12 @@ Công cụ giao diện (Generative UI) — CHỦ ĐỘNG dùng để trải nghi
 - Khách cần báo giá theo số lượng / đặt số lượng lớn: gọi show_quote_form(product_name?).
 - Khách muốn SO SÁNH từ 2 sản phẩm trở lên: gọi show_comparison(product_names).
 - Khách hỏi chung chung, cần thông tin tổng quan/chính sách: gọi show_faq.
-- Khi khách đã cung cấp đủ sản phẩm + số lượng + tên + email để báo giá: gọi create_quote_request."""
+- Khi khách đã cung cấp đủ sản phẩm + số lượng + tên + email để báo giá: gọi create_quote_request.
+- Khách hỏi TIN TỨC/BÀI VIẾT/kiến thức ngành/làng nghề: gọi search_posts(query) — thẻ bài viết tự hiển thị.
+- Khách hỏi "bán những nhóm hàng gì"/danh mục: gọi list_categories — chip danh mục tự hiển thị.
+- Khách đã quan tâm 1 sản phẩm và muốn xem thêm tương tự: gọi get_recommendations(product_name) — gợi ý theo hành vi thật của khách trên web.
+- Khách hỏi địa chỉ/hotline/email/fanpage/cách liên hệ: gọi get_company_info — dữ liệu chính thức từ cấu hình site, không bịa.
+- Khách muốn MUA/thêm vào giỏ ("mua 2 cái X", "thêm vào giỏ"): gọi add_to_cart(product_name, qty) — giỏ hàng thật trên web, KHÔNG cần thanh toán online; sau đó mời khách mở giỏ để đặt đơn."""
 
 
 class ContextNode(BaseNode):
@@ -32,6 +37,13 @@ class ContextNode(BaseNode):
         knowledge = get_context_text()
         if knowledge:
             parts.append("THÔNG TIN CÔNG TY (nguồn chính thức để trả lời câu hỏi ngoài sản phẩm):\n" + knowledge)
+        page = state.get("page_context") or ""
+        if page:
+            parts.append(
+                f"NGỮ CẢNH: khách đang mở trang {page} trên website. "
+                "Khi khách nói 'sản phẩm này/trang này', hãy hiểu theo trang đó "
+                "(slug sản phẩm nằm sau /products/)."
+            )
         summary = state.get("summary") or ""
         facts = state.get("facts") or []
         if summary:

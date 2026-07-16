@@ -18,6 +18,10 @@ import FaqAccordion from "./faq-accordion";
 import ComparisonTable from "./comparison-table";
 import StickyStory from "./sticky-story";
 import CustomHtml from "./custom-html";
+import GoogleMap from "./google-map";
+import VideoEmbed from "./video-embed";
+import SocialEmbed from "./social-embed";
+import ImageBanner from "./image-banner";
 
 /**
  * Dispatcher render section đúng component theo type.
@@ -60,6 +64,14 @@ export function SectionRenderer({ section }: { section: Section }) {
       return <StickyStory section={section} />;
     case "custom-html":
       return <CustomHtml section={section} />;
+    case "google-map":
+      return <GoogleMap section={section} />;
+    case "video-embed":
+      return <VideoEmbed section={section} />;
+    case "social-embed":
+      return <SocialEmbed section={section} />;
+    case "image-banner":
+      return <ImageBanner section={section} />;
     default:
       return null;
   }

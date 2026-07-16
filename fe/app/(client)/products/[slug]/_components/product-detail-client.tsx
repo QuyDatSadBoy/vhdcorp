@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { AddToCartButton } from "@/components/client/add-to-cart-button";
+import { PriceTag } from "@/components/client/price-tag";
+import { useEffect, useState } from "react";
 import { use } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,6 +18,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ImageFallback } from "@/components/client/image-fallback";
+import TrackProductView from "@/components/client/track-product-view";
+import { RecentlyViewed, pushRecentProduct } from "@/components/client/recently-viewed";
 
 export default function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -80,6 +84,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
 
   return (
     <article className="container mx-auto px-4 py-12">
+      {/* Ghi lượt xem (tracking → recommendation + báo cáo admin) */}
+      <TrackProductView productId={product.id} />
+      <RecentProductRecorder product={product} />
       <nav className="mb-6 text-sm text-muted-foreground">
         <Link href="/" className="hover:underline">
           Trang chủ
@@ -159,10 +166,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
 
           <div className="mt-6 flex items-end gap-4">
             {Number(product.price) > 0 ? (
-              <p className="font-heading text-4xl font-extrabold text-brand-primary">
-                {Number(product.price).toLocaleString("vi-VN")}{" "}
-                <span className="text-lg font-bold text-foreground/55">₫</span>
-              </p>
+              <PriceTag product={product} size="lg" className="font-heading" showDeadline />
             ) : (
               <p className="font-heading text-2xl font-extrabold text-foreground/65">Liên hệ báo giá</p>
             )}
@@ -179,6 +183,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
               </span>
             )}
           </div>
+
+          {/* Thêm vào giỏ — đặt hàng không cần thanh toán online */}
+          {Number(product.price) > 0 && <AddToCartButton product={product} withQty className="mt-6" />}
 
           {product.description && (
             <div className="prose mt-7 max-w-none border-t border-foreground/8 pt-7 dark:prose-invert prose-headings:font-heading prose-strong:text-foreground">
@@ -312,6 +319,33 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
           </div>
         </section>
       )}
+      <RecentlyViewed excludeSlug={product.slug} />
     </article>
   );
+}
+
+/** Ghi sản phẩm đang xem vào localStorage "Đã xem gần đây" (kiểu Shopee). */
+function RecentProductRecorder({
+  product,
+}: {
+  product: {
+    slug: string;
+    name: string;
+    images?: string[];
+    price: string | number;
+    salePrice?: string | number | null;
+    saleEndsAt?: string | null;
+  };
+}) {
+  useEffect(() => {
+    pushRecentProduct({
+      slug: product.slug,
+      name: product.name,
+      image: product.images?.[0] ?? "",
+      price: Number(product.price),
+      salePrice: product.salePrice ? Number(product.salePrice) : null,
+      saleEndsAt: product.saleEndsAt ?? null,
+    });
+  }, [product]);
+  return null;
 }

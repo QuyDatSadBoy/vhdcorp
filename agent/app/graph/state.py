@@ -12,3 +12,5 @@ class AgentState(TypedDict, total=False):
     facts: list[str]
     guardrail_blocked: bool
     system_prompt: str
+    # Trang khách đang xem trên web (FE gửi kèm mỗi message) — agent trả lời theo ngữ cảnh
+    page_context: str

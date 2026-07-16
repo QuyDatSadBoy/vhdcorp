@@ -19,6 +19,8 @@ class ChatRequest(BaseModel):
     message: str = Field(min_length=1)
     conversation_id: str | None = None
     image: str | None = None  # data URL base64 (tùy chọn) — tìm sản phẩm bằng ảnh (§9.4)
+    # Đường dẫn trang khách đang mở (vd /products/ong-nhua-pvc-d21) — agent hiểu "sản phẩm này"
+    page: str | None = None
 
 
 def _sse(event: dict) -> str:
@@ -39,6 +41,7 @@ async def chat(
             message=body.message,
             conversation_id=body.conversation_id,
             image=body.image,
+            page=body.page,
         ):
             yield _sse(event)
 

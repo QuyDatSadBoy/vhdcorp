@@ -30,6 +30,9 @@ export interface Product {
   description: string;
   shortDescription?: string | null;
   price: string | number;
+  /** Giá khuyến mãi (Shopee-style) — hiển thị khi còn hạn saleEndsAt */
+  salePrice?: string | number | null;
+  saleEndsAt?: string | null;
   stock: number;
   images: string[];
   categoryId: number;
@@ -116,7 +119,55 @@ export interface AdminUser {
   name: string;
   role: "CUSTOMER" | "STAFF" | "ADMIN";
   avatar: string | null;
+  /** Tài khoản quản trị tối cao — không thể xóa/đổi role/reset mật khẩu */
+  isRoot?: boolean;
+  /** null = chưa xác minh email */
+  emailVerifiedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+}
+
+/* ── Giỏ hàng / Đơn hàng / Voucher ── */
+export interface OrderItem {
+  id: number;
+  productId: number;
+  name: string;
+  price: string | number;
+  qty: number;
+}
+
+export type OrderStatus = "PENDING" | "CONFIRMED" | "SHIPPING" | "DONE" | "CANCELLED";
+
+export interface Order {
+  id: number;
+  code: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  note?: string | null;
+  status: OrderStatus;
+  subtotal: string | number;
+  discount: string | number;
+  total: string | number;
+  voucherCode?: string | null;
+  createdAt: string;
+  items: OrderItem[];
+}
+
+export type VoucherType = "PERCENT" | "FIXED";
+
+export interface Voucher {
+  id: number;
+  code: string;
+  type: VoucherType;
+  value: string | number;
+  minOrder: string | number;
+  maxUses: number;
+  usedCount: number;
+  startsAt: string;
+  endsAt: string;
+  active: boolean;
+  createdAt: string;
 }

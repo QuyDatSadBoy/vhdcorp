@@ -19,7 +19,14 @@ export const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => config,
+  (config: InternalAxiosRequestConfig) => {
+    // Phiên admin và phiên khách tách cookie riêng — BE chọn bộ cookie theo header này.
+    // Nhờ đó mở 2 tab (1 admin, 1 khách) cùng trình duyệt không đè phiên nhau.
+    if (typeof window !== "undefined") {
+      config.headers.set("X-Session-Scope", window.location.pathname.startsWith("/admin") ? "admin" : "client");
+    }
+    return config;
+  },
   (error: AxiosError) => Promise.reject(error)
 );
 
@@ -70,8 +77,35 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    return Promise.reject(error);
+    return Promise.reject(normalizeError(error));
   }
 );
+
+/** Mọi toast trong app dùng e.message — chuẩn hóa về tiếng Việt tại một chỗ duy nhất.
+ *  Ưu tiên message BE (đã tiếng Việt); thiếu thì dịch theo status code. */
+const VI_BY_STATUS: Record<number, string> = {
+  400: "Yêu cầu không hợp lệ",
+  401: "Bạn cần đăng nhập để tiếp tục",
+  403: "Bạn không có quyền thực hiện thao tác này",
+  404: "Không tìm thấy dữ liệu yêu cầu",
+  409: "Dữ liệu bị trùng, vui lòng kiểm tra lại",
+  413: "Tệp quá lớn, vui lòng chọn tệp nhỏ hơn",
+  429: "Thao tác quá nhanh, vui lòng thử lại sau ít phút",
+  500: "Hệ thống đang gặp sự cố, vui lòng thử lại",
+  503: "Hệ thống đang bảo trì, vui lòng quay lại sau",
+};
+
+function normalizeError(error: AxiosError<ApiError>): AxiosError<ApiError> {
+  const beMessage = (error.response?.data as { message?: string | string[] } | undefined)?.message;
+  const vi = Array.isArray(beMessage) ? beMessage.join("\n") : beMessage;
+  const status = error.response?.status;
+  error.message =
+    vi ||
+    (status ? VI_BY_STATUS[status] : undefined) ||
+    (error.code === "ERR_NETWORK"
+      ? "Không kết nối được máy chủ — kiểm tra mạng và thử lại"
+      : "Có lỗi xảy ra, vui lòng thử lại");
+  return error;
+}
 
 export default axiosInstance;

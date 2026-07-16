@@ -16,6 +16,11 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthenticationService } from './authentication.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import {
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  VerifyEmailDto,
+} from './dto/otp.dto';
 import { JwtAuthGuard } from '@guard/jwt-auth.guard';
 import { GoogleAuthGuard } from '@guard/google-auth.guard';
 import { Public } from '@decorator/public.decorator';
@@ -24,6 +29,8 @@ import {
   ACCESS_COOKIE,
   REFRESH_COOKIE,
   clearAuthCookies,
+  cookieNamesFor,
+  requestScope,
   setAuthCookies,
 } from '@util/cookies';
 import { ConfigService } from '@nestjs/config';
@@ -40,13 +47,58 @@ export class AuthenticationController {
   @Public()
   @Post('register')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  async register(
-    @Body() dto: RegisterDto,
+  async register(@Body() dto: RegisterDto) {
+    const { user } = await this.authService.register(dto);
+    return {
+      user,
+      requiresVerification: true,
+      message:
+        'Đã gửi mã xác minh tới email của bạn — nhập mã để kích hoạt tài khoản',
+    };
+  }
+
+  /** Xác minh email bằng mã OTP → kích hoạt + đăng nhập luôn */
+  @Public()
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async verifyEmail(
+    @Body() dto: VerifyEmailDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { user, tokens } = await this.authService.register(dto);
+    const { user, tokens } = await this.authService.verifyEmail(
+      dto.email,
+      dto.code,
+    );
     setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
     return { user };
+  }
+
+  /** Gửi lại mã xác minh email */
+  @Public()
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  async resendVerification(@Body() dto: ForgotPasswordDto) {
+    return this.authService.resendVerification(dto.email);
+  }
+
+  /** Quên mật khẩu — gửi mã OTP về email */
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  /** Đặt lại mật khẩu bằng mã OTP */
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.email, dto.code, dto.newPassword);
   }
 
   @Public()
@@ -74,7 +126,8 @@ export class AuthenticationController {
     const { user, tokens } = await this.authService.login(dto, {
       isAdmin: true,
     });
-    setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
+    // Phiên admin dùng bộ cookie riêng — không đè phiên khách ở tab khác
+    setAuthCookies(res, tokens.accessToken, tokens.refreshToken, 'admin');
     return { user };
   }
 
@@ -85,10 +138,11 @@ export class AuthenticationController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const refreshToken = req.signedCookies?.[REFRESH_COOKIE];
+    const scope = requestScope(req);
+    const refreshToken = req.signedCookies?.[cookieNamesFor(scope).refresh];
     if (!refreshToken) throw new UnauthorizedException('Thiếu refresh token');
     const { user, tokens } = await this.authService.refresh(refreshToken);
-    setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
+    setAuthCookies(res, tokens.accessToken, tokens.refreshToken, scope);
     return { user };
   }
 
@@ -97,10 +151,12 @@ export class AuthenticationController {
   @HttpCode(HttpStatus.OK)
   async logout(
     @CurrentUser() user: JwtPayload,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logout(user.sub);
-    clearAuthCookies(res);
+    // Chỉ xóa cookie của scope đang đăng xuất — tab admin/khách còn lại không bị văng
+    clearAuthCookies(res, requestScope(req));
     return { message: 'Đăng xuất thành công' };
   }
 

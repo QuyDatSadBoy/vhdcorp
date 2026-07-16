@@ -27,7 +27,7 @@ type Status = "idle" | "loading" | "playing";
  * Nút loa "đọc to" câu trả lời (§9.3 voice reply): gọi BE proxy TTS →
  * phát audio. Đang phát → bấm để dừng. Cả widget chỉ 1 audio phát cùng lúc.
  */
-export default function TtsButton({ text }: { text: string }) {
+export default function TtsButton({ text, eager = false }: { text: string; eager?: boolean }) {
   const [status, setStatus] = useState<Status>("idle");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const urlRef = useRef<string | null>(null);
@@ -89,10 +89,26 @@ export default function TtsButton({ text }: { text: string }) {
 
   const label = status === "playing" ? "Dừng đọc" : "Đọc to câu trả lời";
 
+  /** Hover/focus = có ý định nghe → tải audio trước ở nền, bấm là phát tức thì */
+  const prefetch = () => {
+    if (blobCache.has(text)) return;
+    void speakText(text)
+      .then((b) => cacheBlob(text, b))
+      .catch(() => undefined);
+  };
+
+  // Tin nhắn MỚI NHẤT vừa trả lời xong → tải audio trước luôn (mobile không có hover)
+  useEffect(() => {
+    if (eager) prefetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy khi mount/đổi text
+  }, [eager, text]);
+
   return (
     <button
       type="button"
       onClick={play}
+      onMouseEnter={prefetch}
+      onFocus={prefetch}
       aria-label={label}
       title={label}
       className={cn(

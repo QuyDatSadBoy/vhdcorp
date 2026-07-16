@@ -20,7 +20,11 @@ export type SectionType =
   | "faq-accordion"
   | "comparison-table"
   | "sticky-story"
-  | "custom-html";
+  | "custom-html"
+  | "google-map"
+  | "video-embed"
+  | "social-embed"
+  | "image-banner";
 
 export type AnimationType = "none" | "fade-up" | "fade-in" | "slide-left" | "zoom-in";
 
@@ -55,6 +59,10 @@ export type HeroSection = BaseSection<
     minHeight?: number;
     videoUrl?: string;
     videoThumbnail?: string;
+    /** Nhãn nhỏ cạnh tên site trên hero (mặc định B2B) */
+    badge?: string;
+    /** 3 chip cam kết dưới nút CTA — admin sửa label/desc, thêm/xóa */
+    trustItems?: { label: string; desc: string }[];
   }
 >;
 
@@ -83,6 +91,10 @@ export type BannerSliderSection = BaseSection<
     slides: { image: string; link?: string; alt?: string }[];
     autoplay?: boolean;
     interval?: number;
+    /** "banners" → lấy slide từ trang Quản trị → Banner (theo vị trí bên dưới) thay vì slides tự nhập */
+    source?: "manual" | "banners";
+    /** Vị trí banner cần lấy khi source="banners" (mặc định home-hero) */
+    bannerPosition?: string;
   }
 >;
 
@@ -233,6 +245,46 @@ export type StickyStorySection = BaseSection<
   }
 >;
 
+export type GoogleMapSection = BaseSection<
+  "google-map",
+  {
+    heading?: string;
+    /** Dán mã iframe / link nhúng / địa chỉ / link Google Maps — tự chuẩn hóa */
+    embed: string;
+    height?: number;
+  }
+>;
+
+export type VideoEmbedSection = BaseSection<
+  "video-embed",
+  {
+    heading?: string;
+    /** Link YouTube / TikTok / Facebook video / Vimeo — tự nhận diện */
+    url: string;
+  }
+>;
+
+export type SocialEmbedSection = BaseSection<
+  "social-embed",
+  {
+    heading?: string;
+    /** Link fanpage Facebook — nhúng Page Plugin (timeline) */
+    url: string;
+    height?: number;
+  }
+>;
+
+export type ImageBannerSection = BaseSection<
+  "image-banner",
+  {
+    image: string;
+    link?: string;
+    alt?: string;
+    /** Chiều cao tối đa px (mặc định tự nhiên theo ảnh) */
+    maxHeight?: number;
+  }
+>;
+
 export type Section =
   | HeroSection
   | FeaturedProductsSection
@@ -250,7 +302,11 @@ export type Section =
   | FaqAccordionSection
   | ComparisonTableSection
   | StickyStorySection
-  | CustomHtmlSection;
+  | CustomHtmlSection
+  | GoogleMapSection
+  | VideoEmbedSection
+  | SocialEmbedSection
+  | ImageBannerSection;
 
 export interface PageSchema {
   sections: Section[];
@@ -269,6 +325,9 @@ export interface FooterColumn {
   heading: string;
   links: { label: string; href: string }[];
 }
+
+/** Icon cho dải cam kết footer */
+export type TrustBadgeIcon = "shield" | "truck" | "headphones" | "award" | "star" | "clock" | "leaf" | "thumbsup";
 
 /** Icon preset cho kênh liên hệ nổi — xem CHANNEL_PRESETS ở floating-contact.tsx */
 export type ContactChannelIcon =
@@ -302,6 +361,12 @@ export interface FooterConfig {
   social: { platform: string; url: string }[];
   copyright: string;
   showMap?: boolean;
+  /** Google Maps — admin dán mã iframe / link / địa chỉ (hiện ở footer khi showMap bật) */
+  mapEmbed?: string;
+  /** Link fanpage Facebook — nhúng Page Plugin ở footer */
+  facebookPage?: string;
+  /** Dải cam kết trên footer (Cam kết chất lượng, Giao toàn quốc…) — admin sửa 100% */
+  trustBadges?: { icon: TrustBadgeIcon; label: string; desc: string }[];
   /** Mô tả ngắn về công ty hiển thị ở cột đầu footer */
   description?: string;
   /** Thông tin liên hệ admin có thể tùy chỉnh — hiển thị ở footer + floating widget */
@@ -327,6 +392,8 @@ export interface BrandConfig {
   siteName: string;
   tagline: string;
   logo: { url: string; publicId?: string };
+  /** Icon nút Trợ lý AI (mascot) — thay được trong Cài đặt site → Brand */
+  assistantIcon?: { url: string };
   favicon: { url: string };
   ogDefaultImage: { url: string; width?: number; height?: number };
 }
@@ -360,10 +427,49 @@ export interface SeoConfig {
   facebookPixelId?: string;
 }
 
+/** Chữ hero/tiêu đề của KHỐI CỐ ĐỊNH (form liên hệ, danh sách SP/bài viết) — sửa trong Builder */
+export interface FixedBlockHero {
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  /** Ảnh nền hero của khối cố định (tùy chọn) */
+  heroImage?: string;
+}
+export interface FixedBlocksConfig {
+  contact?: FixedBlockHero & {
+    infoHeading?: string;
+    infoDescription?: string;
+    formHeading?: string;
+    formDescription?: string;
+  };
+  products?: FixedBlockHero;
+  posts?: FixedBlockHero;
+}
+
 export interface HeaderConfig {
   /** Dòng promo strip phía trên header — để trống sẽ ẩn */
   promoText?: string;
   showPromo?: boolean;
+}
+
+/** Cấu hình EMAIL — admin chỉnh mọi mail hệ thống (branding + subject/intro từng loại) */
+export interface MailTemplateOverride {
+  subject?: string;
+  intro?: string;
+}
+export interface MailConfig {
+  logoUrl?: string;
+  siteName?: string;
+  tagline?: string;
+  address?: string;
+  copyright?: string;
+  footerNote?: string;
+  templates?: {
+    contactNotify?: MailTemplateOverride;
+    contactConfirm?: MailTemplateOverride;
+    orderNotify?: MailTemplateOverride;
+    orderConfirm?: MailTemplateOverride;
+  };
 }
 
 export interface SiteConfigValue {
@@ -379,6 +485,10 @@ export interface SiteConfigValue {
   };
   navigation: NavItem[];
   footer: FooterConfig;
+  /** Nội dung khối cố định của trang liên hệ / sản phẩm / tin tức */
+  fixedBlocks?: FixedBlocksConfig;
+  /** Cấu hình email hệ thống (branding + nội dung từng loại mail) */
+  mail?: MailConfig;
   customCss?: string;
 }
 

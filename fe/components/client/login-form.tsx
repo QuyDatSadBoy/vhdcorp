@@ -118,7 +118,7 @@ export function LoginForm() {
         variant="outline"
         className="w-full"
         onClick={() => {
-          const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api";
+          const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
           window.location.href = `${apiBase}/auth/google?next=${encodeURIComponent(next)}`;
         }}
       >
@@ -143,7 +143,11 @@ export function LoginForm() {
         Đăng nhập bằng Google
       </Button>
 
-      <div className="text-center text-sm">
+      <div className="flex items-center justify-center gap-3 text-center text-sm">
+        <Link href="/forgot-password" className="text-brand-primary hover:underline">
+          Quên mật khẩu?
+        </Link>
+        <span className="text-muted-foreground/40">·</span>
         <Link href="/register" className="text-brand-primary hover:underline">
           Chưa có tài khoản? Đăng ký
         </Link>

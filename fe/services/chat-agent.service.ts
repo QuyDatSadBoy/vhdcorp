@@ -15,8 +15,14 @@ const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8001";
 const UID_STORAGE_KEY = "vhd_chat_uid";
 
 /** Lấy (hoặc tự sinh lần đầu) uuid khách — chỉ chạy phía client. */
+import { useAuthStore } from "@/store/auth.store";
+
 export function getChatUserId(): string {
   if (typeof window === "undefined") return "";
+  // PHÂN QUYỀN chat: user đăng nhập dùng danh tính riêng "user-<id>" —
+  // mỗi tài khoản một lịch sử, không nhìn thấy hội thoại của nhau/của khách vãng lai.
+  const authUser = useAuthStore.getState().user;
+  if (authUser?.id) return `user-${authUser.id}`;
   let uid = window.localStorage.getItem(UID_STORAGE_KEY);
   if (!uid) {
     uid = crypto.randomUUID();
@@ -64,6 +70,8 @@ export async function streamChat({ message, conversationId, image, signal, onEve
   const body: Record<string, unknown> = { message };
   if (conversationId) body.conversation_id = conversationId;
   if (image) body.image = image;
+  // Agent biết khách đang mở trang nào → hiểu "sản phẩm này/trang này"
+  if (typeof window !== "undefined") body.page = window.location.pathname;
 
   const res = await fetch(`${AGENT_URL}/api/chat`, {
     method: "POST",

@@ -72,10 +72,12 @@ export class MediaController {
     @CurrentUser() user: { sub: number; role?: Role },
   ) {
     if (!file) throw new BadRequestException('Thiếu file');
-    // Customer chỉ được upload vào folder "avatars" (avatar cá nhân)
+    // Customer chỉ được upload avatar cá nhân — KHÔNG ghi vào Thư viện ảnh của admin
     const isPrivileged = user.role === Role.ADMIN || user.role === Role.STAFF;
     const safeFolder = isPrivileged ? (folder ?? 'vhdcorp') : 'avatars';
-    return this.service.uploadFile(file, safeFolder, user.sub);
+    return this.service.uploadFile(file, safeFolder, user.sub, {
+      persistToLibrary: isPrivileged,
+    });
   }
 
   @Get()

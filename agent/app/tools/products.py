@@ -1,4 +1,6 @@
-"""Tools tra cứu catalog sản phẩm từ data/products.json (fuzzy tiếng Việt không dấu)."""
+"""Tools tra cứu catalog sản phẩm — đọc TRỰC TIẾP PostgreSQL (fallback data/products.json).
+
+Fuzzy tiếng Việt không dấu; load_catalog_live() cập nhật cache mỗi lượt tool chạy."""
 
 import json
 import unicodedata
@@ -38,6 +40,24 @@ def load_catalog(force: bool = False) -> list[dict]:
     return _catalog
 
 
+async def load_catalog_live() -> list[dict]:
+    """Đọc catalog TRỰC TIẾP từ PostgreSQL (real-time tuyệt đối); DB lỗi → products.json.
+    Cập nhật cache module để các helper sync (find_products…) dùng ngay dữ liệu mới."""
+    global _catalog
+    from app.db.catalog import fetch_products  # import trễ tránh vòng lặp
+
+    rows = await fetch_products()
+    if rows:
+        for p in rows:
+            blob = " ".join(
+                str(p.get(k) or "") for k in ("name", "slug", "description")
+            ) + " " + str((p.get("category") or {}).get("name") or "")
+            p["_search"] = normalize_vi(blob)
+        _catalog = rows
+        return rows
+    return load_catalog()
+
+
 def catalog_size() -> int:
     return len(load_catalog())
 
@@ -51,8 +71,11 @@ def format_price(price) -> str:
 
 def _format_product(p: dict, detail: bool = False) -> str:
     category = (p.get("category") or {}).get("name") or "Khác"
+    gia = f"Giá: {format_price(p.get('price'))}"
+    if p.get("on_sale") and p.get("original_price"):
+        gia = f"Giá KHUYẾN MÃI: {format_price(p.get('price'))} (giá gốc {format_price(p.get('original_price'))})"
     line = (
-        f"- {p['name']} | Giá: {format_price(p.get('price'))} | Tồn kho: {p.get('stock', 0)} "
+        f"- {p['name']} | {gia} | Tồn kho: {p.get('stock', 0)} "
         f"| Danh mục: {category} | Link: {p.get('url', '')}"
     )
     if detail and p.get("description"):
@@ -97,11 +120,11 @@ def find_product_by_slug(slug_or_name: str) -> dict | None:
 
 @tool
 @catch_tool_errors
-def search_products(query: str) -> str:
+async def search_products(query: str) -> str:
     """Tìm sản phẩm trong catalog VHD Corp theo tên/mô tả/danh mục.
     Hỗ trợ tiếng Việt có dấu và không dấu (ví dụ: 'ống nhựa' hoặc 'ong nhua').
-    Trả về danh sách sản phẩm khớp kèm giá, tồn kho và link."""
-    catalog = load_catalog()
+    Trả về danh sách sản phẩm khớp kèm giá, tồn kho và link (dữ liệu trực tiếp từ DB)."""
+    catalog = await load_catalog_live()
     if not catalog:
         return "Catalog sản phẩm hiện chưa có dữ liệu."
     q = normalize_vi(query)
@@ -117,9 +140,10 @@ def search_products(query: str) -> str:
 
 @tool
 @catch_tool_errors
-def get_product_detail(slug_or_name: str) -> str:
+async def get_product_detail(slug_or_name: str) -> str:
     """Lấy thông tin chi tiết một sản phẩm theo slug hoặc tên
-    (giá, tồn kho, mô tả, danh mục, link trang sản phẩm)."""
+    (giá, tồn kho, mô tả, danh mục, link trang sản phẩm) — dữ liệu trực tiếp từ DB."""
+    await load_catalog_live()
     p = find_product_by_slug(slug_or_name)
     if p is not None:
         return "Chi tiết sản phẩm:\n" + _format_product(p, detail=True)

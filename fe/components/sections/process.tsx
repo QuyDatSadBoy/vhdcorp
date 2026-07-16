@@ -5,7 +5,7 @@ import { useRef } from "react";
 import { ClipboardList, Headphones, Package, Truck, ShieldCheck } from "lucide-react";
 import type { ProcessSection as ProcessType } from "@/types/site-config";
 
-const DEFAULT_STEPS = [
+export const DEFAULT_PROCESS_STEPS = [
   {
     title: "Tư vấn nhu cầu",
     description: "Đội ngũ chuyên viên lắng nghe yêu cầu, đề xuất sản phẩm và phương án tối ưu chi phí.",
@@ -38,9 +38,9 @@ export default function ProcessSection({ section }: { section: ProcessType }) {
   const steps = p.steps?.length
     ? p.steps.map((s, i) => ({
         ...s,
-        icon: DEFAULT_STEPS[i]?.icon ?? ClipboardList,
+        icon: DEFAULT_PROCESS_STEPS[i]?.icon ?? ClipboardList,
       }))
-    : DEFAULT_STEPS;
+    : DEFAULT_PROCESS_STEPS;
 
   const heading = p.heading ?? "Quy trình hợp tác chuẩn hoá";
   const subheading =

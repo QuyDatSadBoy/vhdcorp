@@ -22,8 +22,6 @@ import {
   CopyPlus,
   GripVertical,
   Sparkles,
-  LayoutTemplate,
-  MousePointerClick,
 } from "lucide-react";
 import {
   DndContext,
@@ -50,9 +48,17 @@ import {
   defaultHomeSections,
   defaultListingSections,
 } from "@/lib/default-sections";
+import ImageUploader from "@/components/admin/image-uploader";
 import SectionPropsEditor from "@/components/admin/section-props-editor";
 import { DEFAULT_SITE_CONFIG } from "@/lib/site-config";
 import { PageRenderer } from "@/components/sections";
+import { useSiteConfigStore } from "@/store/site-config.store";
+// UI thật của các trang — preview builder render Y HỆT client (cùng component, cùng config)
+import ProductsPageClient from "@/app/(client)/products/_components/products-page-client";
+import PostsPageClient from "@/app/(client)/posts/_components/posts-page-client";
+import ContactForm from "@/app/(client)/contact/_components/contact-form";
+import ClientHeader from "@/components/client/header";
+import ClientFooter from "@/components/client/footer";
 import { useConfirm } from "@/components/admin/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -93,7 +99,7 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
     type: "banner-slider",
     order: 0,
     visible: true,
-    props: { slides: [], autoplay: true, interval: 5000 },
+    props: { slides: [], autoplay: true, interval: 5000, source: "manual" as const, bannerPosition: "home-hero" },
   }),
   "blog-preview": () => ({
     id: `bp-${Date.now()}`,
@@ -193,6 +199,34 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
     visible: true,
     props: { html: "<div>Custom</div>" },
   }),
+  "google-map": () => ({
+    id: `map-${Date.now()}`,
+    type: "google-map",
+    order: 0,
+    visible: true,
+    props: { heading: "Vị trí của chúng tôi", embed: "Số 1 Đường Mẫu, Hà Nội", height: 420 },
+  }),
+  "video-embed": () => ({
+    id: `vid-${Date.now()}`,
+    type: "video-embed",
+    order: 0,
+    visible: true,
+    props: { heading: "Video giới thiệu", url: "" },
+  }),
+  "social-embed": () => ({
+    id: `soc-${Date.now()}`,
+    type: "social-embed",
+    order: 0,
+    visible: true,
+    props: { heading: "Fanpage của chúng tôi", url: "https://facebook.com/vhdcorp", height: 420 },
+  }),
+  "image-banner": () => ({
+    id: `ib-${Date.now()}`,
+    type: "image-banner",
+    order: 0,
+    visible: true,
+    props: { image: "", link: "", alt: "Banner" },
+  }),
 };
 
 /** Tất cả các trang admin có thể thiết kế qua Builder — phủ 100% trang nội dung */
@@ -223,6 +257,10 @@ const TYPE_LABELS: Record<Section["type"], string> = {
   "comparison-table": "Bảng so sánh",
   "sticky-story": "Sticky Story (Quy trình)",
   "custom-html": "HTML tùy chỉnh",
+  "google-map": "Bản đồ Google",
+  "video-embed": "Video (YouTube/TikTok)",
+  "social-embed": "Fanpage Facebook",
+  "image-banner": "Banner ảnh",
 };
 
 /** Draggable section row dùng @dnd-kit/sortable */
@@ -399,6 +437,13 @@ export default function AdminBuilderPage() {
     [scrollPreviewTo]
   );
 
+  // Đồng bộ draft → store config để các component client trong preview (form liên hệ,
+  // header info…) đọc ĐÚNG config đang chỉnh — preview và client là một.
+  // setState trực tiếp (không qua setConfig) để KHÔNG áp theme CSS vars lên giao diện admin.
+  useEffect(() => {
+    if (draft) useSiteConfigStore.setState({ config: draft });
+  }, [draft]);
+
   /** Viền sáng section đang chọn trong preview (đồng bộ khi đổi chọn/sections) */
   useEffect(() => {
     const root = previewFrameRef.current;
@@ -409,6 +454,13 @@ export default function AdminBuilderPage() {
       el.style.outlineOffset = on ? "-2px" : "";
       el.style.borderRadius = on ? "4px" : "";
     });
+    // Header/Footer toàn site cũng highlight được khi chọn
+    const headerEl = root.querySelector<HTMLElement>("header");
+    const footerEl = root.querySelector<HTMLElement>("footer");
+    if (headerEl) headerEl.style.outline = selectedId === "__header" ? "2px solid #4FB8E7" : "";
+    if (footerEl) footerEl.style.outline = selectedId === "__footer" ? "2px solid #4FB8E7" : "";
+    const fixedEl = root.querySelector<HTMLElement>("[data-fixed-block]");
+    if (fixedEl) fixedEl.style.outline = selectedId === "__fixed" ? "2px solid #4FB8E7" : "";
   });
 
   // Undo/redo: lưu snapshot của draft để quay lại (giới hạn 50)
@@ -743,6 +795,68 @@ export default function AdminBuilderPage() {
                 ))}
               </SortableContext>
             </DndContext>
+
+            {/* Nạp lại layout mẫu — luôn hiện (kể cả khi trang đã có section) */}
+            {sections.length > 0 && (
+              <Button variant="ghost" size="sm" className="mt-2 w-full gap-1.5 text-xs" onClick={loadDefaults}>
+                <Sparkles className="h-3.5 w-3.5" /> Nạp lại layout mẫu cho trang này
+              </Button>
+            )}
+
+            {/* ── Khối CỐ ĐỊNH của trang (không xóa/kéo được — dữ liệu từ module riêng) ── */}
+            {(page === "products" || page === "posts" || page === "contact") && (
+              <>
+                <p className="mt-4 mb-1 px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                  Khối cố định của trang
+                </p>
+                <button
+                  onClick={() => {
+                    setSelectedId("__fixed");
+                    previewFrameRef.current
+                      ?.querySelector("[data-fixed-block]")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                  className={`w-full rounded-md border border-dashed px-3 py-2 text-left text-sm transition ${selectedId === "__fixed" ? "border-brand-primary bg-brand-primary/5" : "hover:bg-accent"}`}
+                >
+                  <span className="font-medium">
+                    {page === "contact"
+                      ? "📋 Form liên hệ (cố định)"
+                      : page === "products"
+                        ? "📦 Danh sách sản phẩm (cố định)"
+                        : "📰 Danh sách bài viết (cố định)"}
+                  </span>
+                  <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                    {page === "contact"
+                      ? "Thông tin liên hệ lấy từ Cài đặt site — section thêm mới nằm phía trên form"
+                      : `Dữ liệu lấy từ Quản trị → ${page === "products" ? "Sản phẩm" : "Bài viết"} — section thêm mới nằm phía trên danh sách`}
+                  </span>
+                </button>
+              </>
+            )}
+
+            {/* ── Thành phần TOÀN SITE (hiện trên mọi trang) — chỉnh trực tiếp tại đây ── */}
+            <p className="mt-4 mb-1 px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+              Toàn site (mọi trang)
+            </p>
+            {(
+              [
+                ["__header", "Header + thanh promo"],
+                ["__footer", "Footer (cam kết, bản đồ, fanpage…)"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => {
+                  setSelectedId(id);
+                  previewFrameRef.current
+                    ?.querySelector(id === "__footer" ? "footer" : "header")
+                    ?.scrollIntoView({ behavior: "smooth", block: id === "__footer" ? "end" : "start" });
+                }}
+                className={`mb-1 w-full rounded-md border px-3 py-2 text-left text-sm transition ${selectedId === id ? "border-brand-primary bg-brand-primary/5" : "hover:bg-accent"}`}
+              >
+                <span className="font-medium">{label}</span>
+              </button>
+            ))}
           </TabsContent>
           <TabsContent value="add" className="space-y-1 mt-3">
             {(Object.keys(SECTION_TEMPLATES) as Section["type"][]).map((t) => (
@@ -844,55 +958,62 @@ export default function AdminBuilderPage() {
         <motion.div suppressHydrationWarning initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-0">
           <div
             ref={previewFrameRef}
-            className="mx-auto bg-background transition-[max-width] duration-200"
+            // transform tạo containing-block: header sticky/fixed của site bị "nhốt" trong khung preview
+            className="mx-auto bg-background transition-[max-width] duration-200 [transform:translateZ(0)]"
             // Preview = chọn-để-chỉnh (kiểu Wix): click khối nào chọn khối đó,
             // chặn điều hướng link bên trong preview.
             onClickCapture={(e) => {
-              const hit = (e.target as HTMLElement).closest?.("[data-section-id]") as HTMLElement | null;
+              const target = e.target as HTMLElement;
+              const hit = target.closest?.("[data-section-id]") as HTMLElement | null;
               e.preventDefault();
               e.stopPropagation();
-              if (hit?.dataset.sectionId) selectSection(hit.dataset.sectionId, "preview");
+              if (hit?.dataset.sectionId) {
+                selectSection(hit.dataset.sectionId, "preview");
+              } else if (target.closest?.("[data-fixed-block]")) {
+                setSelectedId("__fixed"); // khối cố định của trang — chỉnh chữ hero/tiêu đề
+              } else if (target.closest?.("footer")) {
+                setSelectedId("__footer"); // chỉnh footer toàn site ngay trong builder
+              } else if (target.closest?.("header")) {
+                setSelectedId("__header");
+              }
             }}
           >
-            {sections.length === 0 ? (
-              <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-10">
-                <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-dashed border-foreground/15 bg-linear-to-br from-background via-muted/30 to-background p-6 text-center shadow-sm sm:p-8">
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute -top-16 -left-16 h-48 w-48 rounded-full bg-brand-primary/15 blur-3xl"
-                  />
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute -right-16 -bottom-16 h-48 w-48 rounded-full bg-brand-accent/15 blur-3xl"
-                  />
-                  <div className="relative">
-                    <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-linear-to-br from-brand-primary to-brand-accent text-white shadow-lg shadow-brand-primary/30">
-                      <LayoutTemplate className="h-6 w-6" />
-                    </div>
-                    <h2 className="mb-2 text-lg font-bold tracking-tight text-foreground">Canvas đang trống</h2>
-                    <p className="mx-auto mb-5 max-w-xs text-xs text-muted-foreground sm:text-sm">
-                      {page === "products" || page === "posts"
-                        ? "Section thêm ở đây sẽ hiển thị PHÍA TRÊN danh sách (banner khuyến mãi, CTA…) — danh sách sản phẩm/bài viết vẫn giữ nguyên bên dưới."
-                        : "Trang này đang dùng giao diện dựng sẵn ngoài site. Thêm section ở đây để tự thiết kế và ghi đè — hoặc tải layout mẫu để bắt đầu nhanh."}
-                    </p>
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                      <Button onClick={loadDefaults} size="sm" className="gap-1.5">
-                        <Sparkles className="h-4 w-4" /> Tải layout mẫu
-                      </Button>
-                      <Button onClick={() => addSection("hero")} size="sm" variant="outline" className="gap-1.5">
-                        <Plus className="h-4 w-4" /> Thêm Hero
-                      </Button>
-                    </div>
-                    <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground/80">
-                      <MousePointerClick className="h-3 w-3" />
-                      Mẹo: kéo thả các section để sắp xếp lại
-                    </div>
-                  </div>
-                </div>
+            {/* Header thật của site — đọc config draft từ store, giống hệt client.
+                (sticky hoạt động trong khung preview nhờ transform trên container) */}
+            <ClientHeader />
+            {/* Trang có UI cố định (danh sách SP/bài viết, form liên hệ): luôn render UI THẬT
+                y hệt client bên dưới sections — preview = client, cùng một config. */}
+            {sections.length === 0 && (
+              <div className="flex flex-wrap items-center justify-center gap-2 border-b border-dashed border-brand-accent/40 bg-brand-accent/5 px-4 py-2.5 text-center text-xs text-muted-foreground">
+                <span>
+                  {page === "products" || page === "posts" || page === "contact"
+                    ? "Chưa có section thêm — bên dưới là giao diện thật của trang. Section thêm mới sẽ hiển thị phía trên."
+                    : "Trang đang dùng layout mẫu mặc định (giống hệt ngoài site). Nạp vào danh sách để chỉnh từng khối:"}
+                </span>
+                {page !== "products" && page !== "posts" && page !== "contact" && (
+                  <Button onClick={loadDefaults} size="sm" variant="outline" className="h-6 gap-1 px-2 text-[11px]">
+                    <Sparkles className="h-3 w-3" /> Tải layout mẫu
+                  </Button>
+                )}
               </div>
-            ) : (
-              <PageRenderer sections={sections} />
             )}
+            {/* 0 section ở home/about → client render layout mẫu ⇒ preview cũng vậy (đồng bộ 100%) */}
+            {sections.length > 0 ? (
+              <PageRenderer sections={sections} />
+            ) : page === "home" ? (
+              <PageRenderer sections={defaultHomeSections()} />
+            ) : page === "about" ? (
+              <PageRenderer sections={defaultAboutSections()} />
+            ) : null}
+            {(page === "products" || page === "posts" || page === "contact") && (
+              <div data-fixed-block>
+                {page === "products" && <ProductsPageClient />}
+                {page === "posts" && <PostsPageClient />}
+                {page === "contact" && <ContactForm />}
+              </div>
+            )}
+            {/* Footer thật của site (kèm bản đồ + fanpage nếu admin cấu hình) — giống hệt client */}
+            <ClientFooter />
           </div>
         </motion.div>
       </main>
@@ -900,7 +1021,214 @@ export default function AdminBuilderPage() {
       {/* RIGHT */}
       <aside className="border-l bg-background overflow-y-auto p-4">
         <h2 className="font-bold mb-4">Thuộc tính</h2>
-        {!selected ? (
+        {selectedId === "__fixed" && (page === "products" || page === "posts" || page === "contact") ? (
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <p className="text-xs text-muted-foreground">Loại</p>
+              <p className="-mt-2 font-medium">
+                {page === "contact"
+                  ? "Form liên hệ (khối cố định)"
+                  : page === "products"
+                    ? "Danh sách sản phẩm (khối cố định)"
+                    : "Danh sách bài viết (khối cố định)"}
+              </p>
+              {(
+                [
+                  [
+                    "eyebrow",
+                    "Dòng nhỏ phía trên (eyebrow)",
+                    page === "contact"
+                      ? "Liên hệ với VHD Corp"
+                      : page === "products"
+                        ? "Bộ sưu tập sản phẩm"
+                        : "Câu chuyện VHD",
+                  ],
+                  [
+                    "title",
+                    "Tiêu đề lớn",
+                    page === "contact"
+                      ? "Cùng nhau xây dựng giá trị bền vững"
+                      : page === "products"
+                        ? "Sản phẩm VHD Corp"
+                        : "Tin tức & Bài viết",
+                  ],
+                  ["description", "Mô tả", ""],
+                ] as const
+              ).map(([key, label, ph]) => (
+                <div key={key} className="space-y-1">
+                  <p className="text-xs font-medium">{label}</p>
+                  <textarea
+                    rows={key === "description" ? 3 : 1}
+                    placeholder={ph}
+                    className="w-full rounded-md border bg-transparent px-2.5 py-1.5 text-sm"
+                    value={draft.fixedBlocks?.[page]?.[key] ?? ""}
+                    onChange={(e) =>
+                      updateDraft((prev) => ({
+                        ...prev,
+                        fixedBlocks: {
+                          ...prev.fixedBlocks,
+                          [page]: { ...prev.fixedBlocks?.[page], [key]: e.target.value },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+              ))}
+              <div className="space-y-1">
+                <p className="text-xs font-medium">Ảnh nền hero (tùy chọn — có overlay tối để chữ dễ đọc)</p>
+                <ImageUploader
+                  value={draft.fixedBlocks?.[page]?.heroImage ?? ""}
+                  onChange={(url) =>
+                    updateDraft((prev) => ({
+                      ...prev,
+                      fixedBlocks: {
+                        ...prev.fixedBlocks,
+                        [page]: { ...prev.fixedBlocks?.[page], heroImage: url },
+                      },
+                    }))
+                  }
+                  folder="heroes"
+                  label="ảnh nền"
+                />
+              </div>
+              {page === "contact" &&
+                (
+                  [
+                    ["infoHeading", "Tiêu đề cột thông tin", "Thông tin liên hệ"],
+                    ["infoDescription", "Mô tả cột thông tin", "Chọn kênh phù hợp nhất với bạn…"],
+                    ["formHeading", "Tiêu đề form", "Gửi yêu cầu"],
+                    ["formDescription", "Mô tả form", "Điền đầy đủ thông tin…"],
+                  ] as const
+                ).map(([key, label, ph]) => (
+                  <div key={key} className="space-y-1">
+                    <p className="text-xs font-medium">{label}</p>
+                    <input
+                      placeholder={ph}
+                      className="h-9 w-full rounded-md border bg-transparent px-2.5 text-sm"
+                      value={draft.fixedBlocks?.contact?.[key] ?? ""}
+                      onChange={(e) =>
+                        updateDraft((prev) => ({
+                          ...prev,
+                          fixedBlocks: {
+                            ...prev.fixedBlocks,
+                            contact: { ...prev.fixedBlocks?.contact, [key]: e.target.value },
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                ))}
+              <p className="text-[11px] text-muted-foreground">
+                {page === "contact"
+                  ? "Email / hotline / địa chỉ của cột thông tin lấy từ Cài đặt site → Footer → Thông tin liên hệ."
+                  : "Dữ liệu danh sách lấy từ trang Quản trị tương ứng. Để trống ô nào thì dùng nội dung mặc định."}{" "}
+                Sửa ở đây preview đổi ngay — bấm Lưu/Xuất bản như thường.
+              </p>
+            </CardContent>
+          </Card>
+        ) : selectedId === "__footer" ? (
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <p className="text-xs text-muted-foreground">Loại</p>
+              <p className="-mt-2 font-medium">Footer (toàn site)</p>
+              <div className="space-y-1">
+                <p className="text-xs font-medium">Mô tả công ty</p>
+                <textarea
+                  rows={3}
+                  className="w-full rounded-md border bg-transparent px-2.5 py-1.5 text-sm"
+                  value={draft.footer.description ?? ""}
+                  onChange={(e) =>
+                    updateDraft((prev) => ({ ...prev, footer: { ...prev.footer, description: e.target.value } }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium">Copyright</p>
+                <input
+                  className="h-9 w-full rounded-md border bg-transparent px-2.5 text-sm"
+                  value={draft.footer.copyright}
+                  onChange={(e) =>
+                    updateDraft((prev) => ({ ...prev, footer: { ...prev.footer, copyright: e.target.value } }))
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium">Hiện bản đồ</p>
+                <input
+                  type="checkbox"
+                  aria-label="Hiện bản đồ"
+                  checked={!!draft.footer.showMap}
+                  onChange={(e) =>
+                    updateDraft((prev) => ({ ...prev, footer: { ...prev.footer, showMap: e.target.checked } }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium">Google Maps (iframe/link/địa chỉ)</p>
+                <textarea
+                  rows={2}
+                  className="w-full rounded-md border bg-transparent px-2.5 py-1.5 text-sm"
+                  value={draft.footer.mapEmbed ?? ""}
+                  onChange={(e) =>
+                    updateDraft((prev) => ({ ...prev, footer: { ...prev.footer, mapEmbed: e.target.value } }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium">Fanpage Facebook (URL)</p>
+                <input
+                  className="h-9 w-full rounded-md border bg-transparent px-2.5 text-sm"
+                  value={draft.footer.facebookPage ?? ""}
+                  onChange={(e) =>
+                    updateDraft((prev) => ({ ...prev, footer: { ...prev.footer, facebookPage: e.target.value } }))
+                  }
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Dải cam kết, cột link, kênh liên hệ nổi… chỉnh đầy đủ tại{" "}
+                <a href="/admin/settings" className="font-semibold text-brand-primary hover:underline">
+                  Cài đặt site → Footer
+                </a>
+                . Sửa ở đây preview cập nhật ngay — bấm Lưu/Xuất bản như thường.
+              </p>
+            </CardContent>
+          </Card>
+        ) : selectedId === "__header" ? (
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <p className="text-xs text-muted-foreground">Loại</p>
+              <p className="-mt-2 font-medium">Header (toàn site)</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium">Hiện thanh promo</p>
+                <input
+                  type="checkbox"
+                  aria-label="Hiện thanh promo"
+                  checked={!!draft.header?.showPromo}
+                  onChange={(e) =>
+                    updateDraft((prev) => ({ ...prev, header: { ...prev.header, showPromo: e.target.checked } }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium">Nội dung promo</p>
+                <input
+                  className="h-9 w-full rounded-md border bg-transparent px-2.5 text-sm"
+                  value={draft.header?.promoText ?? ""}
+                  onChange={(e) =>
+                    updateDraft((prev) => ({ ...prev, header: { ...prev.header, promoText: e.target.value } }))
+                  }
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Logo, menu điều hướng… chỉnh tại{" "}
+                <a href="/admin/settings" className="font-semibold text-brand-primary hover:underline">
+                  Cài đặt site
+                </a>{" "}
+                (tab Brand / Navigation).
+              </p>
+            </CardContent>
+          </Card>
+        ) : !selected ? (
           <p className="text-sm text-muted-foreground">Chọn một section để chỉnh sửa.</p>
         ) : (
           <Card>

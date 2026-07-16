@@ -29,9 +29,9 @@ async def test_show_product_carousel_emits_props():
     products = cmd["props"]["products"]
     assert products, "phải tìm được ít nhất 1 sản phẩm cao su"
     p = products[0]
-    # Props schema đúng §9.2: name/price/image/slug/stock/category
-    assert set(p) == {"name", "price", "image", "slug", "stock", "category"}
-    assert isinstance(p["price"], int)  # price là số VND
+    # Props schema đúng §9.2 + originalPrice (giá gốc khi đang khuyến mãi)
+    assert set(p) == {"id", "name", "price", "originalPrice", "image", "slug", "stock", "category"}
+    assert isinstance(p["price"], (int, float))  # price là số VND (đã áp KM nếu có)
     assert p["slug"]
     assert "carousel" in note.lower()
 

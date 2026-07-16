@@ -16,6 +16,13 @@ from app.memory.short_term import ShortTermMemory
 from app.tools.contact import create_quote_request, send_contact_request
 from app.tools.knowledge import search_knowledge
 from app.tools.products import get_product_detail, search_products
+from app.tools.site import (
+    add_to_cart,
+    get_company_info,
+    get_recommendations,
+    list_categories,
+    search_posts,
+)
 from app.tools.ui import (
     show_comparison,
     show_contact_form,
@@ -48,6 +55,12 @@ class ChatGraphBuilder(BaseGraphBuilder):
             web_search,
             send_contact_request,
             create_quote_request,
+            # Phủ đủ module web (đọc trực tiếp DB): tin tức, danh mục, gợi ý, liên hệ
+            search_posts,
+            list_categories,
+            get_recommendations,
+            get_company_info,
+            add_to_cart,
             # Generative UI — model chủ động render component (§9.2)
             show_product_carousel,
             show_contact_form,

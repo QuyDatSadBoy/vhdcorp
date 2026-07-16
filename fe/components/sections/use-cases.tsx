@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import type { UseCasesSection } from "@/types/site-config";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_CASES: NonNullable<UseCasesSection["props"]["cases"]> = [
+export const DEFAULT_USE_CASES: NonNullable<UseCasesSection["props"]["cases"]> = [
   {
     emoji: "📦",
     title: "Đặt hàng B2B số lượng lớn",
@@ -36,7 +36,7 @@ const DEFAULT_CASES: NonNullable<UseCasesSection["props"]["cases"]> = [
 
 export default function UseCases({ section }: { section: UseCasesSection }) {
   const p = section.props;
-  const cases = p.cases?.length ? p.cases : DEFAULT_CASES;
+  const cases = p.cases?.length ? p.cases : DEFAULT_USE_CASES;
   const cols = p.columns ?? 4;
 
   return (

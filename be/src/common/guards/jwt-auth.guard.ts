@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '@decorator/public.decorator';
+import { cookieNamesFor, requestScope } from '@util/cookies';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -27,8 +28,9 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    // Token được set qua HttpOnly Cookie tên `access_token` (signed)
-    const token = request?.signedCookies?.access_token;
+    // Token qua HttpOnly Cookie (signed) — phiên admin/khách dùng bộ cookie riêng
+    const token =
+      request?.signedCookies?.[cookieNamesFor(requestScope(request)).access];
     if (!token) {
       throw new UnauthorizedException('Không tìm thấy access token');
     }

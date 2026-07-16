@@ -38,10 +38,12 @@ interface MessageBubbleProps {
   onRetry?: () => void;
   /** Form gen-UI submit → gửi câu lệnh trở lại agent */
   onAction?: (message: string) => void;
+  /** Bubble assistant mới nhất → prefetch TTS ngay khi trả lời xong (bấm loa phát tức thì) */
+  isLast?: boolean;
 }
 
 /** Một dòng tin nhắn: user phải (nền brand), assistant trái (avatar VHD + markdown) */
-export default function MessageBubble({ message, activeTool, onRetry, onAction }: MessageBubbleProps) {
+export default function MessageBubble({ message, activeTool, onRetry, onAction, isLast = false }: MessageBubbleProps) {
   const isUser = message.role === "user";
 
   if (isUser) {
@@ -144,7 +146,7 @@ export default function MessageBubble({ message, activeTool, onRetry, onAction }
       {!message.streaming && message.content && (
         <div className="mt-1 flex items-center gap-1.5 pl-10">
           <span className="text-[10px] text-muted-foreground/70">{formatTime(message.createdAt)}</span>
-          <TtsButton text={message.content} />
+          <TtsButton text={message.content} eager={isLast && message.role === "assistant"} />
         </div>
       )}
     </div>

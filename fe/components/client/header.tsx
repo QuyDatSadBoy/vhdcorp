@@ -4,7 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ShoppingBag, User2, Search, Phone } from "lucide-react";
+import { Menu, X, ShoppingCart, User2, Search, Phone } from "lucide-react";
+import { selectCartCount, useCartStore } from "@/store/cart.store";
+import { SmartSearch } from "@/components/client/smart-search";
 import { useSiteConfigStore } from "@/store/site-config.store";
 import { useAuthStore } from "@/store/auth.store";
 import { cn } from "@/lib/utils";
@@ -14,6 +16,7 @@ import { ThemeToggle } from "@/components/client/theme-toggle";
 export default function Header() {
   const config = useSiteConfigStore((s) => s.config);
   const user = useAuthStore((s) => s.user);
+  const cartCount = useCartStore(selectCartCount);
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [logoError, setLogoError] = useState(false);
@@ -119,14 +122,22 @@ export default function Header() {
 
           <div className="flex items-center gap-1.5">
             <ThemeToggle className="hidden sm:inline-flex" />
-            <Button variant="ghost" size="icon" asChild aria-label="Tìm kiếm">
+            {/* Tìm kiếm gợi ý thông minh (desktop) — mobile giữ icon mở trang /search */}
+            <SmartSearch className="hidden w-48 lg:block xl:w-64" />
+            <Button variant="ghost" size="icon" asChild className="lg:hidden" aria-label="Tìm kiếm">
               <Link href="/search">
                 <Search className="h-5 w-5" />
               </Link>
             </Button>
-            <Button variant="ghost" size="icon" asChild className="hidden sm:inline-flex" aria-label="Sản phẩm">
-              <Link href="/products">
-                <ShoppingBag className="h-5 w-5" />
+            {/* Giỏ hàng kiểu Shopee — badge số lượng, không cần đăng nhập */}
+            <Button variant="ghost" size="icon" asChild className="relative" aria-label="Giỏ hàng">
+              <Link href="/cart">
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 grid h-4.5 min-w-4.5 place-items-center rounded-full bg-brand-danger px-1 text-[10px] font-bold text-white">
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
+                )}
               </Link>
             </Button>
             {user ? (

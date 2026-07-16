@@ -15,6 +15,8 @@ interface ListParams {
   orderBy?: string;
   /** true → thùng rác (chỉ user đã xóa, để khôi phục) */
   deletedOnly?: boolean;
+  /** Lọc theo vai trò */
+  role?: AdminUser["role"];
 }
 
 export interface CreateUserPayload {
@@ -35,6 +37,8 @@ export const userService = {
     axios.patch<{ data: { message: string } }>(`/users/${id}/password`, { newPassword }).then(unwrap),
   restore: (id: number) => axios.post<{ data: AdminUser }>(`/users/${id}/restore`).then(unwrap),
   softDelete: (id: number) => axios.delete<{ data: AdminUser }>(`/users/${id}`).then(unwrap),
+  sendMail: (payload: { userIds?: number[]; subject: string; html: string }) =>
+    axios.post<{ data: { sent: number; failed: number; total: number } }>("/users/send-mail", payload).then(unwrap),
 };
 
 export function useAdminUsers(params?: ListParams) {
@@ -69,6 +73,12 @@ export function useResetUserPassword() {
 
 export function useRestoreUser() {
   return useUserMutation((id: number) => userService.restore(id));
+}
+
+export function useSendMailToUsers() {
+  return useMutation({
+    mutationFn: (payload: { userIds?: number[]; subject: string; html: string }) => userService.sendMail(payload),
+  });
 }
 
 export function useSoftDeleteUser() {

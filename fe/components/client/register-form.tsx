@@ -9,7 +9,6 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useRegister } from "@/services/auth.service";
-import { useAuthStore } from "@/store/auth.store";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,6 @@ type FormValues = z.infer<typeof schema>;
 
 export function RegisterForm() {
   const router = useRouter();
-  const setUser = useAuthStore((s) => s.setUser);
   const register = useRegister();
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -36,11 +34,10 @@ export function RegisterForm() {
 
   async function onSubmit(values: FormValues) {
     try {
-      const result = await register.mutateAsync({ name: values.name, email: values.email, password: values.password });
-      setUser(result.user);
-      toast.success("Đăng ký thành công!");
-      router.replace("/");
-      router.refresh();
+      await register.mutateAsync({ name: values.name, email: values.email, password: values.password });
+      toast.success("Đã gửi mã xác minh tới email của bạn!");
+      // Chuyển sang màn nhập mã OTP — tài khoản kích hoạt sau khi xác minh
+      router.replace(`/verify-email?email=${encodeURIComponent(values.email)}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Đăng ký thất bại";
       toast.error(message);
@@ -123,7 +120,7 @@ export function RegisterForm() {
         variant="outline"
         className="w-full"
         onClick={() => {
-          const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api";
+          const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
           window.location.href = `${apiBase}/auth/google?next=${encodeURIComponent("/account/profile")}`;
         }}
       >

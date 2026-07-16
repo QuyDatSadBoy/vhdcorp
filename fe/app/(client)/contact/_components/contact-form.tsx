@@ -22,6 +22,8 @@ export default function ContactForm() {
   const [pending, setPending] = useState(false);
   const config = useSiteConfigStore((s) => s.config);
   const contact = config?.footer?.contact;
+  // Chữ hero/tiêu đề admin sửa được trong Builder (khối cố định) — fallback nội dung chuẩn
+  const fb = config?.fixedBlocks?.contact;
 
   // Danh sách kênh liên hệ build từ SiteConfig — bỏ entry admin chưa cấu hình
   const info: InfoItem[] = [];
@@ -35,23 +37,34 @@ export default function ContactForm() {
   return (
     <>
       <section className="relative overflow-hidden bg-brand-primary py-20 text-white">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-20 [background:radial-gradient(60%_55%_at_85%_30%,color-mix(in_srgb,var(--vhd-color-accent)_45%,transparent)_0%,transparent_70%),radial-gradient(45%_45%_at_15%_80%,color-mix(in_srgb,var(--vhd-color-highlight)_30%,transparent)_0%,transparent_70%)]"
-        />
+        {fb?.heroImage ? (
+          <>
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${fb.heroImage})` }}
+            />
+            <div aria-hidden className="pointer-events-none absolute inset-0 bg-brand-primary/70" />
+          </>
+        ) : (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-20 [background:radial-gradient(60%_55%_at_85%_30%,color-mix(in_srgb,var(--vhd-color-accent)_45%,transparent)_0%,transparent_70%),radial-gradient(45%_45%_at_15%_80%,color-mix(in_srgb,var(--vhd-color-highlight)_30%,transparent)_0%,transparent_70%)]"
+          />
+        )}
         <div className="container relative mx-auto max-w-4xl px-4 text-center">
-          <p className="type-eyebrow text-brand-highlight">Liên hệ với VHD Corp</p>
+          <p className="type-eyebrow text-brand-highlight">{fb?.eyebrow || "Liên hệ với VHD Corp"}</p>
           <motion.h1
             suppressHydrationWarning
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             className="mt-3 type-display-lg text-white"
           >
-            Cùng nhau xây dựng giá trị bền vững
+            {fb?.title || "Cùng nhau xây dựng giá trị bền vững"}
           </motion.h1>
           <p className="mt-4 type-lead mx-auto max-w-2xl text-white/80">
-            Đội ngũ VHD Corp luôn sẵn sàng tư vấn về sản phẩm, báo giá B2B/B2C và lịch giao hàng. Phản hồi trong vòng 24
-            giờ.
+            {fb?.description ||
+              "Đội ngũ VHD Corp luôn sẵn sàng tư vấn về sản phẩm, báo giá B2B/B2C và lịch giao hàng. Phản hồi trong vòng 24 giờ."}
           </p>
         </div>
       </section>
@@ -59,8 +72,10 @@ export default function ContactForm() {
       <div className="container mx-auto px-4 py-16">
         <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr]">
           <div className="space-y-4">
-            <h2 className="type-display-md text-foreground">Thông tin liên hệ</h2>
-            <p className="text-foreground/65">Chọn kênh phù hợp nhất với bạn — chúng tôi luôn sẵn sàng hỗ trợ.</p>
+            <h2 className="type-display-md text-foreground">{fb?.infoHeading || "Thông tin liên hệ"}</h2>
+            <p className="text-foreground/65">
+              {fb?.infoDescription || "Chọn kênh phù hợp nhất với bạn — chúng tôi luôn sẵn sàng hỗ trợ."}
+            </p>
             <div className="mt-6 grid gap-3">
               {info.map((it) => {
                 const Icon = it.icon;
@@ -98,6 +113,7 @@ export default function ContactForm() {
               const data = {
                 name: (form.elements.namedItem("name") as HTMLInputElement).value,
                 email: (form.elements.namedItem("email") as HTMLInputElement).value,
+                phone: (form.elements.namedItem("phone") as HTMLInputElement).value,
                 subject: (form.elements.namedItem("subject") as HTMLInputElement).value,
                 message: (form.elements.namedItem("message") as HTMLTextAreaElement).value,
               };
@@ -114,9 +130,9 @@ export default function ContactForm() {
             className="space-y-5 rounded-3xl border border-foreground/8 bg-card p-7 shadow-sm md:p-9"
           >
             <div>
-              <h2 className="type-display-md text-foreground">Gửi yêu cầu</h2>
+              <h2 className="type-display-md text-foreground">{fb?.formHeading || "Gửi yêu cầu"}</h2>
               <p className="mt-2 text-sm text-foreground/60">
-                Điền đầy đủ thông tin để chúng tôi hỗ trợ bạn nhanh nhất.
+                {fb?.formDescription || "Điền đầy đủ thông tin để chúng tôi hỗ trợ bạn nhanh nhất."}
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -129,9 +145,15 @@ export default function ContactForm() {
                 <Input id="email" name="email" type="email" required placeholder="ban@example.com" />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="subject">Tiêu đề *</Label>
-              <Input id="subject" name="subject" required placeholder="VD: Báo giá ống nhựa PVC D21" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="phone">Số điện thoại *</Label>
+                <Input id="phone" name="phone" type="tel" required minLength={8} placeholder="0901 234 567" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="subject">Tiêu đề *</Label>
+                <Input id="subject" name="subject" required placeholder="VD: Báo giá ống nhựa PVC D21" />
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="message">Nội dung *</Label>

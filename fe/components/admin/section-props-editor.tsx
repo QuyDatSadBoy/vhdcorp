@@ -33,6 +33,9 @@ const FIELD_LABELS: Record<string, string> = {
   categoryIds: "ID danh mục (cách nhau dấu phẩy)",
   autoplay: "Tự chạy",
   interval: "Thời gian chuyển (ms)",
+  source: "Nguồn slide",
+  trustItems: "Chip cam kết dưới hero",
+  bannerPosition: "Vị trí banner (trang Quản trị → Banner)",
   grayscale: "Icon trắng đen",
   speed: "Tốc độ chạy",
   bgColor: "Màu nền",
@@ -71,12 +74,20 @@ const FIELD_LABELS: Record<string, string> = {
   href: "Link",
   values: "Giá trị các cột (ngăn cách |)",
   highlight: "Nổi bật",
+  embed: "Bản đồ (dán iframe / link / địa chỉ)",
+  url: "Link (dán URL)",
+  height: "Chiều cao (px)",
+  maxHeight: "Chiều cao tối đa (px)",
 };
 
 const labelOf = (k: string) => FIELD_LABELS[k] ?? k;
 
 /* ─── Field dạng lựa chọn cố định ─── */
 const ENUM_OPTIONS: Record<string, { value: string; label: string }[]> = {
+  source: [
+    { value: "manual", label: "Tự nhập slide bên dưới" },
+    { value: "banners", label: "Lấy từ trang Quản trị → Banner" },
+  ],
   align: [
     { value: "left", label: "Trái" },
     { value: "center", label: "Giữa" },
@@ -94,7 +105,11 @@ const ENUM_OPTIONS: Record<string, { value: string; label: string }[]> = {
 };
 
 const LONG_TEXT_KEYS = new Set(["subheading", "body", "description", "answer", "quote", "html"]);
-const IMAGE_KEY_RE = /image|thumbnail|avatar/i;
+// Mọi key mang ảnh đều có nút tải ảnh — kể cả logo/cover/photo/banner.
+const IMAGE_KEY_RE = /image|thumbnail|avatar|logo|cover|photo|banner/i;
+// "icon" khi giá trị là đường dẫn/URL → coi như ảnh (icon emoji giữ ô text)
+const iconLooksLikeImage = (k: string, v: unknown) =>
+  /icon/i.test(k) && typeof v === "string" && (v.startsWith("/") || v.startsWith("http"));
 
 /* ─── Mẫu item mới cho từng loại danh sách ─── */
 const ITEM_TEMPLATES: Record<string, Record<string, unknown>> = {
@@ -105,6 +120,7 @@ const ITEM_TEMPLATES: Record<string, Record<string, unknown>> = {
   items: { icon: "", title: "Mục mới", description: "" },
   quotes: { name: "Khách hàng", role: "", company: "", quote: "" },
   slides: { image: "", link: "", alt: "" },
+  trustItems: { label: "", desc: "" },
   logos: { image: "", name: "", link: "" },
   rows: { label: "", values: [], highlight: false },
 };
@@ -213,7 +229,7 @@ function PrimitiveField({
       </div>
     );
   }
-  if (IMAGE_KEY_RE.test(k) || k === "bgImage") {
+  if (IMAGE_KEY_RE.test(k) || k === "bgImage" || iconLooksLikeImage(k, str)) {
     return (
       <div className="space-y-1">
         <Label className="text-xs">{labelOf(k)}</Label>

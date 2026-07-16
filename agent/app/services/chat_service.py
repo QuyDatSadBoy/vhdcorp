@@ -69,6 +69,7 @@ class ChatService:
         message: str,
         conversation_id: str | None = None,
         image: str | None = None,
+        page: str | None = None,
     ) -> AsyncGenerator[dict, None]:
         """Yield các event dict: conversation / message.delta / tool.start / tool.end / ui / done / error."""
         first_turn = False
@@ -116,6 +117,7 @@ class ChatService:
                 "messages": [HumanMessage(content=graph_message)],
                 "summary": memory["summary"],
                 "facts": memory["facts"],
+                "page_context": page or "",
             }
             config = {"configurable": {"thread_id": conversation_id}}
 

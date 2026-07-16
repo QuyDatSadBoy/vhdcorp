@@ -65,7 +65,14 @@ export default async function ProductDetailRoute({ params }: { params: Promise<P
             ? {
                 "@type": "Offer",
                 priceCurrency: "VND",
-                price: Number(product.price),
+                // Giá hiệu lực = giá KM khi còn hạn (đồng bộ hiển thị) — Google đọc đúng giá bán
+                price:
+                  product.salePrice && (!product.saleEndsAt || new Date(product.saleEndsAt) > new Date())
+                    ? Number(product.salePrice)
+                    : Number(product.price),
+                ...(product.salePrice && product.saleEndsAt && new Date(product.saleEndsAt) > new Date()
+                  ? { priceValidUntil: new Date(product.saleEndsAt).toISOString().slice(0, 10) }
+                  : {}),
                 availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
                 url: `${SITE_URL}/products/${product.slug}`,
               }

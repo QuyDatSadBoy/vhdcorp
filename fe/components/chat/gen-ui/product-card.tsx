@@ -94,11 +94,16 @@ export default function ProductCard({ product, compact = false }: { product: Cha
             {product.category}
           </p>
         )}
-        <h4 className="line-clamp-2 text-xs font-semibold leading-snug text-foreground group-hover:text-brand-primary dark:group-hover:text-brand-accent">
+        <h4 className="line-clamp-2 min-h-[2.1rem] text-xs font-semibold leading-snug text-foreground group-hover:text-brand-primary dark:group-hover:text-brand-accent">
           {product.name}
         </h4>
-        <p className="mt-auto pt-1 text-sm font-extrabold text-brand-primary dark:text-brand-accent">
+        <p className="mt-auto flex min-h-[2.5rem] flex-wrap content-end items-baseline gap-x-1.5 pt-1 text-sm font-extrabold text-brand-primary dark:text-brand-accent">
           {formatVnd(product.price)}
+          {product.originalPrice != null && (
+            <span className="text-[11px] font-medium text-foreground/40 line-through">
+              {formatVnd(product.originalPrice)}
+            </span>
+          )}
         </p>
         <Link
           href={`/products/${product.slug}`}

@@ -28,7 +28,10 @@ export class MediaService {
     file: Express.Multer.File,
     folder: string,
     uploadedBy: number,
+    opts: { persistToLibrary?: boolean } = {},
   ) {
+    // Avatar khách upload KHÔNG ghi vào Thư viện ảnh của admin — chỉ trả URL
+    const persistToLibrary = opts.persistToLibrary ?? true;
     const cloudName = this.config.get<string>('CLOUDINARY_CLOUD_NAME');
     const apiSecret = this.config.get<string>('CLOUDINARY_API_SECRET');
     const useCloudinary = cloudName && apiSecret;
@@ -39,7 +42,7 @@ export class MediaService {
           folder,
           resource_type: 'image',
         });
-        return this.persist({
+        const record = {
           url: result.url,
           publicId: result.publicId,
           folder,
@@ -48,7 +51,8 @@ export class MediaService {
           height: result.height,
           bytes: result.bytes,
           uploadedBy,
-        });
+        };
+        return persistToLibrary ? this.persist(record) : record;
       } catch (err) {
         this.logger.warn(
           `Cloudinary upload failed, fallback local: ${(err as Error).message}`,
@@ -68,14 +72,15 @@ export class MediaService {
     const apiUrl =
       this.config.get<string>('API_PUBLIC_URL') ?? 'http://localhost:8080';
     const url = `${apiUrl}/uploads/${folder}/${filename}`;
-    return this.persist({
+    const localRecord = {
       url,
       publicId: `local/${folder}/${filename}`,
       folder,
       format: ext.replace('.', ''),
       bytes: file.size,
       uploadedBy,
-    });
+    };
+    return persistToLibrary ? this.persist(localRecord) : localRecord;
   }
 
   private persist(data: {

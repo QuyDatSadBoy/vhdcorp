@@ -8,6 +8,7 @@ import {
   Package,
   FileText,
   Users,
+  ShoppingCart,
   Star,
   TrendingUp,
   FolderTree,
@@ -34,8 +35,10 @@ import {
 import { useAuthStore } from "@/store/auth.store";
 import { useAdminProducts } from "@/services/product.service";
 import { useAdminPosts } from "@/services/post.service";
+import { useAdminOrders } from "@/services/order.service";
 import { useAdminUsers } from "@/services/user.service";
 import { useAdminReviews } from "@/services/review.service";
+import { useViewsStats, useTopViewedStats, downloadStatsCsv, printStatsPdf } from "@/services/statistics.service";
 import { useCategories } from "@/services/category.service";
 import {
   useStatsTimeseries,
@@ -221,12 +224,15 @@ export default function AdminDashboardPage() {
 
   const products = useAdminProducts({ pageSize: 1 });
   const posts = useAdminPosts({ pageSize: 1 });
-  const usersQ = useAdminUsers({ pageSize: 1 });
+  const usersQ = useAdminUsers({ pageSize: 1, role: "CUSTOMER" }); // "Người dùng" = khách hàng thật
+  const pendingOrdersQ = useAdminOrders(1, "PENDING"); // đơn mới cần gọi xác nhận
   const reviews = useAdminReviews({ pageSize: 5 });
   const categories = useCategories();
 
   const [range, setRange] = useState<Range>(7);
   const ts = useStatsTimeseries(range);
+  const viewsQ = useViewsStats(30);
+  const topViewedQ = useTopViewedStats(30);
   const breakdown = useStatsCategoriesBreakdown();
   const top = useStatsTopProducts(6);
 
@@ -298,7 +304,99 @@ export default function AdminDashboardPage() {
             Theo dõi hoạt động hệ thống VHD Corp theo thời gian thực.
           </p>
         </div>
+        {/* Xuất báo cáo CSV (mở bằng Excel — đã kèm BOM UTF-8 cho tiếng Việt) */}
+        <div className="flex flex-wrap items-center gap-2">
+          {(
+            [
+              ["views", "Lượt xem"],
+              ["top-viewed", "Top SP xem"],
+              ["contacts", "Liên hệ"],
+              ["products", "Sản phẩm"],
+              ["orders", "Đơn hàng"],
+            ] as const
+          ).map(([type, label]) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => void downloadStatsCsv(type)}
+              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold text-foreground/80 transition-colors hover:bg-accent"
+            >
+              ⬇ {label}.csv
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => void printStatsPdf()}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-primary/90"
+          >
+            🖨 Báo cáo PDF
+          </button>
+        </div>
       </motion.div>
+
+      {/* Tracking thật: lượt xem sản phẩm 30 ngày + top sản phẩm được xem */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border bg-card p-5">
+          <p className="text-sm font-semibold">Lượt xem sản phẩm (30 ngày — tracking thật)</p>
+          {(viewsQ.data ?? []).length === 0 ? (
+            <p className="mt-6 text-sm text-muted-foreground">
+              Chưa có dữ liệu — lượt xem được ghi khi khách mở trang chi tiết sản phẩm.
+            </p>
+          ) : (
+            (() => {
+              // BE chỉ trả ngày CÓ lượt xem → tự dựng đủ chuỗi 30 ngày (ngày trống = 0)
+              const byDate = new Map((viewsQ.data ?? []).map((x) => [x.date, x.views]));
+              const days = Array.from({ length: 30 }, (_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - (29 - i));
+                const key = d.toISOString().slice(0, 10);
+                return { key, label: `${d.getDate()}/${d.getMonth() + 1}`, views: byDate.get(key) ?? 0 };
+              });
+              const max = Math.max(...days.map((x) => x.views), 1);
+              return (
+                <>
+                  <div className="mt-3 flex h-32 items-end gap-px">
+                    {days.map((d) => (
+                      <div
+                        key={d.key}
+                        title={`${d.label}: ${d.views} lượt`}
+                        className={
+                          d.views > 0
+                            ? "flex-1 rounded-t bg-brand-primary/75 transition-colors hover:bg-brand-primary"
+                            : "flex-1 rounded-t bg-muted"
+                        }
+                        style={{ height: d.views > 0 ? `${Math.max(8, (d.views / max) * 100)}%` : "4%" }}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground">
+                    <span>{days[0].label}</span>
+                    <span>Hôm nay · đỉnh {max} lượt/ngày</span>
+                  </div>
+                </>
+              );
+            })()
+          )}
+        </div>
+        <div className="rounded-xl border bg-card p-5">
+          <p className="text-sm font-semibold">Top sản phẩm được xem (30 ngày)</p>
+          {(topViewedQ.data ?? []).length === 0 ? (
+            <p className="mt-6 text-sm text-muted-foreground">Chưa có dữ liệu lượt xem.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {(topViewedQ.data ?? []).slice(0, 6).map((r, i) => (
+                <li key={r.productId} className="flex items-center justify-between gap-2 text-sm">
+                  <span className="truncate">
+                    <span className="mr-2 font-bold text-brand-primary">#{i + 1}</span>
+                    {r.name}
+                  </span>
+                  <span className="shrink-0 font-semibold">{r.views} lượt</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
 
       {/* KPI cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -330,12 +428,19 @@ export default function AdminDashboardPage() {
         />
         <StatCard
           index={3}
-          label="Người dùng"
+          label="Khách hàng"
           value={usersQ.data?.totalItems}
           icon={Users}
           gradient="from-violet-500 to-purple-500"
           trend={trends.users}
           spark={tsData.length ? <MiniSpark data={tsData} color={SERIES_COLORS.users} dataKey="users" /> : null}
+        />
+        <StatCard
+          index={4}
+          label="Đơn chờ xác nhận"
+          value={pendingOrdersQ.data?.totalItems}
+          icon={ShoppingCart}
+          gradient="from-rose-500 to-orange-500"
         />
       </div>
 

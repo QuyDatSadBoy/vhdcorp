@@ -18,8 +18,13 @@ import {
   Truck,
   HeadphonesIcon,
   Award,
+  Star,
+  Clock,
+  Leaf,
+  ThumbsUp,
 } from "lucide-react";
 import { useSiteConfigStore } from "@/store/site-config.store";
+import { toMapEmbedSrc, toFacebookPageSrc } from "@/lib/embeds";
 
 const socialIcon: Record<string, React.ComponentType<{ className?: string }>> = {
   facebook: Facebook,
@@ -34,11 +39,24 @@ const socialIcon: Record<string, React.ComponentType<{ className?: string }>> = 
   email: Mail,
 };
 
-const TRUST = [
-  { icon: ShieldCheck, label: "Cam kết chất lượng", desc: "Chứng nhận ISO" },
-  { icon: Truck, label: "Giao toàn quốc", desc: "B2B/B2C 24h" },
-  { icon: HeadphonesIcon, label: "Hỗ trợ 7 ngày", desc: "Tư vấn chuyên gia" },
-  { icon: Award, label: "12+ năm uy tín", desc: "850+ đối tác" },
+/** Map tên icon (config) → component — cho dải cam kết admin tự chỉnh */
+const TRUST_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  shield: ShieldCheck,
+  truck: Truck,
+  headphones: HeadphonesIcon,
+  award: Award,
+  star: Star,
+  clock: Clock,
+  leaf: Leaf,
+  thumbsup: ThumbsUp,
+};
+
+/** Mặc định khi admin chưa cấu hình — giữ nguyên nội dung hiện tại */
+const TRUST_DEFAULT = [
+  { icon: "shield", label: "Cam kết chất lượng", desc: "Chứng nhận ISO" },
+  { icon: "truck", label: "Giao toàn quốc", desc: "B2B/B2C 24h" },
+  { icon: "headphones", label: "Hỗ trợ 7 ngày", desc: "Tư vấn chuyên gia" },
+  { icon: "award", label: "12+ năm uy tín", desc: "850+ đối tác" },
 ];
 
 export default function Footer() {
@@ -72,8 +90,8 @@ export default function Footer() {
       {/* Trust strip */}
       <div className="border-b border-white/10">
         <div className="container mx-auto grid grid-cols-2 gap-6 px-4 py-10 md:grid-cols-4">
-          {TRUST.map((t) => {
-            const Icon = t.icon;
+          {(footer?.trustBadges?.length ? footer.trustBadges : TRUST_DEFAULT).map((t) => {
+            const Icon = TRUST_ICONS[t.icon] ?? ShieldCheck;
             return (
               <div key={t.label} className="flex items-center gap-3">
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-highlight/15 text-brand-highlight">
@@ -189,6 +207,42 @@ export default function Footer() {
           </div>
         )}
       </div>
+
+      {/* Khối nhúng: Google Maps (khi bật "Hiện bản đồ" + có link) và Fanpage Facebook */}
+      {((footer?.showMap && toMapEmbedSrc(footer?.mapEmbed)) || toFacebookPageSrc(footer?.facebookPage)) && (
+        <div className="border-t border-white/10">
+          <div className="container mx-auto grid gap-6 px-4 py-8 md:grid-cols-2">
+            {footer?.showMap && toMapEmbedSrc(footer?.mapEmbed) && (
+              <div className="overflow-hidden rounded-xl border border-white/10">
+                <iframe
+                  src={toMapEmbedSrc(footer.mapEmbed)!}
+                  title="Bản đồ VHD Corp"
+                  width="100%"
+                  height={280}
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            )}
+            {toFacebookPageSrc(footer?.facebookPage) && (
+              <div className="overflow-hidden rounded-xl border border-white/10 md:justify-self-end">
+                <iframe
+                  src={toFacebookPageSrc(footer?.facebookPage, { width: 500, height: 280 })!}
+                  title="Fanpage Facebook"
+                  width="500"
+                  height={280}
+                  className="max-w-full"
+                  style={{ border: 0, overflow: "hidden" }}
+                  loading="lazy"
+                  allow="encrypted-media"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="border-t border-white/10">
         <div className="container mx-auto flex flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-white/60 md:flex-row">

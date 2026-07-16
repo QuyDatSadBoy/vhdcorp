@@ -34,7 +34,11 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         setHydrated: (v) => set({ isHydrated: v }, false, "auth/setHydrated"),
       }),
       {
-        name: "vhd-auth",
+        // Tab admin và tab khách cache user riêng — không ghi đè lẫn nhau
+        name:
+          typeof window !== "undefined" && window.location.pathname.startsWith("/admin")
+            ? "vhd-auth-admin"
+            : "vhd-auth",
         partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
         onRehydrateStorage: () => (state) => {
           state?.setHydrated(true);

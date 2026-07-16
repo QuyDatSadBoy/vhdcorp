@@ -6,7 +6,7 @@ import { Plus, Minus } from "lucide-react";
 import type { FaqAccordionSection } from "@/types/site-config";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_ITEMS: NonNullable<FaqAccordionSection["props"]["items"]> = [
+export const DEFAULT_FAQ_ITEMS: NonNullable<FaqAccordionSection["props"]["items"]> = [
   {
     question: "Đơn hàng tối thiểu là bao nhiêu?",
     answer:
@@ -107,7 +107,7 @@ function FaqRow({
 
 export default function FaqAccordion({ section }: { section: FaqAccordionSection }) {
   const p = section.props;
-  const items = p.items?.length ? p.items : DEFAULT_ITEMS;
+  const items = p.items?.length ? p.items : DEFAULT_FAQ_ITEMS;
   const [openIdx, setOpenIdx] = useState<number | null>(0);
 
   return (

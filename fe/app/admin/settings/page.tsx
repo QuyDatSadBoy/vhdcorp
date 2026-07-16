@@ -160,6 +160,7 @@ export default function AdminSettingsPage() {
           <TabsTrigger value="seo">SEO</TabsTrigger>
           <TabsTrigger value="navigation">Navigation</TabsTrigger>
           <TabsTrigger value="footer">Footer</TabsTrigger>
+          <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="custom">Custom CSS</TabsTrigger>
           <TabsTrigger value="history">Lịch sử</TabsTrigger>
         </TabsList>
@@ -190,6 +191,17 @@ export default function AdminSettingsPage() {
                   aspect="square"
                   allowUrlInput
                   label="logo"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Icon Trợ lý AI (mascot nút chat — để trống dùng mặc định)</Label>
+                <ImageUploader
+                  value={draft.brand.assistantIcon?.url ?? ""}
+                  onChange={(url) => update("brand", { ...draft.brand, assistantIcon: url ? { url } : undefined })}
+                  folder="brand"
+                  aspect="square"
+                  allowUrlInput
+                  label="icon trợ lý"
                 />
               </div>
               <div className="space-y-2">
@@ -508,6 +520,125 @@ export default function AdminSettingsPage() {
                 />
               </div>
 
+              {/* Dải cam kết trên footer — admin chỉnh 100% (icon + tiêu đề + mô tả) */}
+              <div className="space-y-2 rounded-lg border p-4">
+                <Label className="text-base font-semibold">Dải cam kết (đầu footer)</Label>
+                <p className="text-xs text-muted-foreground">
+                  4 ô &quot;Cam kết chất lượng / Giao toàn quốc…&quot; — sửa nội dung, đổi icon, thêm/xóa tùy ý. Để
+                  trống danh sách → dùng nội dung mặc định.
+                </p>
+                {(draft.footer.trustBadges ?? []).map((b, idx) => (
+                  <div key={idx} className="grid grid-cols-[130px_1fr_1fr_auto] gap-2">
+                    <Select
+                      value={b.icon}
+                      onValueChange={(icon) => {
+                        const next = [...(draft.footer.trustBadges ?? [])];
+                        next[idx] = { ...b, icon: icon as typeof b.icon };
+                        update("footer", { ...draft.footer, trustBadges: next });
+                      }}
+                    >
+                      <SelectTrigger aria-label="Icon">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(
+                          [
+                            ["shield", "🛡 Khiên"],
+                            ["truck", "🚚 Xe tải"],
+                            ["headphones", "🎧 Hỗ trợ"],
+                            ["award", "🏅 Huy hiệu"],
+                            ["star", "⭐ Ngôi sao"],
+                            ["clock", "⏰ Đồng hồ"],
+                            ["leaf", "🌿 Lá"],
+                            ["thumbsup", "👍 Like"],
+                          ] as const
+                        ).map(([v, l]) => (
+                          <SelectItem key={v} value={v}>
+                            {l}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      placeholder="Tiêu đề"
+                      value={b.label}
+                      onChange={(e) => {
+                        const next = [...(draft.footer.trustBadges ?? [])];
+                        next[idx] = { ...b, label: e.target.value };
+                        update("footer", { ...draft.footer, trustBadges: next });
+                      }}
+                    />
+                    <Input
+                      placeholder="Mô tả ngắn"
+                      value={b.desc}
+                      onChange={(e) => {
+                        const next = [...(draft.footer.trustBadges ?? [])];
+                        next[idx] = { ...b, desc: e.target.value };
+                        update("footer", { ...draft.footer, trustBadges: next });
+                      }}
+                    />
+                    <Button
+                      variant="ghost"
+                      onClick={() =>
+                        update("footer", {
+                          ...draft.footer,
+                          trustBadges: (draft.footer.trustBadges ?? []).filter((_, i) => i !== idx),
+                        })
+                      }
+                    >
+                      Xóa
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    update("footer", {
+                      ...draft.footer,
+                      trustBadges: [
+                        ...(draft.footer.trustBadges ?? [
+                          { icon: "shield" as const, label: "Cam kết chất lượng", desc: "Chứng nhận ISO" },
+                          { icon: "truck" as const, label: "Giao toàn quốc", desc: "B2B/B2C 24h" },
+                          { icon: "headphones" as const, label: "Hỗ trợ 7 ngày", desc: "Tư vấn chuyên gia" },
+                          { icon: "award" as const, label: "12+ năm uy tín", desc: "850+ đối tác" },
+                        ]),
+                        ...(draft.footer.trustBadges?.length ? [{ icon: "star" as const, label: "", desc: "" }] : []),
+                      ],
+                    })
+                  }
+                >
+                  {draft.footer.trustBadges?.length ? "+ Thêm ô" : "Nạp 4 ô mặc định để chỉnh sửa"}
+                </Button>
+              </div>
+
+              <div className="space-y-1">
+                <Label>Google Maps (dán mã iframe / link / địa chỉ)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Dán bất kỳ: mã nhúng &lt;iframe&gt; từ Google Maps, link chia sẻ, hay chỉ cần gõ địa chỉ — hệ thống tự
+                  chuyển thành bản đồ. Hiện ở footer khi bật &quot;Hiện bản đồ&quot;.
+                </p>
+                <Textarea
+                  rows={2}
+                  placeholder='VD: Số 1 Đường Mẫu, Hà Nội — hoặc dán <iframe src="https://www.google.com/maps/embed?pb=..."'
+                  value={draft.footer.mapEmbed ?? ""}
+                  onChange={(e) => update("footer", { ...draft.footer, mapEmbed: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label>Fanpage Facebook (nhúng ở footer)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Dán link fanpage (VD: https://facebook.com/vhdcorp) — footer sẽ nhúng khối Page Plugin chuyên nghiệp.
+                  Để trống nếu không dùng.
+                </p>
+                <Input
+                  placeholder="https://facebook.com/vhdcorp"
+                  value={draft.footer.facebookPage ?? ""}
+                  onChange={(e) => update("footer", { ...draft.footer, facebookPage: e.target.value })}
+                />
+              </div>
+
               {/* Thông tin liên hệ — hiển thị footer + floating widget */}
               <div className="rounded-lg border p-4 space-y-3">
                 <div className="flex items-center justify-between gap-4">
@@ -692,6 +823,133 @@ export default function AdminSettingsPage() {
           </Card>
         </TabsContent>
 
+        {/* ── EMAIL: admin chỉnh mọi mail hệ thống (Xuất bản là áp dụng) ── */}
+        <TabsContent value="email" className="space-y-5">
+          <Card>
+            <CardContent className="space-y-4 p-6">
+              <div>
+                <h2 className="font-semibold">Nhận diện chung trên mọi email</h2>
+                <p className="text-xs text-muted-foreground">
+                  Áp dụng cho tất cả mail hệ thống (OTP, liên hệ, đơn hàng, gửi hàng loạt). Để trống ô nào sẽ dùng giá
+                  trị mặc định. Bấm <b>Xuất bản</b> để áp dụng.
+                </p>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Logo trên email</Label>
+                  <ImageUploader
+                    value={draft.mail?.logoUrl ?? ""}
+                    onChange={(url) => update("mail", { ...draft.mail, logoUrl: url })}
+                    folder="brand"
+                    aspect="square"
+                    allowUrlInput
+                    label="logo email"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label>Tên hiển thị (header mail)</Label>
+                    <Input
+                      value={draft.mail?.siteName ?? ""}
+                      onChange={(e) => update("mail", { ...draft.mail, siteName: e.target.value })}
+                      placeholder="VHD Corp"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Slogan (dưới tên)</Label>
+                    <Input
+                      value={draft.mail?.tagline ?? ""}
+                      onChange={(e) => update("mail", { ...draft.mail, tagline: e.target.value })}
+                      placeholder="Kết nối giá trị – Hợp tác vững bền"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Địa chỉ + hotline (chân trang)</Label>
+                  <Input
+                    value={draft.mail?.address ?? ""}
+                    onChange={(e) => update("mail", { ...draft.mail, address: e.target.value })}
+                    placeholder="TP. Hồ Chí Minh, Việt Nam · Hotline: 1900 0000"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Dòng copyright</Label>
+                  <Input
+                    value={draft.mail?.copyright ?? ""}
+                    onChange={(e) => update("mail", { ...draft.mail, copyright: e.target.value })}
+                    placeholder="© 2026 VHD Corp. Bảo lưu mọi quyền."
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Ghi chú thêm ở chân trang (tùy chọn)</Label>
+                <Input
+                  value={draft.mail?.footerNote ?? ""}
+                  onChange={(e) => update("mail", { ...draft.mail, footerNote: e.target.value })}
+                  placeholder="VD: MST 0123456789 · Giấy phép KD số..."
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="space-y-5 p-6">
+              <div>
+                <h2 className="font-semibold">Nội dung từng loại mail</h2>
+                <p className="text-xs text-muted-foreground">
+                  Tùy biến tiêu đề + đoạn mở đầu. Biến có thể dùng: <code>{"{name}"}</code> (tên khách),{" "}
+                  <code>{"{code}"}</code> + <code>{"{total}"}</code> (mail đơn hàng), <code>{"{siteName}"}</code>.
+                </p>
+              </div>
+              {(
+                [
+                  ["contactConfirm", "Xác nhận liên hệ (gửi khách)"],
+                  ["contactNotify", "Báo liên hệ mới (gửi admin)"],
+                  ["orderConfirm", "Xác nhận đơn hàng (gửi khách)"],
+                  ["orderNotify", "Báo đơn hàng mới (gửi admin)"],
+                ] as const
+              ).map(([key, label]) => (
+                <div key={key} className="rounded-xl border p-4">
+                  <p className="mb-3 text-sm font-semibold">{label}</p>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Tiêu đề mail (để trống = mặc định)</Label>
+                      <Input
+                        value={draft.mail?.templates?.[key]?.subject ?? ""}
+                        onChange={(e) =>
+                          update("mail", {
+                            ...draft.mail,
+                            templates: {
+                              ...draft.mail?.templates,
+                              [key]: { ...draft.mail?.templates?.[key], subject: e.target.value },
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Đoạn mở đầu (để trống = mặc định)</Label>
+                      <Input
+                        value={draft.mail?.templates?.[key]?.intro ?? ""}
+                        onChange={(e) =>
+                          update("mail", {
+                            ...draft.mail,
+                            templates: {
+                              ...draft.mail?.templates,
+                              [key]: { ...draft.mail?.templates?.[key], intro: e.target.value },
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
         <TabsContent value="custom">
           <Card>
             <CardContent className="p-6 max-w-3xl">

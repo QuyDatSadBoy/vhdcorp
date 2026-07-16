@@ -17,16 +17,19 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter, log: ['error'] });
 
 async function seedAdmin() {
-  const email = 'admin@vhdcorp.com';
+  const email = 'vhdcorp.contact@gmail.com';
   const password = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.upsert({
     where: { email },
-    update: {},
+    // Đảm bảo tài khoản gốc luôn là ROOT + đã xác minh, kể cả khi seed lại
+    update: { isRoot: true, emailVerifiedAt: new Date() },
     create: {
       email,
       password,
       name: 'VHD Admin',
       role: Role.ADMIN,
+      isRoot: true, // TỐI CAO: không ai xóa/đổi role/reset mật khẩu được
+      emailVerifiedAt: new Date(),
     },
   });
   console.log(`✓ Admin: ${admin.email} (id=${admin.id})`);

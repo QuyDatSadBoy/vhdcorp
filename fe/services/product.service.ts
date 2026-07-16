@@ -31,7 +31,8 @@ export const productService = {
     axios.get<{ data: PaginatedResult<Product> }>("/products/admin", { params }).then(unwrap),
   bySlug: (slug: string) => axios.get<{ data: Product }>(`/products/slug/${slug}`).then(unwrap),
   byId: (id: number) => axios.get<{ data: Product }>(`/products/${id}`).then(unwrap),
-  related: (id: number) => axios.get<{ data: Product[] }>(`/products/${id}/related`).then(unwrap),
+  // "Khách xem X cũng xem Y" (tracking thật) — BE tự fallback sản phẩm cùng danh mục khi thiếu dữ liệu
+  related: (id: number) => axios.get<{ data: Product[] }>(`/products/${id}/recommendations`).then(unwrap),
   create: (payload: Partial<Product>) => axios.post<{ data: Product }>("/products", payload).then(unwrap),
   update: (id: number, payload: Partial<Product>) =>
     axios.put<{ data: Product }>(`/products/${id}`, payload).then(unwrap),

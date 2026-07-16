@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { GlowCard } from "@/components/animations/glow-card";
 import { TextReveal } from "@/components/animations/text-reveal";
 
-const DEFAULT_ITEMS = [
+export const DEFAULT_INDUSTRY_ITEMS = [
   {
     icon: "/images/illustrations/industry-plastic.svg",
     title: "Ống nhựa & Phụ kiện",
@@ -58,7 +58,7 @@ const ACCENT_BAR: Record<string, string> = {
 
 export default function IndustriesSection({ section }: { section: IndustriesType }) {
   const p = section.props;
-  const items = p.items?.length ? p.items : DEFAULT_ITEMS;
+  const items = p.items?.length ? p.items : DEFAULT_INDUSTRY_ITEMS;
   const heading = p.heading ?? "Ba trụ cột kinh doanh của VHD Corp";
   const subheading =
     p.subheading ??

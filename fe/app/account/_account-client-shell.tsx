@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { User, Lock, LogOut } from "lucide-react";
+import { User, Lock, LogOut, ShoppingBag } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { useLogout } from "@/services/auth.service";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,7 @@ export default function AccountClientShell({ children }: { children: ReactNode }
   const isGoogleAccount = Boolean(user?.googleId);
   const items = [
     { href: "/account/profile", label: "Hồ sơ", icon: User },
+    { href: "/account/orders", label: "Đơn hàng của tôi", icon: ShoppingBag },
     ...(isGoogleAccount ? [] : [{ href: "/account/password", label: "Đổi mật khẩu", icon: Lock }]),
   ];
 

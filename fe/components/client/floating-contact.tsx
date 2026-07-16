@@ -11,7 +11,7 @@ import {
   MessageCircle,
   Music2,
   Phone,
-  Plus,
+  PhoneCall,
   Send,
   X,
   Youtube,
@@ -143,15 +143,27 @@ export default function FloatingContact() {
             );
           })}
       </AnimatePresence>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-label={open ? "Đóng menu liên hệ" : "Mở menu liên hệ"}
-        className="grid h-14 w-14 place-items-center rounded-full bg-brand-primary text-white shadow-xl ring-4 ring-brand-primary/20 transition-transform hover:scale-105"
-      >
-        {open ? <X className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
-      </button>
+      <div className="flex items-center gap-2">
+        {/* Nhãn chỉ dẫn — user biết ngay nút này để làm gì */}
+        {!open && (
+          <span
+            aria-hidden
+            className="hidden rounded-full bg-foreground/85 px-2.5 py-1 text-[11px] font-semibold text-background shadow-lg backdrop-blur sm:block"
+          >
+            Liên hệ nhanh
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-label={open ? "Đóng menu liên hệ" : "Mở menu liên hệ nhanh (Zalo, Facebook, gọi điện…)"}
+          title={open ? "Đóng menu liên hệ" : "Liên hệ nhanh: Zalo, Facebook, gọi điện…"}
+          className="grid h-14 w-14 place-items-center rounded-full bg-brand-primary text-white shadow-xl ring-4 ring-brand-primary/20 transition-transform hover:scale-105"
+        >
+          {open ? <X className="h-6 w-6" /> : <PhoneCall className="h-6 w-6" />}
+        </button>
+      </div>
     </div>
   );
 }
