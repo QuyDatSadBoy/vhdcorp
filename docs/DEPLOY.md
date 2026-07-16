@@ -154,6 +154,13 @@ sudo ufw allow 22/tcp && sudo ufw allow 80/tcp && sudo ufw allow 443/tcp
 sudo ufw --force enable    # chặn 3001/8080/8001 khỏi truy cập ngoài
 ```
 
+### Ghi chú cấu hình nginx thực tế trên server (đã áp dụng)
+
+- Nginx nghe **cả :80 và :443** (self-signed cert `/etc/nginx/ssl/origin.crt`) → Cloudflare **Full** mode gọi origin qua 443 mã hóa.
+- Path **`/agent/mcp`** có location riêng đặt `proxy_set_header Host 127.0.0.1:8001` — vì MCP (FastMCP) có DNS-rebinding protection chỉ chấp nhận host nội bộ; A2A/chat giữ Host domain bình thường.
+- File cấu hình mẫu đầy đủ: **`deploy/nginx.conf`** trong repo (copy vào `/etc/nginx/sites-available/vhdcorp`).
+- BE `.env` production: `COOKIE_DOMAIN=.vhdcorp.com` (bắt buộc — nếu để `localhost` thì trình duyệt trên domain từ chối cookie → không đăng nhập được).
+
 ## 3. CI/CD — push `main` là VPS tự cập nhật
 
 1. Tạo SSH key deploy: `ssh-keygen -t ed25519 -f vhd_deploy` → thêm `vhd_deploy.pub` vào `~/.ssh/authorized_keys` trên VPS.
