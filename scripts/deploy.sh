@@ -49,7 +49,8 @@ yarn prisma:generate
 # Tự phục hồi migration FAILED của lần deploy trước (Postgres chạy migration trong
 # transaction → fail là đã rollback vật lý; chỉ cần đánh dấu rolled-back rồi thử lại).
 # Không resolve thì migrate deploy từ chối chạy mãi mãi → CI kẹt vĩnh viễn.
-FAILED_MIGRATIONS=$(npx prisma migrate status 2>/dev/null | sed -n '/have failed/,/^$/p' | grep -E '^[0-9]{14}_' || true)
+# Lưu ý: prisma in thông tin lỗi ra STDERR và exit≠0 khi có migration failed → phải 2>&1
+FAILED_MIGRATIONS=$( (npx prisma migrate status 2>&1 || true) | sed -n '/have failed/,/^$/p' | grep -E '^[0-9]{14}_' || true)
 for m in $FAILED_MIGRATIONS; do
   log "  ↻ resolve migration failed từ lần trước: $m"
   npx prisma migrate resolve --rolled-back "$m"
