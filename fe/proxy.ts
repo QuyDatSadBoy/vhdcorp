@@ -7,9 +7,11 @@ const ACCOUNT_PREFIX = "/account";
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const token = request.cookies.get("access_token")?.value;
-
+  // Phiên admin và phiên khách dùng bộ cookie RIÊNG (mở 2 tab không đè nhau):
+  // /admin* đọc admin_access_token, còn lại đọc access_token.
   const isAdminRoute = pathname.startsWith(ADMIN_PREFIX);
+  const token = request.cookies.get(isAdminRoute ? "admin_access_token" : "access_token")?.value;
+
   const isAdminLogin = pathname === ADMIN_LOGIN;
   const isAccountRoute = pathname.startsWith(ACCOUNT_PREFIX);
   const isClientAuthRoute = CLIENT_AUTH_ROUTES.some((route) => pathname === route);

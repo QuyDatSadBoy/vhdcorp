@@ -8,7 +8,7 @@ import { Loader2, Package, Search } from "lucide-react";
 import axios from "@/lib/axios";
 import { unwrap } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { formatVnd } from "@/lib/price";
+import { formatVnd, saleActive } from "@/lib/price";
 
 interface Suggestion {
   id: number;
@@ -16,6 +16,7 @@ interface Suggestion {
   name: string;
   price: string | number;
   salePrice: string | number | null;
+  saleEndsAt?: string | null;
   image: string;
   category: string;
 }
@@ -124,7 +125,7 @@ export function SmartSearch({ className, autoFocus = false }: { className?: stri
                 <span className="text-[11px] text-muted-foreground">{s.category}</span>
               </span>
               <span className="shrink-0 text-sm font-bold">
-                {s.salePrice ? (
+                {saleActive(s) ? (
                   <>
                     <span className="text-brand-danger">{formatVnd(s.salePrice)}</span>
                     <span className="ml-1 text-[10px] font-medium text-foreground/40 line-through">

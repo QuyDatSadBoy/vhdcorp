@@ -50,7 +50,7 @@ PORT=3001 yarn dev
 | Trường        | Giá trị                           |
 | ------------- | --------------------------------- |
 | **Email**     | `vhdcorp.contact@gmail.com`       |
-| **Mật khẩu**  | `admin123`                        |
+| **Mật khẩu**  | `<mật khẩu mặc định trong seed>`  |
 | Role          | `admin`                           |
 | Đăng nhập tại | http://localhost:3001/admin/login |
 
@@ -101,7 +101,7 @@ Có thể tự đăng ký mới tại http://localhost:3001/register (email/pass
 
 ## 4. Tính năng — Phía Admin (http://localhost:3001/admin/)
 
-> Đăng nhập bằng `vhdcorp.contact@gmail.com` / `admin123` tại `/admin/login`.
+> Đăng nhập bằng `vhdcorp.contact@gmail.com` / `<mật khẩu mặc định trong seed>` tại `/admin/login`.
 
 ### 4.1 Dashboard — `/admin/dashboard`
 
@@ -225,7 +225,7 @@ Layout 3 panel (Left 280px / Canvas / Right 320px), kéo thả sửa toàn bộ 
 
 ### 6.2 Admin
 
-- [ ] `/admin/login` đăng nhập bằng `vhdcorp.contact@gmail.com` / `admin123` → vào `/admin/dashboard`
+- [ ] `/admin/login` đăng nhập bằng `vhdcorp.contact@gmail.com` / `<mật khẩu mặc định trong seed>` → vào `/admin/dashboard`
 - [ ] Dashboard hiển thị KPI + 4 biểu đồ recharts, đổi dark mode chart vẫn đẹp
 - [ ] `/admin/products`: tạo mới → upload ảnh → save → xuất hiện ở client `/products`
 - [ ] `/admin/products/[id]`: edit description (rich editor), chèn ảnh upload, save thành công
@@ -434,7 +434,7 @@ Env: `agent/.env` (đã điền GOOGLE_API_KEY + 13 Tavily keys + model `gemini-
 
 ## 13. Cập nhật 2026-07-10 (đợt 3) — UX chat + upload ảnh + tài khoản mặc định
 
-- **Tài khoản admin mặc định đổi thành `vhdcorp.contact@gmail.com` / `admin123`** (seed.ts + DB hiện tại đã đổi; mọi script test/tài liệu cập nhật theo).
+- **Tài khoản admin mặc định đổi thành `vhdcorp.contact@gmail.com` / `<mật khẩu mặc định trong seed>`** (seed.ts + DB hiện tại đã đổi; mọi script test/tài liệu cập nhật theo).
 - **Con lăn chuột trong khung chat**: trước đây lăn chuột trong chat lại cuộn trang phía sau (do thư viện Lenis smooth-scroll hijack wheel toàn trang). Fix: `data-lenis-prevent` trên panel + wheel handler riêng — lăn trong chat chỉ cuộn tin nhắn, trang đứng yên; lăn ngoài chat vẫn bình thường. Đã verify bằng chuột thật (Playwright): panel 0px, ngoài panel cuộn đủ.
 - **Upload ảnh trong chat**: nguyên nhân lỗi là giới hạn 4MB (ảnh chụp điện thoại thường vượt) — giờ ảnh tự thu nhỏ về 1280px + nén JPEG trước khi gửi, nhận tới 15MB, chọn lại cùng một file vẫn hoạt động. Đã test end-to-end: đính ảnh → preview → gửi → agent trả kết quả tìm bằng ảnh (8 card sản phẩm).
 - **Kênh liên hệ nổi — tải icon riêng**: mỗi kênh có nút tải icon (Cloudinary) thay icon preset; bỏ icon là quay về mặc định. Đã test: upload → Lưu nháp → Xuất bản → client hiển thị icon tùy chỉnh.
@@ -562,7 +562,7 @@ Env: `agent/.env` (đã điền GOOGLE_API_KEY + 13 Tavily keys + model `gemini-
 
 ### Tài khoản & thống kê
 
-- **Root admin đổi thành `vhdcorp.contact@gmail.com`** (mật khẩu admin123 — đổi ngay sau bàn giao). Cập nhật đồng bộ DB + seed + script nghiệm thu + docs. Mọi bảo vệ root giữ nguyên (không ai xóa/đổi role/reset được).
+- **Root admin đổi thành `vhdcorp.contact@gmail.com`** (mật khẩu <mật khẩu seed> — đổi ngay sau bàn giao). Cập nhật đồng bộ DB + seed + script nghiệm thu + docs. Mọi bảo vệ root giữ nguyên (không ai xóa/đổi role/reset được).
 - **KPI Dashboard "Khách hàng"**: chỉ đếm role CUSTOMER (trước đếm cả admin/staff nên ra 2). Trang Người dùng mặc định lọc sẵn "Khách hàng".
 - **Avatar sidebar**: chip user ở đáy sidebar hiển thị ảnh đại diện thật (trước chỉ hiện chữ cái đầu nên "đổi ảnh mà icon không đổi").
 

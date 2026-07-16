@@ -29,7 +29,7 @@
 | **Backend API**    | NestJS 11, Prisma 7, PostgreSQL, Passport JWT, nodemailer, Cloudinary                                           | 8080 (`/api`) | `cd be && yarn start:dev`     |
 | **AI Agent**       | Python 3.13, FastAPI, LangGraph ≥1.0, Gemini 3 Flash, uv                                                        | 8001          | `cd agent && ./run.sh`        |
 
-**Tài khoản admin mặc định** (tự tạo khi `yarn prisma:seed`): `vhdcorp.contact@gmail.com` / `admin123` — đổi mật khẩu khi bàn giao.
+**Tài khoản admin mặc định** (tự tạo khi `yarn prisma:seed`): `vhdcorp.contact@gmail.com` / `<mật khẩu mặc định trong seed>` — đổi mật khẩu khi bàn giao.
 
 ### Luồng dữ liệu chính
 
@@ -104,7 +104,7 @@ JWT trong HttpOnly cookie + refresh; guards role ADMIN/STAFF trên mọi route q
 
 ## 8. Cập nhật mới nhất (13/07/2026)
 
-- **Root admin: `vhdcorp.contact@gmail.com` / admin123** (đổi mật khẩu sau bàn giao). KPI Dashboard chỉ đếm khách hàng (CUSTOMER); trang Người dùng mặc định lọc Khách hàng; avatar sidebar hiện ảnh thật.
+- **Root admin: `vhdcorp.contact@gmail.com` / <mật khẩu seed>** (đổi mật khẩu sau bàn giao). KPI Dashboard chỉ đếm khách hàng (CUSTOMER); trang Người dùng mặc định lọc Khách hàng; avatar sidebar hiện ảnh thật.
 - **Email hàng loạt**: tự sửa biến `{{…}}` bị gõ hỏng (giữ phần chữ, bỏ ngoặc); nội dung được bọc style brand; chống spam bằng plain-text song song + List-Unsubscribe + Reply-To + logo + địa chỉ công ty — test thật vào INBOX Gmail.
 - **Trợ lý AI**: nút mascot robot 3 màu brand (`fe/public/images/ai-agent.png` — thay được); lần đầu vào web (desktop) panel **tự mở sau 2.5s** với 6 câu hỏi mẫu bấm-là-hỏi.
 - **Page Builder**: mọi trang liệt kê đủ khối kể cả khối cố định (Danh sách sản phẩm / Danh sách bài viết / Form liên hệ); trang Giới thiệu dùng chung layout mẫu với builder ở mọi trạng thái — preview và client không thể lệch nhau.

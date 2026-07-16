@@ -73,7 +73,7 @@ uv run pytest               # test (57 test)
 
 Trợ lý AI phủ **đủ mọi module của web**: sản phẩm/giá/tồn kho + bài viết + danh mục + gợi ý "khách xem X cũng xem Y" (tracking thật) + thông tin công ty — tất cả **đọc TRỰC TIẾP PostgreSQL** qua `CATALOG_DATABASE_URL` (fallback `data/products.json` đồng bộ webhook ~0.25s khi DB lỗi). Thông tin chính sách sửa tại **Admin → Kiến thức AI**. Gen-UI trong chat: carousel sản phẩm, thẻ bài viết, chip danh mục, form liên hệ/báo giá, bảng so sánh, FAQ — **reload vẫn giữ nguyên**; lần đầu vào web panel tự mở kèm câu hỏi mẫu. Voice (Web Speech + MiniMax TTS cache), tìm sản phẩm bằng ảnh, gửi liên hệ, A2A (`/.well-known/agent-card.json`), MCP (`/mcp`), đọc Gmail (endpoint admin). Đồng bộ catalog thủ công: `POST /api/admin/resync-products` (header `X-Resync-Secret`). FE cần `NEXT_PUBLIC_AGENT_URL=http://localhost:8001` trong `fe/.env.local`.
 
-> 🚀 **Deploy + CI/CD**: [docs/DEPLOY.md](docs/DEPLOY.md) — setup VPS 1 lần, sau đó push `main` là tự build & chạy lại.
+> 🚀 **Deploy + CI/CD**: [docs/DEPLOY.md](docs/DEPLOY.md) — VPS Ubuntu (Postgres cài thẳng + Kong Gateway + PM2), push `main` là tự build & chạy lại. Có sẵn mục hướng dẫn cho Claude Code agent chạy trên VPS.
 
 > 📄 **Tài liệu**: [docs/TINH_NANG.md](docs/TINH_NANG.md) (**đọc file này trước** — toàn bộ tính năng + kiến trúc + agent) · [docs/BAO_CAO.md](docs/BAO_CAO.md) (báo cáo bàn giao) · [docs/AGENT_PLAN.md](docs/AGENT_PLAN.md) (kiến trúc agent) · [docs/HANDOVER.md](docs/HANDOVER.md) (changelog kỹ thuật từng đợt) · [docs/DATABASE.md](docs/DATABASE.md) · [docs/PRD.md](docs/PRD.md).
 
@@ -144,7 +144,7 @@ yarn prisma:generate
 
 ## Tài khoản mặc định (sau `yarn prisma:seed`)
 
-- **Root admin (TỐI CAO)**: `vhdcorp.contact@gmail.com` / `admin123` — đổi mật khẩu ngay khi lên production. Không ai xóa/đổi role/reset được tài khoản này.
+- **Root admin (TỐI CAO)**: `vhdcorp.contact@gmail.com` / `<mật khẩu mặc định trong seed>` — đổi mật khẩu ngay khi lên production. Không ai xóa/đổi role/reset được tài khoản này.
 - Đăng ký khách mới cần Gmail thật (OTP 6 số gửi về mail).
 
 ## Kiến trúc nhanh
