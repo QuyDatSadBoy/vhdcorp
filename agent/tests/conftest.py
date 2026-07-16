@@ -7,6 +7,17 @@ import pytest
 AGENT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(AGENT_DIR))
 
+# CI không có data/products.json (file runtime, gitignored) và không có DB —
+# trỏ catalog sang fixture cố định để test tools tất định chạy được ở mọi nơi.
+import os
+
+_FIXTURE = Path(__file__).parent / "fixtures" / "products.json"
+if not (AGENT_DIR / "data" / "products.json").exists():
+    os.environ.setdefault("PRODUCTS_JSON_PATH", str(_FIXTURE))
+    from app.core.config import get_settings as _gs
+
+    _gs.cache_clear()
+
 
 @pytest.fixture
 async def test_app(tmp_path, monkeypatch):

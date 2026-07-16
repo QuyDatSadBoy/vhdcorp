@@ -1,0 +1,106 @@
+[
+  {
+    "id": 1,
+    "slug": "ong-nhua-pvc-d21",
+    "name": "Ống nhựa PVC D21",
+    "description": "Ống nhựa PVC D21 tiêu chuẩn TCVN.",
+    "price": 25000,
+    "stock": 500,
+    "image": "",
+    "category": {
+      "name": "Nhựa & Cao su"
+    },
+    "url": "/products/ong-nhua-pvc-d21"
+  },
+  {
+    "id": 2,
+    "slug": "tam-cao-su-non",
+    "name": "Tấm cao su non chống rung",
+    "description": "Tấm cao su non chống rung cho thiết bị công nghiệp.",
+    "price": 180000,
+    "stock": 120,
+    "image": "",
+    "category": {
+      "name": "Nhựa & Cao su"
+    },
+    "url": "/products/tam-cao-su-non"
+  },
+  {
+    "id": 3,
+    "slug": "nuoc-mam-truyen-thong-1l",
+    "name": "Nước mắm truyền thống 1L",
+    "description": "Nước mắm truyền thống.",
+    "price": 95000,
+    "stock": 300,
+    "image": "",
+    "category": {
+      "name": "Thực phẩm làng nghề"
+    },
+    "url": "/products/nuoc-mam-truyen-thong-1l"
+  },
+  {
+    "id": 4,
+    "slug": "che-thai-nguyen-tan-cuong",
+    "name": "Chè Tân Cương Thái Nguyên",
+    "description": "Chè Thái Nguyên thượng hạng.",
+    "price": 220000,
+    "stock": 80,
+    "image": "",
+    "category": {
+      "name": "Thực phẩm làng nghề"
+    },
+    "url": "/products/che-thai-nguyen-tan-cuong"
+  },
+  {
+    "id": 5,
+    "slug": "non-la-lang-chuong",
+    "name": "Nón lá làng Chuông",
+    "description": "Nón lá thủ công làng Chuông.",
+    "price": 75000,
+    "stock": 60,
+    "image": "",
+    "category": {
+      "name": "Đồ thủ công"
+    },
+    "url": "/products/non-la-lang-chuong"
+  },
+  {
+    "id": 6,
+    "slug": "tranh-dong-ho",
+    "name": "Tranh dân gian Đông Hồ",
+    "description": "Tranh Đông Hồ truyền thống.",
+    "price": 150000,
+    "stock": 40,
+    "image": "",
+    "category": {
+      "name": "Đồ thủ công"
+    },
+    "url": "/products/tranh-dong-ho"
+  },
+  {
+    "id": 7,
+    "slug": "qua-tang-doanh-nghiep",
+    "name": "Set quà tặng doanh nghiệp",
+    "description": "Set quà doanh nghiệp.",
+    "price": 850000,
+    "stock": 20,
+    "image": "",
+    "category": {
+      "name": "Sản phẩm khác"
+    },
+    "url": "/products/qua-tang-doanh-nghiep"
+  },
+  {
+    "id": 8,
+    "slug": "tui-vai-canvas-vhd",
+    "name": "Túi vải canvas VHD Corp",
+    "description": "Túi canvas in logo.",
+    "price": 65000,
+    "stock": 200,
+    "image": "",
+    "category": {
+      "name": "Sản phẩm khác"
+    },
+    "url": "/products/tui-vai-canvas-vhd"
+  }
+]
