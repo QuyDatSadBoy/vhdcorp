@@ -117,6 +117,9 @@ function SectionShell({ section, children }: { section: Section; children: React
   }
   if (c.headingColor) style["--sec-heading"] = c.headingColor;
   if (c.textColor) style["--sec-text"] = c.textColor;
+  // Căn lề chữ cả khối (trái/giữa/phải) — hero tự xử lý flex riêng theo cùng key
+  const align = (c as { align?: string }).align;
+  if (align && section.type !== "hero") style.textAlign = align as CSSProperties["textAlign"];
 
   const className = cn("scroll-mt-20", c.headingColor && "sec-heading-override", c.textColor && "sec-text-override");
   const anim = c.animation && c.animation !== "none" ? WRAPPER_ANIMATIONS[c.animation] : undefined;

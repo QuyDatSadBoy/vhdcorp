@@ -1,34 +1,36 @@
 "use client";
 
-import { BrandMarquee } from "@/components/animations/brand-marquee";
 import { ScrollVelocityRow } from "@/components/animations/scroll-velocity-row";
 
-/** E3 — Brand marquee + Shopify-style scroll-velocity ribbon */
+/**
+ * E3 — Dải brand trước footer: MỘT dòng duy nhất, chậm và sang
+ * (bản cũ 4 dải chạy chồng nhau gây loạn mắt). Chữ đặc / chữ viền /
+ * chữ gradient xen kẽ + glow hai bên cho chiều sâu.
+ */
 export function HomeMarquees() {
   return (
-    <>
-      <BrandMarquee variant="primary" />
-      <section
-        aria-hidden
-        className="relative overflow-hidden border-y border-foreground/10 bg-linear-to-r from-brand-primary/5 via-transparent to-brand-accent/5 py-14 md:py-20"
-      >
-        <ScrollVelocityRow baseVelocity={28} className="py-1">
-          <span className="font-heading text-3xl font-black uppercase leading-tight tracking-tight text-foreground/85 md:text-5xl lg:text-6xl">
-            Kết nối giá trị
-            <span className="mx-6 inline-block text-brand-highlight">✦</span>
+    <section
+      aria-hidden
+      className="relative overflow-hidden border-y border-foreground/8 bg-linear-to-r from-brand-primary/6 via-transparent to-brand-accent/6 py-14 md:py-20"
+    >
+      {/* Glow mềm hai bên — tạo chiều sâu, không che chữ */}
+      <div className="pointer-events-none absolute -left-28 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-(--vhd-color-accent)/15 blur-3xl" />
+      <div className="pointer-events-none absolute -right-28 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-(--vhd-color-highlight)/15 blur-3xl" />
+
+      <ScrollVelocityRow baseVelocity={14} className="py-2">
+        <span className="font-heading text-4xl font-black uppercase leading-[1.2] tracking-tight md:text-6xl">
+          <span className="text-foreground/90">Kết nối giá trị</span>
+          <span className="mx-8 inline-block align-middle text-2xl text-brand-highlight md:text-3xl">✦</span>
+          <span className="text-transparent [-webkit-text-stroke:2px_color-mix(in_srgb,var(--vhd-color-primary)_55%,transparent)]">
             Hợp tác vững bền
-            <span className="mx-6 inline-block text-brand-accent">✦</span>
-            Tổng kho VHD Corp
-            <span className="mx-6 inline-block text-brand-primary">✦</span>
           </span>
-        </ScrollVelocityRow>
-        <ScrollVelocityRow baseVelocity={-22} className="mt-8 py-1 opacity-60 md:mt-10">
-          <span className="font-heading text-2xl font-bold uppercase leading-tight tracking-tight text-foreground/55 md:text-4xl">
-            Ống nhựa PVC · Cao su kỹ thuật · Miến làng nghề · B2B/B2C · Giao toàn quốc
+          <span className="mx-8 inline-block align-middle text-2xl text-brand-accent md:text-3xl">✦</span>
+          <span className="bg-linear-to-r from-brand-primary via-brand-accent to-brand-highlight bg-clip-text text-transparent">
+            VHD Corp
           </span>
-        </ScrollVelocityRow>
-      </section>
-      <BrandMarquee variant="highlight" duration={50} />
-    </>
+          <span className="mx-8 inline-block align-middle text-2xl text-brand-primary md:text-3xl">✦</span>
+        </span>
+      </ScrollVelocityRow>
+    </section>
   );
 }

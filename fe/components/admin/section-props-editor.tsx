@@ -269,6 +269,18 @@ function PrimitiveField({
       </div>
     );
   }
+  // icon/emoji: gõ emoji HOẶC tải ảnh lên (FE tự render ảnh khi giá trị là URL)
+  if (/^(icon|emoji)$/i.test(k)) {
+    return (
+      <div className="space-y-1">
+        <Label className="text-xs">{labelOf(k)}</Label>
+        <div className="flex gap-1.5">
+          <Input value={str} placeholder="Emoji (🎯) hoặc bấm tải ảnh" onChange={(e) => onChange(e.target.value)} />
+          <UploadButton onDone={(url) => onChange(url)} />
+        </div>
+      </div>
+    );
+  }
   if (LONG_TEXT_KEYS.has(k)) {
     return (
       <div className="space-y-1">
@@ -571,6 +583,7 @@ const COMMON_STYLE_KEYS = [
   "paddingBottom",
   "marginTop",
   "marginBottom",
+  "align",
   "bgColor",
   "headingColor",
   "textColor",
@@ -620,6 +633,7 @@ function CommonStyleBlock({
           <OptionalNumberField key={k} k={k} value={props[k]} onChange={(v) => onChange({ [k]: v })} />
         ))}
       </div>
+      <PrimitiveField k="align" value={String(props.align ?? "")} onChange={(v) => onChange({ align: v })} />
       {(["bgColor", "headingColor", "textColor"] as const).map((k) => (
         <PrimitiveField key={k} k={k} value={String(props[k] ?? "")} onChange={(v) => onChange({ [k]: v })} />
       ))}

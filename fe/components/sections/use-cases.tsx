@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import type { UseCasesSection } from "@/types/site-config";
@@ -71,9 +72,16 @@ export default function UseCases({ section }: { section: UseCasesSection }) {
                   {c.badge}
                 </span>
               )}
-              <span className="text-4xl leading-none" aria-hidden>
-                {c.emoji}
-              </span>
+              {/* emoji chấp nhận cả URL ảnh (admin upload từ builder) */}
+              {c.emoji && (c.emoji.startsWith("/") || c.emoji.startsWith("http")) ? (
+                <span className="relative block h-12 w-12" aria-hidden>
+                  <Image src={c.emoji} alt="" fill sizes="48px" className="object-contain" />
+                </span>
+              ) : (
+                <span className="text-4xl leading-none" aria-hidden>
+                  {c.emoji}
+                </span>
+              )}
               <h3 className="mt-4 font-heading text-base font-bold text-foreground">{c.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-foreground/65">{c.description}</p>
               {c.href && (

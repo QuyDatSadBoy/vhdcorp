@@ -235,6 +235,11 @@
     line-height: 1.55;
   }
 
+  /* Tiêu đề trong section: ngắt dòng cân đối (hết kiểu "Tầm / nhìn" lệch hàng) */
+  [data-section-id] :is(h1, h2, h3) {
+    text-wrap: balance;
+  }
+
   /* Admin override màu theo khối (Page Builder → Khung, màu & hiệu ứng).
      !important có chủ đích: admin đã chọn màu thì thắng mọi màu mặc định của design. */
   .sec-heading-override :is(h1, h2, h3, h4) {

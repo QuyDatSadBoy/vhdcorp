@@ -42,6 +42,8 @@ export interface CommonSectionProps {
   headingColor?: string;
   /** Màu chữ nội dung (p/li) trong khối */
   textColor?: string;
+  /** Căn lề chữ cả khối (hero dùng cùng key để căn flex riêng) */
+  align?: "left" | "center" | "right";
   background?: { type: "none" | "color" | "image" | "gradient"; value?: string };
   animation?: AnimationType;
   animationDelay?: number;
