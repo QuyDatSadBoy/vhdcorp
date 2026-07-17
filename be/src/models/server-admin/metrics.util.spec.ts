@@ -1,9 +1,11 @@
 import {
   cpuPercent,
   isSafeBackupName,
+  netRateKBps,
   parseCpuStat,
   parseDf,
   parseMeminfo,
+  parseNetDev,
   pruneRing,
 } from './metrics.util';
 
@@ -51,6 +53,31 @@ describe('metrics.util', () => {
     expect(pruned[pruned.length - 1]).toBe('l10599');
     // Dưới ngưỡng → giữ nguyên
     expect(pruneRing(['a', 'b']).length).toBe(2);
+  });
+
+  it('parseNetDev cộng rx/tx mọi interface trừ lo', () => {
+    const text = [
+      'Inter-|   Receive                                                |  Transmit',
+      ' face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets',
+      '    lo: 1000       10    0    0    0     0          0         0    1000       10',
+      '  eth0: 5000       50    0    0    0     0          0         0    2000       20',
+    ].join('\n');
+    const n = parseNetDev(text);
+    expect(n.rxBytes).toBe(5000); // lo bị loại
+    expect(n.txBytes).toBe(2000);
+  });
+
+  it('netRateKBps tính tốc độ đúng + an toàn delta 0', () => {
+    const r = netRateKBps(
+      { rxBytes: 0, txBytes: 0 },
+      { rxBytes: 2048, txBytes: 1024 },
+      1000,
+    );
+    expect(r.rxKBps).toBe(2);
+    expect(r.txKBps).toBe(1);
+    expect(
+      netRateKBps({ rxBytes: 0, txBytes: 0 }, { rxBytes: 0, txBytes: 0 }, 0),
+    ).toEqual({ rxKBps: 0, txKBps: 0 });
   });
 
   it('isSafeBackupName chặn path traversal', () => {

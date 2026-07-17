@@ -69,6 +69,41 @@ export function parseDf(text: string): DiskInfo {
   };
 }
 
+export interface NetTotals {
+  rxBytes: number;
+  txBytes: number;
+}
+
+/** Tổng byte rx/tx mọi interface trừ loopback — parse /proc/net/dev */
+export function parseNetDev(text: string): NetTotals {
+  let rx = 0;
+  let tx = 0;
+  for (const line of text.split('\n')) {
+    const m = line.match(/^\s*([\w.-]+):\s*(.+)$/);
+    if (!m || m[1] === 'lo') continue;
+    const cols = m[2].trim().split(/\s+/).map(Number);
+    rx += cols[0] || 0; // cột 1: bytes nhận
+    tx += cols[8] || 0; // cột 9: bytes gửi
+  }
+  return { rxBytes: rx, txBytes: tx };
+}
+
+/** Tốc độ mạng KB/s giữa 2 mẫu (an toàn khi delta thời gian = 0) */
+export function netRateKBps(prev: NetTotals, cur: NetTotals, ms: number) {
+  const sec = ms / 1000;
+  if (sec <= 0) return { rxKBps: 0, txKBps: 0 };
+  return {
+    rxKBps: Math.max(
+      0,
+      Math.round(((cur.rxBytes - prev.rxBytes) / 1024 / sec) * 10) / 10,
+    ),
+    txKBps: Math.max(
+      0,
+      Math.round(((cur.txBytes - prev.txBytes) / 1024 / sec) * 10) / 10,
+    ),
+  };
+}
+
 /**
  * Ring file: giữ tối đa `keep` dòng cuối khi vượt `max` dòng
  * (ghi 60s/lần → 7 ngày = 10.080 mẫu; prune khi chạm 10.500).
