@@ -36,6 +36,7 @@ import {
   useLog,
   useLogSources,
   useRestartService,
+  useRestartAll,
   useServerAudit,
   useServerHistory,
   useServerMetrics,
@@ -81,7 +82,24 @@ const CLEANUP_LABELS: Record<string, { label: string; desc: string }> = {
   "apt-cache": { label: "Dọn cache hệ thống", desc: "Xóa gói cài đặt tạm (apt-get clean)" },
   journal: { label: "Dọn log hệ điều hành", desc: "Giữ 7 ngày gần nhất (journalctl)" },
   "build-backups": { label: "Dọn build backup thừa", desc: "Xóa dist.bak/.next.bak sót lại sau deploy" },
+  "ram-cache": { label: "Giải phóng RAM cache", desc: "Xả page-cache (an toàn) — RAM trống tăng lại" },
 };
+
+/** Cheatsheet lệnh SSH — hiện ngay trên trang để admin khỏi tìm lại */
+const SSH_COMMANDS: { cmd: string; note: string }[] = [
+  { cmd: "ssh root@116.118.6.61", note: "đăng nhập VPS (mật khẩu máy chủ)" },
+  { cmd: "pm2 logs vhd-be", note: "log backend realtime (Ctrl+C thoát)" },
+  { cmd: "pm2 logs vhd-fe", note: "log frontend realtime" },
+  { cmd: "pm2 logs vhd-agent", note: "log AI agent realtime" },
+  { cmd: "pm2 logs --lines 500", note: "tất cả service, 500 dòng gần nhất" },
+  { cmd: "pm2 monit", note: "dashboard CPU/RAM realtime từng service" },
+  { cmd: "pm2 status", note: "bảng trạng thái service" },
+  { cmd: "tail -f /var/log/nginx/error.log", note: "log lỗi web realtime" },
+  { cmd: "journalctl -n 300 --no-pager", note: "log hệ điều hành" },
+  { cmd: "free -h ; df -h ; top", note: "RAM / ổ đĩa / tiến trình" },
+  { cmd: "fail2ban-client status sshd", note: "IP đang bị chặn" },
+  { cmd: "passwd", note: "đổi mật khẩu root (nên làm sau bàn giao)" },
+];
 
 export default function ServerAdminPage() {
   const metrics = useServerMetrics();
@@ -91,6 +109,7 @@ export default function ServerAdminPage() {
   const deployLog = useDeployLog(watchLog || Boolean(deploy.data?.deploying));
   const startDeploy = useStartDeploy();
   const restart = useRestartService();
+  const restartAll = useRestartAll();
   const cleanup = useCleanup();
   const backups = useBackups();
   const createBackup = useCreateBackup();
@@ -119,6 +138,8 @@ export default function ServerAdminPage() {
   const diagList = useDiagnostics();
   const [diagOut, setDiagOut] = useState<{ label: string; output: string } | null>(null);
   const [diagBusy, setDiagBusy] = useState<string | null>(null);
+  // Chi tiết phiên bản (commit)
+  const [commitView, setCommitView] = useState<{ sha: string; detail: string } | null>(null);
 
   const m = metrics.data;
   const hist = history.data ?? [];
@@ -232,6 +253,27 @@ export default function ServerAdminPage() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Activity className="h-4 w-4 text-brand-primary" /> Services (PM2)
+            <Button
+              size="sm"
+              variant="outline"
+              className="ml-auto h-7 gap-1 text-xs"
+              disabled={restartAll.isPending}
+              onClick={async () => {
+                if (
+                  !(await confirm({
+                    title: "Khởi động lại TẤT CẢ service?",
+                    description: "BE + FE + Agent gián đoạn vài giây.",
+                  }))
+                )
+                  return;
+                restartAll.mutate(undefined, {
+                  onSuccess: (r) => toast.success(r.message),
+                  onError: (e) => toast.error(e.message),
+                });
+              }}
+            >
+              <RefreshCcw className={cn("h-3 w-3", restartAll.isPending && "animate-spin")} /> Restart tất cả
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -353,24 +395,51 @@ export default function ServerAdminPage() {
             <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">10 bản gần nhất</p>
             <ul className="space-y-1">
               {(deploy.data?.history ?? []).map((h) => (
-                <li key={h.sha} className="flex items-baseline gap-2 text-sm">
-                  <code
-                    className={cn(
-                      "rounded bg-muted px-1.5 py-0.5 text-xs",
-                      h.sha === deploy.data?.currentSha && "bg-emerald-500/15 font-bold text-emerald-700"
-                    )}
+                <li key={h.sha}>
+                  <button
+                    type="button"
+                    className="flex w-full items-baseline gap-2 rounded px-1 py-0.5 text-left text-sm hover:bg-muted/60"
+                    title="Xem chi tiết phiên bản"
+                    onClick={async () => {
+                      try {
+                        const d = await serverAdminApi.commitDetail(h.sha);
+                        setCommitView(d);
+                      } catch {
+                        toast.error("Không tải được chi tiết");
+                      }
+                    }}
                   >
-                    {h.sha}
-                  </code>
-                  <span className="text-xs text-muted-foreground">{h.date}</span>
-                  <span className="min-w-0 flex-1 truncate">{h.message}</span>
+                    <code
+                      className={cn(
+                        "rounded bg-muted px-1.5 py-0.5 text-xs",
+                        h.sha === deploy.data?.currentSha && "bg-emerald-500/15 font-bold text-emerald-700"
+                      )}
+                    >
+                      {h.sha}
+                    </code>
+                    <span className="text-xs text-muted-foreground">{h.date}</span>
+                    <span className="min-w-0 flex-1 truncate">{h.message}</span>
+                  </button>
                 </li>
               ))}
             </ul>
             <p className="mt-2 text-[11px] text-muted-foreground">
-              Muốn quay về bản cũ? Vào GitHub → Revert commit lỗi → merge — pipeline sẽ tự deploy bản đã revert (an toàn
-              nhất, có test + rollback).
+              Bấm vào một phiên bản để xem chi tiết (file thay đổi). Muốn quay về bản cũ? GitHub → Revert commit → merge
+              — pipeline tự deploy bản đã revert (an toàn nhất, có test + rollback).
             </p>
+            {commitView && (
+              <div className="mt-2 rounded-xl border bg-muted/30 p-3">
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-bold">Chi tiết phiên bản {commitView.sha.slice(0, 7)}</p>
+                  <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setCommitView(null)}>
+                    Đóng
+                  </Button>
+                </div>
+                <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all text-[11px] leading-relaxed">
+                  {commitView.detail}
+                </pre>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -669,6 +738,33 @@ export default function ServerAdminPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Hướng dẫn lệnh SSH (khỏi phải tìm lại) ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Terminal className="h-4 w-4 text-brand-primary" /> Lệnh SSH thường dùng
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1.5">
+          {SSH_COMMANDS.map((c) => (
+            <div key={c.cmd} className="flex flex-wrap items-center gap-2 rounded-lg border p-2">
+              <code className="rounded bg-black/90 px-2 py-1 text-[11px] text-emerald-200/90">{c.cmd}</code>
+              <span className="text-[11px] text-muted-foreground">— {c.note}</span>
+              <button
+                type="button"
+                className="ml-auto text-[11px] text-brand-primary hover:underline"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(c.cmd);
+                  toast.success("Đã copy lệnh");
+                }}
+              >
+                Copy
+              </button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       {/* ── Audit log ── */}
       <Card>

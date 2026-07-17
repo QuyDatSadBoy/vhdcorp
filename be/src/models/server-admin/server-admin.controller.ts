@@ -70,6 +70,17 @@ export class ServerAdminController {
     );
   }
 
+  @Post('services/restart-all')
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  restartAll(@CurrentUser() user: JwtPayload) {
+    return this.service.restartAll(user.email);
+  }
+
+  @Get('commits/:sha')
+  commitDetail(@Param('sha') sha: string) {
+    return this.service.getCommitDetail(sha);
+  }
+
   @Post('cleanup/:task')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   cleanup(@Param('task') task: string, @CurrentUser() user: JwtPayload) {
