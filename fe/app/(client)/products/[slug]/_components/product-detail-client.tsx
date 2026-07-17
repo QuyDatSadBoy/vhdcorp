@@ -184,8 +184,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             )}
           </div>
 
-          {/* Thêm vào giỏ — đặt hàng không cần thanh toán online */}
-          {Number(product.price) > 0 && <AddToCartButton product={product} withQty className="mt-6" />}
+          {/* Thêm vào giỏ (có giá) HOẶC thêm vào danh sách báo giá (giá = 0) */}
+          <AddToCartButton product={product} withQty className="mt-6" />
 
           {product.description && (
             <div className="prose mt-7 max-w-none border-t border-foreground/8 pt-7 dark:prose-invert prose-headings:font-heading prose-strong:text-foreground">
