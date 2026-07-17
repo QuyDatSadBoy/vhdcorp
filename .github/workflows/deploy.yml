@@ -10,8 +10,10 @@ name: CI/CD
 on:
   push:
     branches: [main]
+  # PR vào main HOẶC develop đều chạy test (chặn code hỏng từ nhánh feature);
+  # push THẲNG lên develop thì không test — commit hằng ngày không bị chậm.
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   workflow_dispatch: {}
 
 concurrency:
