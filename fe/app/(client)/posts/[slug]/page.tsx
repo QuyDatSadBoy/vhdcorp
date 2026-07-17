@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const description =
     post.metaDesc?.trim() ||
     post.excerpt?.trim() ||
-    `${post.title} — Tin tức, kiến thức ngành nhựa, cao su và cơ khí công nghiệp từ VHD Corp.`;
+    `${post.title} — Tin tức, kiến thức ngành điện lạnh, cơ điện và khuôn mẫu, đúc nhựa từ VHD Corp.`;
   // buildMetadata áp titleTemplate SiteConfig; bổ sung publishedTime cho OG article
   const base = await buildMetadata({
     title: post.metaTitle?.trim() || post.title,

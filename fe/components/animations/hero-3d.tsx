@@ -184,7 +184,7 @@ function CameraRig() {
 
 /**
  * 3D hero scene — warehouse theme: crates, plastic pipes, rubber rings, crystals.
- * Phù hợp với tổng kho nhựa, cao su và miến truyền thống VHD Corp.
+ * Phù hợp với kho tổng vật tư điện lạnh, cơ điện và sản xuất khuôn mẫu, đúc nhựa VHD Corp.
  */
 export function Hero3DScene({ className = "" }: { className?: string }) {
   return (
@@ -206,7 +206,7 @@ export function Hero3DScene({ className = "" }: { className?: string }) {
           <Crate position={[2.8, -0.8, -1]} rotation={[0.6, 0.2, 0.3]} scale={0.7} color="#2C5FA0" speed={0.22} />
           <Crate position={[-1.0, -1.8, -1.5]} rotation={[0.1, 0.8, 0.2]} scale={0.5} color="#1B3A8C" speed={0.28} />
 
-          {/* Plastic pipes — ống nhựa PVC */}
+          {/* Pipes — ống đồng điện lạnh */}
           <Pipe position={[1.5, 1.5, -0.5]} scale={0.85} color="#4FB8E7" speed={0.12} />
           <Pipe position={[-3.2, -0.5, -1]} scale={0.6} color="#7AD0F0" speed={0.16} />
 

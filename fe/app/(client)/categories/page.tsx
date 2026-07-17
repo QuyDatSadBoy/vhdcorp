@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({
     title: "Danh mục sản phẩm",
-    description: "Tất cả danh mục sản phẩm VHD Corp — ống nhựa, cao su kỹ thuật, miến truyền thống và nhiều hơn nữa.",
+    description:
+      "Tất cả danh mục sản phẩm VHD Corp — vật tư điện lạnh, cơ điện, gioăng cao su, khuôn mẫu, đúc nhựa và nhiều hơn nữa.",
     canonical: `${SITE_URL}/categories`,
   });
 }

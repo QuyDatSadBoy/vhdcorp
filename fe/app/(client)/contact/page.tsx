@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({
     title: "Liên hệ",
     description:
-      "Liên hệ VHD Corp để nhận tư vấn báo giá B2B/B2C ống nhựa PVC, tấm cao su kỹ thuật, miến truyền thống — hỗ trợ 24/7, giao toàn quốc.",
+      "Liên hệ VHD Corp để nhận tư vấn báo giá sỉ vật tư điện lạnh, cơ điện (M&E) và dịch vụ khuôn mẫu, đúc nhựa — hỗ trợ 24/7, giao toàn quốc.",
     canonical: `${SITE_URL}/contact`,
   });
 }

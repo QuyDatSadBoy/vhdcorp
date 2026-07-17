@@ -35,7 +35,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfigValue = {
   },
   seo: {
     titleTemplate: "%s | VHD Corp",
-    defaultDescription: "VHD Corp — kết nối sản phẩm Việt với thị trường toàn cầu.",
+    defaultDescription:
+      "VHD Corp — kho tổng vật tư điện lạnh, cơ điện và sản xuất khuôn mẫu, đúc nhựa. Bán sỉ, giao nhanh toàn quốc.",
   },
   pages: { home: { sections: [] }, about: { sections: [] }, contact: { sections: [] } },
   navigation: [
@@ -58,7 +59,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfigValue = {
     ],
     copyright: "© 2026 VHD Corp. All rights reserved.",
     showMap: true,
-    description: "VHD Corp — tổng kho nhựa, cao su và sản phẩm làng nghề Việt. Kết nối giá trị, hợp tác vững bền.",
+    description:
+      "VHD Corp — kho tổng vật tư điện lạnh, cơ điện và sản xuất khuôn mẫu, đúc nhựa. Kết nối giá trị, hợp tác vững bền.",
     contact: {
       email: "vhdcorp.contact@gmail.com",
       phone: "0879.744.888",

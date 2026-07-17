@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({
     title: "Giới thiệu",
     description:
-      "VHD Corp — tổng kho nhựa PVC, cao su kỹ thuật và đặc sản miến làng nghề Việt Nam. Sứ mệnh, tầm nhìn, giá trị cốt lõi và hành trình 12+ năm phục vụ B2B/B2C.",
+      "VHD Corp — kho tổng vật tư điện lạnh, cơ điện và nhà sản xuất khuôn mẫu, đúc nhựa. Sứ mệnh, tầm nhìn, giá trị cốt lõi và hành trình phục vụ B2B/B2C.",
     canonical: `${SITE_URL}/about`,
   });
 }

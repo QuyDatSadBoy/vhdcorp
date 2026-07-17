@@ -138,10 +138,10 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
     if (bgRef.current && p.bgImage) bgRef.current.style.backgroundImage = `url(${p.bgImage})`;
   }, [p.bgImage]);
 
-  const heading = p.heading ?? "Tổng kho *nhựa*, cao su & *miến* truyền thống Việt";
+  const heading = p.heading ?? "Kho tổng *vật tư điện lạnh*, cơ điện & *khuôn mẫu* đúc nhựa";
   const subheading =
     p.subheading ??
-    "VHD Corp — tổng kho ống nhựa PVC, tấm cao su kỹ thuật và miến làng nghề chất lượng cao. Đặt hàng B2B/B2C, giao nhanh toàn quốc.";
+    "VHD Corp — kho tổng vật tư điện lạnh, cơ điện (M&E) và nhà sản xuất khuôn mẫu, đúc nhựa. Đặt hàng B2B/B2C, giao nhanh toàn quốc.";
 
   // Chip cam kết: admin sửa trong builder (icon xoay vòng theo thứ tự)
   const TRUST_ICONS = [ShieldCheck, Truck, Sparkles];

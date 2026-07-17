@@ -7,7 +7,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({
     title: "Sản phẩm",
     description:
-      "Danh mục sản phẩm VHD Corp: ống nhựa PVC, tấm cao su kỹ thuật, miến truyền thống. Báo giá B2B/B2C, giao toàn quốc.",
+      "Danh mục sản phẩm VHD Corp: gas lạnh, ống đồng, xốp bảo ôn, băng dính, gioăng cao su, dây điện và khuôn mẫu, đúc nhựa. Báo giá sỉ, giao toàn quốc.",
     canonical: `${SITE_URL}/products`,
   });
 }

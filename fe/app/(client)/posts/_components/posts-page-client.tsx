@@ -36,7 +36,7 @@ export default function PostsPageClient({ initialData }: PostsPageClientProps) {
         title={fb?.title || "Tin tức & Bài viết"}
         description={
           fb?.description ||
-          "Cập nhật về sản phẩm mới, hoạt động hợp tác, kiến thức ngành nhựa - cao su và đặc sản làng nghề Việt Nam."
+          "Cập nhật về sản phẩm mới, hoạt động hợp tác, kiến thức ngành điện lạnh, cơ điện và khuôn mẫu, đúc nhựa."
         }
         breadcrumbs={[{ label: "Trang chủ", href: "/" }, { label: "Tin tức" }]}
         bgImage={fb?.heroImage}

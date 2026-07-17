@@ -12,7 +12,7 @@ export const DEFAULT_COMPARISON_ROWS: NonNullable<ComparisonTableSection["props"
   { label: "Giao hàng nội thành", values: ["3-5 ngày", "24h", "Theo lịch định kỳ"] },
   { label: "Tư vấn kỹ thuật riêng", values: ["", "✓", "✓"], highlight: true },
   { label: "OEM/Private Label", values: ["", "Tùy chọn", "✓ Tích hợp"], highlight: true },
-  { label: "Đóng gói chuẩn xuất khẩu", values: ["", "✓", "✓"] },
+  { label: "Đóng gói cẩn thận, chắc chắn", values: ["", "✓", "✓"] },
   { label: "Công nợ 15-30 ngày", values: ["", "", "✓"], highlight: true },
   { label: "Hỗ trợ tài liệu CO/CQ", values: ["", "✓", "✓ Đầy đủ"] },
   { label: "Manager dedicated", values: ["", "", "✓"], highlight: true },

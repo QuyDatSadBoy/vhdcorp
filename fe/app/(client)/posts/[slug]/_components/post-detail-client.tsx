@@ -186,7 +186,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
             <div>
               <p className="text-sm font-semibold text-foreground">{post.author?.name ?? "VHD Admin"}</p>
               <p className="text-xs text-foreground/55">
-                Đội ngũ biên tập VHD Corp — viết về sản phẩm, công nghệ và làng nghề Việt.
+                Đội ngũ biên tập VHD Corp — viết về sản phẩm, vật tư điện lạnh, cơ điện và khuôn mẫu, đúc nhựa.
               </p>
             </div>
           </div>

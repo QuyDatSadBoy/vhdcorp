@@ -51,8 +51,8 @@ export default function CategoryGrid({ section }: { section: Section }) {
         <h2 className="mt-3 type-display-md text-foreground">{p.heading ?? "Khám phá theo danh mục"}</h2>
         <div className="mt-4 h-1 w-12 rounded-full bg-brand-highlight" />
         <p className="mt-4 text-foreground/65">
-          Toàn bộ kho hàng VHD được phân nhóm theo nhu cầu công nghiệp, dân dụng và đặc sản làng nghề — chọn nhóm sản
-          phẩm bạn quan tâm để khám phá nhanh nhất.
+          Toàn bộ kho hàng VHD được phân nhóm theo vật tư điện lạnh, cơ điện và khuôn mẫu, đúc nhựa — chọn nhóm sản phẩm
+          bạn quan tâm để khám phá nhanh nhất.
         </p>
       </Reveal>
 

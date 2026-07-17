@@ -181,7 +181,7 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
       eyebrow: "Về chúng tôi",
       heading: "VHD Corp — kết nối sản phẩm Việt với khách hàng",
       subheading:
-        "Đơn vị phân phối nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam — hàng đúng mô tả, giá hợp lý, hỗ trợ tận tâm.",
+        "Kho tổng vật tư điện lạnh, cơ điện và nhà sản xuất khuôn mẫu, đúc nhựa — hàng đúng mô tả, giá sỉ hợp lý, hỗ trợ tận tâm.",
       bullets: ["Sản phẩm đa dạng, rõ nguồn gốc", "Phục vụ cả khách lẻ và doanh nghiệp", "Giao hàng toàn quốc"],
       ctaText: "Xem chi tiết",
       ctaLink: "/about",
@@ -1135,8 +1135,8 @@ export default function AdminBuilderPage() {
                     page === "contact"
                       ? "Đội ngũ VHD Corp luôn sẵn sàng tư vấn về sản phẩm, báo giá B2B/B2C và lịch giao hàng. Phản hồi trong vòng 24 giờ."
                       : page === "products"
-                        ? "Tổng kho ống nhựa PVC, tấm cao su kỹ thuật và đặc sản miến làng nghề Việt Nam — chất lượng đồng nhất, giao hàng toàn quốc cho khách hàng B2B/B2C."
-                        : "Cập nhật về sản phẩm mới, hoạt động hợp tác, kiến thức ngành nhựa - cao su và đặc sản làng nghề Việt Nam.",
+                        ? "Kho tổng vật tư điện lạnh, cơ điện (M&E) và khuôn mẫu, đúc nhựa — chất lượng ổn định, giao hàng toàn quốc cho khách hàng B2B/B2C."
+                        : "Cập nhật về sản phẩm mới, hoạt động hợp tác, kiến thức ngành điện lạnh, cơ điện và khuôn mẫu, đúc nhựa.",
                   ],
                 ] as const
               ).map(([key, label, ph]) => (

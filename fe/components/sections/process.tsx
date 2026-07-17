@@ -23,7 +23,7 @@ export const DEFAULT_PROCESS_STEPS = [
   },
   {
     title: "Đóng gói chuyên nghiệp",
-    description: "Đóng gói chuẩn xuất khẩu, bảo vệ trong quá trình vận chuyển, hỗ trợ private label.",
+    description: "Đóng gói cẩn thận, chắc chắn, bảo vệ trong quá trình vận chuyển, hỗ trợ private label.",
     icon: Package,
   },
   {
