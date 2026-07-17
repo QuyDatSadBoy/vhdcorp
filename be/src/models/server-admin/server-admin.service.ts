@@ -39,6 +39,7 @@ const CLEANUP_TASKS = [
   'apt-cache',
   'journal',
   'build-backups',
+  'ram-cache',
 ] as const;
 type CleanupTask = (typeof CLEANUP_TASKS)[number];
 
@@ -479,6 +480,46 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
     return { message: `Đã khởi động lại ${name}` };
   }
 
+  /** Khởi động lại NHIỀU service cùng lúc (gồm cả vhd-be → detached) */
+  async restartAll(actor: string) {
+    await this.audit(actor, 'restart:all');
+    const child = spawn(
+      'bash',
+      ['-lc', `sleep 1 && pm2 restart ${PM2_SERVICES.join(' ')}`],
+      {
+        detached: true,
+        stdio: 'ignore',
+        env: this.execEnv,
+      },
+    );
+    child.unref();
+    return { message: 'Đang khởi động lại tất cả service…' };
+  }
+
+  /** Chi tiết 1 phiên bản (commit): message đầy đủ + file thay đổi */
+  async getCommitDetail(sha: string) {
+    if (!/^[0-9a-f]{7,40}$/.test(sha))
+      throw new BadRequestException('Mã phiên bản không hợp lệ');
+    try {
+      const { stdout } = await execFileAsync(
+        'git',
+        [
+          '-C',
+          this.appDir,
+          'show',
+          '--stat',
+          '--format=%H%n%an <%ae>%n%ad%n%n%s%n%n%b',
+          '--date=format:%d/%m/%Y %H:%M',
+          sha,
+        ],
+        { env: this.execEnv, maxBuffer: 2 * 1024 * 1024 },
+      );
+      return { sha, detail: stdout.slice(0, 12_000) };
+    } catch {
+      throw new NotFoundException('Không tìm thấy phiên bản');
+    }
+  }
+
   async getServiceLogs(name: string, lines = 100) {
     this.assertPm2Name(name);
     const logDir = path.join(os.homedir(), '.pm2', 'logs');
@@ -550,6 +591,17 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
             recursive: true,
             force: true,
           });
+          break;
+        case 'ram-cache':
+          // Giải phóng page-cache (an toàn, không mất dữ liệu) — RAM "available" tăng lại
+          await execFileAsync(
+            'bash',
+            [
+              '-c',
+              'sync && (echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || sysctl -w vm.drop_caches=3)',
+            ],
+            { env: this.execEnv },
+          );
           break;
       }
     } catch (e) {

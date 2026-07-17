@@ -53,6 +53,9 @@ const api = {
   deployLog: () => axios.get<{ data: { deploying: boolean; log: string } }>("/server/deploy/log").then(unwrap),
   startDeploy: () => axios.post<{ data: { message: string } }>("/server/deploy").then(unwrap),
   restart: (name: string) => axios.post<{ data: { message: string } }>(`/server/services/${name}/restart`).then(unwrap),
+  restartAll: () => axios.post<{ data: { message: string } }>("/server/services/restart-all").then(unwrap),
+  commitDetail: (sha: string) =>
+    axios.get<{ data: { sha: string; detail: string } }>(`/server/commits/${sha}`).then(unwrap),
   serviceLogs: (name: string) =>
     axios.get<{ data: { out: string; error: string } }>(`/server/services/${name}/logs`).then(unwrap),
   cleanup: (task: string) =>
@@ -115,6 +118,14 @@ export function useRestartService() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: api.restart,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: serverKeys.metrics }),
+  });
+}
+
+export function useRestartAll() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.restartAll,
     onSuccess: () => void qc.invalidateQueries({ queryKey: serverKeys.metrics }),
   });
 }
