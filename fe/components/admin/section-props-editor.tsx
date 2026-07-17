@@ -35,9 +35,21 @@ const FIELD_LABELS: Record<string, string> = {
   interval: "Thời gian chuyển (ms)",
   source: "Nguồn slide",
   trustItems: "Chip cam kết dưới hero",
-  headingSize: "Cỡ chữ tiêu đề",
+  headingSize: "Cỡ chữ tiêu đề (mức)",
+  headingSizePx: "Cỡ chữ tiêu đề (px, 0 = tự động)",
+  headingLineHeight: "Giãn dòng tiêu đề (vd 1.15)",
+  headingLetterSpacing: "Giãn cách chữ tiêu đề (px)",
   headingColor: "Màu chữ tiêu đề",
-  highlightColor: "Màu từ nhấn (bọc *từ*)",
+  highlightColor: "Màu từ nhấn (bọc *từ* hoặc *cụm từ*)",
+  subheadingSizePx: "Cỡ chữ mô tả (px, 0 = tự động)",
+  subheadingColor: "Màu chữ mô tả",
+  textColor: "Màu chữ nội dung",
+  marginTop: "Khoảng cách ngoài — trên (px)",
+  marginBottom: "Khoảng cách ngoài — dưới (px)",
+  paddingTop: "Khoảng đệm trong — trên (px)",
+  paddingBottom: "Khoảng đệm trong — dưới (px)",
+  animation: "Hiệu ứng xuất hiện",
+  animationDelay: "Trễ hiệu ứng (ms)",
   bannerPosition: "Vị trí banner (trang Quản trị → Banner)",
   grayscale: "Icon trắng đen",
   speed: "Tốc độ chạy",
@@ -93,6 +105,13 @@ const ENUM_OPTIONS: Record<string, { value: string; label: string }[]> = {
     { value: "md", label: "Vừa" },
     { value: "lg", label: "Lớn" },
     { value: "xl", label: "Rất lớn (mặc định)" },
+  ],
+  animation: [
+    { value: "none", label: "Không hiệu ứng" },
+    { value: "fade-up", label: "Trồi lên (fade-up)" },
+    { value: "fade-in", label: "Hiện dần (fade-in)" },
+    { value: "slide-left", label: "Trượt ngang (slide-left)" },
+    { value: "zoom-in", label: "Phóng to (zoom-in)" },
   ],
   source: [
     { value: "manual", label: "Tự nhập slide bên dưới" },
@@ -443,9 +462,8 @@ export default function SectionPropsEditor({
   onChange: (patch: Record<string, unknown>) => void;
 }) {
   const props = section.props as unknown as Record<string, unknown>;
-  const fields = Object.keys(props).filter(
-    (k) => !["paddingTop", "paddingBottom", "background", "animation", "animationDelay"].includes(k)
-  );
+  // Các key chung do khối "Khung, màu & hiệu ứng" bên dưới đảm nhiệm — không lặp ở danh sách tự động
+  const fields = Object.keys(props).filter((k) => !COMMON_STYLE_KEYS.includes(k) && k !== "background");
 
   return (
     <div className="space-y-3.5">
@@ -541,6 +559,80 @@ export default function SectionPropsEditor({
         }
         return <PrimitiveField key={k} k={k} value={v} onChange={(nv) => onChange({ [k]: nv })} />;
       })}
+
+      <CommonStyleBlock props={props} onChange={onChange} />
+    </div>
+  );
+}
+
+/* ─── Khối "Khung, màu & hiệu ứng" — hiển thị cho MỌI section, kể cả khi props chưa có key ─── */
+const COMMON_STYLE_KEYS = [
+  "paddingTop",
+  "paddingBottom",
+  "marginTop",
+  "marginBottom",
+  "bgColor",
+  "headingColor",
+  "textColor",
+  "animation",
+  "animationDelay",
+];
+
+function OptionalNumberField({
+  k,
+  value,
+  onChange,
+  step,
+}: {
+  k: string;
+  value: unknown;
+  onChange: (v: number | undefined) => void;
+  step?: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs">{labelOf(k)}</Label>
+      <Input
+        type="number"
+        step={step}
+        placeholder="mặc định"
+        value={value === undefined || value === null ? "" : String(value)}
+        onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+      />
+    </div>
+  );
+}
+
+function CommonStyleBlock({
+  props,
+  onChange,
+}: {
+  props: Record<string, unknown>;
+  onChange: (patch: Record<string, unknown>) => void;
+}) {
+  return (
+    <div className="space-y-3 rounded-lg border border-dashed p-3">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        Khung, màu & hiệu ứng (chung mọi khối)
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        {(["paddingTop", "paddingBottom", "marginTop", "marginBottom"] as const).map((k) => (
+          <OptionalNumberField key={k} k={k} value={props[k]} onChange={(v) => onChange({ [k]: v })} />
+        ))}
+      </div>
+      {(["bgColor", "headingColor", "textColor"] as const).map((k) => (
+        <PrimitiveField key={k} k={k} value={String(props[k] ?? "")} onChange={(v) => onChange({ [k]: v })} />
+      ))}
+      <PrimitiveField
+        k="animation"
+        value={String(props.animation ?? "none")}
+        onChange={(v) => onChange({ animation: v })}
+      />
+      <OptionalNumberField
+        k="animationDelay"
+        value={props.animationDelay}
+        onChange={(v) => onChange({ animationDelay: v })}
+      />
     </div>
   );
 }

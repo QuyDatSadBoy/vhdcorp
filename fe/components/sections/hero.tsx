@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
@@ -33,11 +33,13 @@ function AnimatedHeading({
   className,
   color,
   highlightColor,
+  style,
 }: {
   text: string;
   className?: string;
   color?: string;
   highlightColor?: string;
+  style?: CSSProperties;
 }) {
   // Cú pháp *từ* hoặc *nhiều từ* để admin highlight. Tách theo cặp dấu * trước,
   // rồi mới tách từng từ (giữ animation theo từ); dấu câu liền sau *…* dính vào từ cuối.
@@ -57,7 +59,7 @@ function AnimatedHeading({
     for (const w of rest.trim().split(/\s+/).filter(Boolean)) tokens.push({ word: w, marked: false, suffix: "" });
   }
   return (
-    <h1 className={className} style={color ? { color } : undefined}>
+    <h1 className={className} style={{ ...(color ? { color } : undefined), ...style }}>
       {tokens.map(({ word, marked: isMarked, suffix }, i) => {
         return (
           <motion.span
@@ -262,15 +264,23 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
           text={heading}
           color={p.headingColor}
           highlightColor={p.highlightColor}
+          style={{
+            // Chữ HOA tiếng Việt có dấu cần giãn dòng ≥1.15 — inline để thắng
+            // line-height 1.02 của .type-display-xl (hết "dòng dưới chồng dòng trên").
+            lineHeight: p.headingLineHeight || 1.15,
+            ...(p.headingSizePx ? { fontSize: `clamp(28px, 9vw, ${p.headingSizePx}px)` } : undefined),
+            ...(p.headingLetterSpacing ? { letterSpacing: `${p.headingLetterSpacing}px` } : undefined),
+          }}
           className={cn(
-            "max-w-[20ch] font-heading font-black leading-[1.08] tracking-tight",
+            "max-w-[20ch] font-heading font-black tracking-tight",
             !p.headingColor && "text-white",
-            {
-              sm: "text-4xl md:text-5xl",
-              md: "text-5xl md:text-6xl",
-              lg: "text-6xl md:text-7xl",
-              xl: "type-display-xl",
-            }[p.headingSize ?? "xl"]
+            !p.headingSizePx &&
+              {
+                sm: "text-4xl md:text-5xl",
+                md: "text-5xl md:text-6xl",
+                lg: "text-6xl md:text-7xl",
+                xl: "type-display-xl",
+              }[p.headingSize ?? "xl"]
           )}
         />
 
@@ -280,7 +290,11 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.55 }}
-            className="type-lead max-w-[58ch] text-white/70"
+            className={cn("type-lead max-w-[58ch]", !p.subheadingColor && "text-white/70")}
+            style={{
+              ...(p.subheadingSizePx ? { fontSize: `clamp(14px, 4vw, ${p.subheadingSizePx}px)` } : undefined),
+              ...(p.subheadingColor ? { color: p.subheadingColor } : undefined),
+            }}
           >
             {subheading}
           </motion.p>

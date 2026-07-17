@@ -235,6 +235,15 @@
     line-height: 1.55;
   }
 
+  /* Admin override màu theo khối (Page Builder → Khung, màu & hiệu ứng).
+     !important có chủ đích: admin đã chọn màu thì thắng mọi màu mặc định của design. */
+  .sec-heading-override :is(h1, h2, h3, h4) {
+    color: var(--sec-heading) !important;
+  }
+  .sec-text-override :is(p, li, blockquote) {
+    color: var(--sec-text) !important;
+  }
+
   /* Brand text colors */
   .text-brand-primary {
     color: var(--vhd-color-primary);

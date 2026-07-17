@@ -93,8 +93,13 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
       badge: "B2B",
       trustItems: DEFAULT_HERO_TRUST_ITEMS,
       headingSize: "xl" as const,
+      headingSizePx: 0,
+      headingLineHeight: 1.15,
+      headingLetterSpacing: 0,
       headingColor: "",
       highlightColor: "",
+      subheadingSizePx: 0,
+      subheadingColor: "",
     },
   }),
   "featured-products": () => ({

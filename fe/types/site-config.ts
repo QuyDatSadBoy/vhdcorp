@@ -33,6 +33,15 @@ export type SpacingPreset = "compact" | "normal" | "spacious";
 export interface CommonSectionProps {
   paddingTop?: number;
   paddingBottom?: number;
+  /** Khoảng cách NGOÀI khối (px) — admin chỉnh trong panel "Khung, màu & hiệu ứng" */
+  marginTop?: number;
+  marginBottom?: number;
+  /** Màu nền cả khối (#hex) — để trống dùng mặc định */
+  bgColor?: string;
+  /** Màu tiêu đề (h1–h4) trong khối — ghi đè mọi màu mặc định */
+  headingColor?: string;
+  /** Màu chữ nội dung (p/li) trong khối */
+  textColor?: string;
   background?: { type: "none" | "color" | "image" | "gradient"; value?: string };
   animation?: AnimationType;
   animationDelay?: number;
@@ -63,12 +72,20 @@ export type HeroSection = BaseSection<
     badge?: string;
     /** 3 chip cam kết dưới nút CTA — admin sửa label/desc, thêm/xóa */
     trustItems?: { label: string; desc: string }[];
-    /** Cỡ chữ tiêu đề hero: sm | md | lg | xl (mặc định xl) */
+    /** Cỡ chữ tiêu đề hero: sm | md | lg | xl (mặc định xl) — bị ghi đè khi đặt headingSizePx */
     headingSize?: "sm" | "md" | "lg" | "xl";
-    /** Màu chữ tiêu đề (mặc định trắng) — mã màu #hex */
-    headingColor?: string;
-    /** Màu các từ được highlight bằng *từ* (mặc định vàng brand) */
+    /** Cỡ chữ tiêu đề theo pixel (0/trống = tự động theo mức trên) */
+    headingSizePx?: number;
+    /** Giãn dòng tiêu đề (vd 1.15) — chữ HOA có dấu nên ≥1.15 để không chồng dòng */
+    headingLineHeight?: number;
+    /** Giãn cách chữ tiêu đề (px, âm được; 0 = mặc định) */
+    headingLetterSpacing?: number;
+    /** Màu các từ được highlight bằng *từ* hoặc *cụm từ* (mặc định vàng brand) */
     highlightColor?: string;
+    /** Cỡ chữ mô tả dưới tiêu đề theo pixel (0/trống = tự động) */
+    subheadingSizePx?: number;
+    /** Màu chữ mô tả dưới tiêu đề */
+    subheadingColor?: string;
   }
 >;
 

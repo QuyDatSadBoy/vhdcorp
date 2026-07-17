@@ -188,9 +188,38 @@ export function defaultAboutSections(): Section[] {
       },
     },
     {
+      id: "about-slide-default",
+      type: "banner-slider",
+      order: 3,
+      visible: true,
+      props: {
+        source: "manual",
+        autoplay: true,
+        interval: 5000,
+        slides: [
+          {
+            image: "",
+            title: "Sản phẩm đa dạng",
+            caption:
+              "Nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam — một điểm mua sắm cho cả nhu cầu cá nhân và doanh nghiệp.",
+          },
+          {
+            image: "",
+            title: "Phục vụ tận tâm",
+            caption: "Đội ngũ VHD Corp luôn sẵn sàng tư vấn, báo giá và giúp bạn chọn đúng sản phẩm.",
+          },
+          {
+            image: "",
+            title: "Giao hàng toàn quốc",
+            caption: "Hàng được đóng gói cẩn thận và giao đến tận nơi trên khắp cả nước.",
+          },
+        ],
+      },
+    },
+    {
       id: "about-pillars-default",
       type: "use-cases",
-      order: 3,
+      order: 4,
       visible: true,
       props: {
         eyebrow: "Định hướng",
@@ -220,7 +249,7 @@ export function defaultAboutSections(): Section[] {
     {
       id: "about-values-default",
       type: "use-cases",
-      order: 4,
+      order: 5,
       visible: true,
       props: {
         eyebrow: "Giá trị",
@@ -253,7 +282,7 @@ export function defaultAboutSections(): Section[] {
     {
       id: "about-cta-default",
       type: "contact-cta",
-      order: 5,
+      order: 6,
       visible: true,
       props: {
         heading: "Cần tư vấn hay hợp tác?",
