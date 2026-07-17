@@ -32,7 +32,9 @@ has "$BE/api/categories" '"data"' && ok "categories" || bad "categories"
 echo "[4] SEO"
 [ "$(code $FE/sitemap.xml)" = 200 ] && ok "sitemap" || bad "sitemap"
 [ "$(code $FE/robots.txt)" = 200 ] && ok "robots" || bad "robots"
-curl -s -m 15 "$FE/products/non-la-lang-chuong" | grep -q "application/ld" && ok "JSON-LD product" || bad "JSON-LD"
+# Lấy slug 1 sản phẩm PUBLISHED bất kỳ (không hard-code slug demo — catalog có thể đổi)
+PSLUG=$(curl -s -m 15 "$BE/api/products?pageSize=1" | grep -oE '"slug":"[^"]+"' | head -1 | cut -d'"' -f4)
+{ [ -n "$PSLUG" ] && curl -s -m 15 "$FE/products/$PSLUG" | grep -q "application/ld"; } && ok "JSON-LD product ($PSLUG)" || bad "JSON-LD"
 
 echo "[5] Phân quyền (chưa auth phải bị chặn)"
 c=$(code $BE/api/users);           { [ "$c" = 401 ] || [ "$c" = 403 ]; } && ok "/users chặn ($c)" || bad "/users hở ($c)"
