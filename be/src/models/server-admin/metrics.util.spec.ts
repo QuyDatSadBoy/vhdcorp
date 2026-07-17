@@ -6,6 +6,7 @@ import {
   parseDf,
   parseMeminfo,
   parseNetDev,
+  parseTopProcesses,
   pruneRing,
 } from './metrics.util';
 
@@ -89,5 +90,63 @@ describe('metrics.util', () => {
     expect(isSafeBackupName('vhd_backup_../../x.sql.gz')).toBe(false);
     expect(isSafeBackupName('khac.sql.gz')).toBe(false);
     expect(isSafeBackupName('vhd_backup_a/b.sql.gz')).toBe(false);
+  });
+
+  describe('parseTopProcesses', () => {
+    const header = '    PID %CPU %MEM   RSS COMMAND';
+
+    it('parse dòng ps bình thường', () => {
+      const out = [
+        header,
+        '   1234  9.7  7.2 283648 node',
+        '   5678  7.8  4.5 177152 uvicorn',
+      ].join('\n');
+      const r = parseTopProcesses(out);
+      expect(r).toEqual([
+        { pid: 1234, cpu: 9.7, mem: 7.2, rssMb: 277, name: 'node' },
+        { pid: 5678, cpu: 7.8, mem: 4.5, rssMb: 173, name: 'uvicorn' },
+      ]);
+    });
+
+    it('tên tiến trình CÓ khoảng trắng vẫn parse đúng cột số (comm để cuối)', () => {
+      const out = [header, '   4242  1.2  0.8  40960 my worker thread'].join(
+        '\n',
+      );
+      const r = parseTopProcesses(out);
+      expect(r[0].name).toBe('my worker thread');
+      expect(r[0].cpu).toBe(1.2);
+      expect(r[0].mem).toBe(0.8);
+    });
+
+    // REGRESSION: %cpu không parse được → PHẢI ra 0, TUYỆT ĐỐI không NaN.
+    // NaN khi JSON.stringify hoá null → FE gọi null.toFixed() văng cả trang admin.
+    it('giá trị số hỏng → 0 chứ không phải NaN (bug đã từng làm sập /admin/server)', () => {
+      const out = [header, '   9999    ?    ?      ? weird'].join('\n');
+      const r = parseTopProcesses(out);
+      expect(r[0].cpu).toBe(0);
+      expect(r[0].mem).toBe(0);
+      expect(r[0].rssMb).toBe(0);
+      expect(Number.isNaN(r[0].cpu)).toBe(false);
+      // đảm bảo JSON round-trip KHÔNG sinh null (đúng thứ FE nhận được)
+      const roundTrip = JSON.parse(JSON.stringify(r));
+      expect(roundTrip[0].cpu).toBe(0);
+      expect(roundTrip[0].cpu).not.toBeNull();
+    });
+
+    it('output rỗng / chỉ header → mảng rỗng, không ném lỗi', () => {
+      expect(parseTopProcesses('')).toEqual([]);
+      expect(parseTopProcesses(header)).toEqual([]);
+    });
+
+    it('giới hạn số dòng trả về theo limit', () => {
+      const rows = Array.from(
+        { length: 20 },
+        (_, i) => `   ${1000 + i}  1.0  1.0 10240 p${i}`,
+      );
+      expect(parseTopProcesses([header, ...rows].join('\n'))).toHaveLength(10);
+      expect(parseTopProcesses([header, ...rows].join('\n'), 5)).toHaveLength(
+        5,
+      );
+    });
   });
 });

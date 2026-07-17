@@ -117,6 +117,41 @@ export function pruneRing(
   return lines.slice(-keep);
 }
 
+export interface TopProcess {
+  pid: number;
+  cpu: number;
+  mem: number;
+  rssMb: number;
+  name: string;
+}
+
+/**
+ * Parse output `ps -eo pid,%cpu,%mem,rss,comm --sort=-%cpu`.
+ * comm ĐỂ CUỐI vì tên tiến trình có thể chứa khoảng trắng → không làm lệch cột số.
+ * MỌI số đều ép về hữu hạn (NaN→0) vì NaN khi JSON.stringify hoá `null` → FE gọi
+ * .toFixed() trên null sẽ ném lỗi và văng cả trang (đây là bug đã từng xảy ra).
+ */
+export function parseTopProcesses(stdout: string, limit = 10): TopProcess[] {
+  const num = (v: string | undefined): number => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  return stdout
+    .trim()
+    .split('\n')
+    .slice(1) // bỏ dòng header
+    .map((l) => l.trim().split(/\s+/))
+    .filter((c) => c.length >= 5)
+    .map((c) => ({
+      pid: num(c[0]),
+      cpu: num(c[1]),
+      mem: num(c[2]),
+      rssMb: Math.round(num(c[3]) / 1024),
+      name: c.slice(4).join(' '),
+    }))
+    .slice(0, limit);
+}
+
 /** Tên file backup hợp lệ — chặn path traversal tuyệt đối (chỉ basename đúng pattern) */
 export function isSafeBackupName(name: string): boolean {
   return (
