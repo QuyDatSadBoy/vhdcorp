@@ -15,6 +15,7 @@ import { AuthenticationModule } from '@authentication/authentication.module';
 import { SanitizeHtmlInterceptor } from '@interceptor/sanitize-html.interceptor';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { HealthModule } from './health/health.module';
+import { AppMetricsModule } from './common/metrics/app-metrics.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { HealthModule } from './health/health.module';
     ModelModule,
     AuthenticationModule,
     HealthModule,
+    AppMetricsModule,
   ],
   controllers: [],
   providers: [

@@ -76,7 +76,28 @@ const api = {
     axios.post<{ data: { key: string; output: string } }>(`/server/diagnostics/${key}`).then(unwrap),
   reloadNginx: () => axios.post<{ data: { message: string } }>("/server/nginx/reload").then(unwrap),
   dbSize: () => axios.get<{ data: { size: string } }>("/server/db-size").then(unwrap),
+  appMetrics: () => axios.get<{ data: AppMetrics }>("/server/app-metrics").then(unwrap),
+  botTraffic: () => axios.get<{ data: BotTraffic }>("/server/bot-traffic").then(unwrap),
 };
+
+export interface BotTraffic {
+  windowLines: number;
+  botTotal: number;
+  humanTotal: number;
+  bots: { name: string; count: number; lastSeen: string; lastPath: string }[];
+}
+
+export interface AppMetrics {
+  total: number;
+  ok: number;
+  clientErr: number;
+  serverErr: number;
+  errorRate: number;
+  avgLatencyMs: number;
+  rpm: number;
+  sinceHours: number;
+  series: { t: number; count: number; errors: number; clientErr: number; avgMs: number }[];
+}
 
 export const serverAdminApi = api;
 
@@ -181,4 +202,12 @@ export function useDiagnostics() {
 
 export function useDbSize() {
   return useQuery({ queryKey: ["server", "db-size"], queryFn: api.dbSize, refetchInterval: 60_000 });
+}
+
+export function useAppMetrics() {
+  return useQuery({ queryKey: ["server", "app-metrics"], queryFn: api.appMetrics, refetchInterval: 10_000 });
+}
+
+export function useBotTraffic() {
+  return useQuery({ queryKey: ["server", "bot-traffic"], queryFn: api.botTraffic, refetchInterval: 60_000 });
 }

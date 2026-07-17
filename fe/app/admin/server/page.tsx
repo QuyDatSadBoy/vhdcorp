@@ -41,26 +41,86 @@ import {
   useServerHistory,
   useServerMetrics,
   useStartDeploy,
+  useAppMetrics,
+  useBotTraffic,
   serverAdminApi,
   type HistoryPoint,
 } from "@/services/server-admin.service";
 
-/* ─── Sparkline SVG tự vẽ — không thêm thư viện chart nào (nhẹ server + client) ─── */
-function Sparkline({ points, color, label }: { points: number[]; color: string; label: string }) {
-  const w = 260;
-  const h = 56;
+/* ─── Biểu đồ SVG tương tác (hover xem giá trị) — không thêm thư viện chart ─── */
+type ChartPoint = { v: number; label: string };
+function MetricChart({
+  points,
+  color,
+  unit = "",
+  fixedMax,
+}: {
+  points: ChartPoint[];
+  color: string;
+  unit?: string;
+  /** Cố định trần trục Y (vd 100 cho %) — bỏ trống thì auto theo đỉnh */
+  fixedMax?: number;
+}) {
+  const [hi, setHi] = useState<number | null>(null);
+  const w = 600;
+  const h = 90;
   if (points.length < 2)
-    return <p className="text-xs text-muted-foreground">Chưa đủ dữ liệu — biểu đồ hiện sau ~2 phút</p>;
-  const max = Math.max(100, ...points);
+    return <p className="py-6 text-center text-xs text-muted-foreground">Chưa đủ dữ liệu — biểu đồ hiện sau ~2 phút</p>;
+  const max = Math.max(fixedMax ?? 1, ...points.map((p) => p.v));
   const step = w / (points.length - 1);
-  const d = points
-    .map((p, i) => `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)},${(h - (p / max) * h).toFixed(1)}`)
-    .join(" ");
+  const y = (v: number) => h - (v / max) * h;
+  const line = points.map((p, i) => `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
+  const active = hi != null ? points[hi] : points[points.length - 1];
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="h-14 w-full" role="img" aria-label={label} preserveAspectRatio="none">
-      <path d={`${d} L${w},${h} L0,${h} Z`} fill={color} opacity={0.12} />
-      <path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />
-    </svg>
+    <div>
+      <div className="mb-1 flex items-baseline justify-between">
+        <span className="text-lg font-bold" style={{ color }}>
+          {active.v}
+          {unit}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          {hi != null ? active.label : "hiện tại"} · đỉnh {Math.round(max)}
+          {unit}
+        </span>
+      </div>
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        className="w-full cursor-crosshair"
+        style={{ height: 90 }}
+        preserveAspectRatio="none"
+        onMouseLeave={() => setHi(null)}
+        onMouseMove={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          const x = ((e.clientX - r.left) / r.width) * w;
+          setHi(Math.max(0, Math.min(points.length - 1, Math.round(x / step))));
+        }}
+      >
+        <path d={`${line} L${w},${h} L0,${h} Z`} fill={color} opacity={0.12} />
+        <path
+          d={line}
+          fill="none"
+          stroke={color}
+          strokeWidth={2}
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        {hi != null && (
+          <>
+            <line
+              x1={hi * step}
+              y1={0}
+              x2={hi * step}
+              y2={h}
+              stroke={color}
+              strokeWidth={1}
+              opacity={0.4}
+              vectorEffect="non-scaling-stroke"
+            />
+            <circle cx={hi * step} cy={y(points[hi].v)} r={3.5} fill={color} />
+          </>
+        )}
+      </svg>
+    </div>
   );
 }
 
@@ -71,10 +131,24 @@ function fmtUptime(sec: number): string {
   return d > 0 ? `${d} ngày ${h} giờ` : h > 0 ? `${h} giờ ${m} phút` : `${m} phút`;
 }
 
-/** Lấy 1 mẫu / 10 phút cho sparkline (7 ngày ≈ 1008 điểm → mượt mà nhẹ) */
-function downsample(history: HistoryPoint[], key: "cpu" | "ram" | "disk"): number[] {
-  const step = Math.max(1, Math.floor(history.length / 300));
-  return history.filter((_, i) => i % step === 0).map((p) => p[key]);
+/** Lấy mẫu thưa cho biểu đồ + kèm nhãn thời gian (hover xem được) */
+function toSeries(history: HistoryPoint[], key: "cpu" | "ram" | "disk"): ChartPoint[] {
+  const step = Math.max(1, Math.floor(history.length / 200));
+  return history
+    .filter((_, i) => i % step === 0)
+    .map((p) => ({
+      v: p[key],
+      label: new Date(p.t).toLocaleString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    }));
+}
+
+function hhmm(t: number): string {
+  return new Date(t).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 }
 
 const CLEANUP_LABELS: Record<string, { label: string; desc: string }> = {
@@ -116,6 +190,8 @@ export default function ServerAdminPage() {
   const deleteBackup = useDeleteBackup();
   const audit = useServerAudit();
   const dbSize = useDbSize();
+  const appMetrics = useAppMetrics();
+  const botTraffic = useBotTraffic();
   const confirm = useConfirm();
   const [logView, setLogView] = useState<{ name: string; out: string; error: string } | null>(null);
 
@@ -232,21 +308,97 @@ export default function ServerAdminPage() {
       <div className="grid gap-3 lg:grid-cols-3">
         {(
           [
-            ["cpu", "CPU (load/core)", "#1B3A8C"],
+            ["cpu", "CPU", "#1B3A8C"],
             ["ram", "RAM", "#4FB8E7"],
             ["disk", "Ổ đĩa", "#F5A623"],
           ] as const
         ).map(([key, label, color]) => (
           <Card key={key}>
             <CardHeader className="pb-1">
-              <CardTitle className="text-sm">{label} — 7 ngày</CardTitle>
+              <CardTitle className="text-sm">{label} — 7 ngày (%)</CardTitle>
             </CardHeader>
             <CardContent className="pb-4">
-              <Sparkline points={downsample(hist, key)} color={color} label={`Biểu đồ ${label} 7 ngày`} />
+              <MetricChart points={toSeries(hist, key)} color={color} unit="%" fixedMax={100} />
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* ── Lưu lượng ứng dụng (API) ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Activity className="h-4 w-4 text-brand-primary" /> Lưu lượng ứng dụng (API)
+            <span className="ml-auto text-[11px] font-normal text-muted-foreground">
+              từ lúc khởi động ~{appMetrics.data?.sinceHours ?? 0}h
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[
+              { label: "Request/phút", value: appMetrics.data?.rpm ?? 0, color: "text-brand-primary" },
+              {
+                label: "Tổng request",
+                value: (appMetrics.data?.total ?? 0).toLocaleString("vi-VN"),
+                color: "text-foreground",
+              },
+              {
+                label: "Lỗi 5xx",
+                value: appMetrics.data?.serverErr ?? 0,
+                color: (appMetrics.data?.serverErr ?? 0) > 0 ? "text-red-500" : "text-foreground",
+              },
+              { label: "Độ trễ TB", value: `${appMetrics.data?.avgLatencyMs ?? 0}ms`, color: "text-foreground" },
+            ].map((s) => (
+              <div key={s.label} className="rounded-xl border p-3">
+                <p className="text-[11px] text-muted-foreground">{s.label}</p>
+                <p className={cn("text-xl font-bold", s.color)}>{s.value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-xl border p-3">
+            <p className="mb-1 text-xs font-semibold text-muted-foreground">Request/phút — 60 phút gần nhất</p>
+            <MetricChart
+              points={(appMetrics.data?.series ?? []).map((p) => ({ v: p.count, label: hhmm(p.t) }))}
+              color="#1B3A8C"
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Thành công {(appMetrics.data?.ok ?? 0).toLocaleString("vi-VN")} · Lỗi client 4xx{" "}
+            {appMetrics.data?.clientErr ?? 0} · Lỗi server 5xx {appMetrics.data?.serverErr ?? 0} · Tỉ lệ lỗi{" "}
+            {appMetrics.data?.errorRate ?? 0}% (không tính request nội bộ của trang này)
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* ── Bot SEO (Googlebot…) từ nginx log ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Wifi className="h-4 w-4 text-brand-primary" /> Bot SEO ghé thăm
+            <span className="ml-auto text-[11px] font-normal text-muted-foreground">
+              {botTraffic.data
+                ? `${botTraffic.data.botTotal} lượt bot / ${botTraffic.data.humanTotal} người (log gần nhất)`
+                : "…"}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {(botTraffic.data?.bots ?? []).length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Chưa thấy bot nào trong log gần nhất. Googlebot sẽ ghé sau khi bạn submit sitemap ở Google Search Console.
+            </p>
+          )}
+          {(botTraffic.data?.bots ?? []).map((b) => (
+            <div key={b.name} className="flex flex-wrap items-center gap-3 rounded-xl border p-3 text-sm">
+              <span className={cn("font-semibold", b.name === "Googlebot" && "text-brand-primary")}>{b.name}</span>
+              <span className="text-xs text-muted-foreground">{b.count} lượt</span>
+              {b.lastPath && <span className="truncate text-xs text-muted-foreground">· gần nhất: {b.lastPath}</span>}
+              {b.lastSeen && <span className="ml-auto text-[11px] text-muted-foreground">{b.lastSeen}</span>}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       {/* ── Services ── */}
       <Card>

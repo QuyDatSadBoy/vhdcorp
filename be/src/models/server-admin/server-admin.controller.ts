@@ -17,6 +17,7 @@ import { RolesGuard } from '@guard/roles.guard';
 import { Roles } from '@decorator/roles.decorator';
 import { CurrentUser, JwtPayload } from '@decorator/current-user.decorator';
 import { Role } from '@vhd/prisma-client';
+import { AppMetricsService } from '../../common/metrics/app-metrics.service';
 
 /**
  * Quản trị VPS từ trang admin — CHỈ role ADMIN (không STAFF).
@@ -28,7 +29,10 @@ import { Role } from '@vhd/prisma-client';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class ServerAdminController {
-  constructor(private readonly service: ServerAdminService) {}
+  constructor(
+    private readonly service: ServerAdminService,
+    private readonly appMetrics: AppMetricsService,
+  ) {}
 
   @Get('metrics')
   metrics() {
@@ -139,6 +143,16 @@ export class ServerAdminController {
   @Get('db-size')
   dbSize() {
     return this.service.getDbSize();
+  }
+
+  @Get('app-metrics')
+  appMetricsSnapshot() {
+    return this.appMetrics.snapshot();
+  }
+
+  @Get('bot-traffic')
+  botTraffic() {
+    return this.service.getBotTraffic();
   }
 
   @Get('audit')
