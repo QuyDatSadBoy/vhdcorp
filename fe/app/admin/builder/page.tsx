@@ -442,19 +442,26 @@ export default function AdminBuilderPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
-  // Responsive preview — tuân thủ PRD §4: builder phải có toggle Mobile/Tablet/Desktop
-  const [device, setDevice] = useState<"mobile" | "tablet" | "desktop">("desktop");
-  const deviceMaxWidth = device === "mobile" ? 390 : device === "tablet" ? 820 : undefined;
+  // Responsive preview — tuân thủ PRD §4: toggle Mobile/Tablet/Desktop + SIZE TÙY CHỈNH (px)
+  const [device, setDevice] = useState<"mobile" | "tablet" | "desktop" | "custom">("desktop");
+  const [customWidth, setCustomWidth] = useState(1024);
+  const deviceMaxWidth =
+    device === "mobile" ? 390 : device === "tablet" ? 820 : device === "custom" ? customWidth : undefined;
   // Ref để áp dụng maxWidth qua DOM thay vì inline style (tránh lint)
   const previewFrameRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const el = previewFrameRef.current;
     if (!el) return;
     if (deviceMaxWidth !== undefined) {
-      el.style.maxWidth = `${deviceMaxWidth}px`;
-      el.style.boxShadow = "0 0 0 1px var(--border, #e5e7eb)";
+      // Khung "thiết bị" — bo góc + viền + đổ bóng để admin cảm nhận đúng màn hình thật
+      el.style.maxWidth = `${Math.max(280, deviceMaxWidth)}px`;
+      el.style.borderRadius = "14px";
+      el.style.overflow = "hidden";
+      el.style.boxShadow = "0 0 0 1px var(--border, #e5e7eb), 0 18px 48px -20px rgba(15,35,86,0.35)";
     } else {
       el.style.maxWidth = "";
+      el.style.borderRadius = "";
+      el.style.overflow = "";
       el.style.boxShadow = "";
     }
   }, [deviceMaxWidth]);
@@ -976,7 +983,28 @@ export default function AdminBuilderPage() {
             >
               <Monitor className="h-4 w-4" />
             </Button>
+            {/* Size tùy chỉnh: gõ px bất kỳ để xem đúng cỡ màn cần kiểm tra */}
+            <input
+              type="number"
+              min={280}
+              max={3840}
+              value={device === "custom" ? customWidth : ""}
+              placeholder="px…"
+              title="Xem ở chiều rộng tùy chỉnh (px)"
+              aria-label="Chiều rộng preview tùy chỉnh (px)"
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                if (!e.target.value) return setDevice("desktop");
+                setCustomWidth(v);
+                setDevice("custom");
+              }}
+              className="ml-0.5 h-7 w-16 rounded border bg-transparent px-1.5 text-center text-xs outline-none focus:border-brand-accent"
+            />
           </div>
+          {/* Nhãn kích thước đang xem — admin luôn biết preview rộng bao nhiêu */}
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+            {deviceMaxWidth ? `${deviceMaxWidth}px` : "100%"}
+          </span>
           <Button
             size="sm"
             variant="ghost"
@@ -1101,7 +1129,15 @@ export default function AdminBuilderPage() {
                         ? "Sản phẩm VHD Corp"
                         : "Tin tức & Bài viết",
                   ],
-                  ["description", "Mô tả", ""],
+                  [
+                    "description",
+                    "Mô tả",
+                    page === "contact"
+                      ? "Đội ngũ VHD Corp luôn sẵn sàng tư vấn về sản phẩm, báo giá B2B/B2C và lịch giao hàng. Phản hồi trong vòng 24 giờ."
+                      : page === "products"
+                        ? "Tổng kho ống nhựa PVC, tấm cao su kỹ thuật và đặc sản miến làng nghề Việt Nam — chất lượng đồng nhất, giao hàng toàn quốc cho khách hàng B2B/B2C."
+                        : "Cập nhật về sản phẩm mới, hoạt động hợp tác, kiến thức ngành nhựa - cao su và đặc sản làng nghề Việt Nam.",
+                  ],
                 ] as const
               ).map(([key, label, ph]) => (
                 <div key={key} className="space-y-1">
@@ -1109,7 +1145,7 @@ export default function AdminBuilderPage() {
                   <textarea
                     rows={key === "description" ? 3 : 1}
                     placeholder={ph}
-                    className="w-full rounded-md border bg-transparent px-2.5 py-1.5 text-sm"
+                    className="w-full rounded-md border bg-transparent px-2.5 py-1.5 text-sm placeholder:text-muted-foreground/50"
                     value={draft.fixedBlocks?.[page]?.[key] ?? ""}
                     onChange={(e) =>
                       updateDraft((prev) => ({
@@ -1123,6 +1159,10 @@ export default function AdminBuilderPage() {
                   />
                 </div>
               ))}
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Chữ mờ trong ô = nội dung <b>mặc định đang hiển thị</b> trên site. Gõ vào là thay thế; xóa trống là quay
+                về mặc định.
+              </p>
               <div className="space-y-1">
                 <p className="text-xs font-medium">Ảnh nền hero (tùy chọn — có overlay tối để chữ dễ đọc)</p>
                 <ImageUploader
