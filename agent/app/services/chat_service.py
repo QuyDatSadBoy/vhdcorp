@@ -7,6 +7,7 @@ import uuid
 from collections.abc import AsyncGenerator
 
 from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.tracers.langchain import wait_for_all_tracers
 
 from app.core.config import Settings
 from app.db.repository import ConversationRepo, MemoryRepo, MessageRepo
@@ -174,6 +175,9 @@ class ChatService:
             self._spawn_background(
                 self.memory_service.post_turn(conversation_id, first_turn=first_turn)
             )
+            # Xả trace LangSmith sau khi stream xong → run LLM không kẹt "pending"
+            # (astream_events + streaming để lại run chưa flush). Chạy nền, không chặn.
+            self._spawn_background(asyncio.to_thread(wait_for_all_tracers))
         except Exception as exc:  # noqa: BLE001 — luôn trả event error cho client
             logger.exception("Lỗi stream_chat (conversation=%s)", conversation_id)
             yield {"type": "error", "message": f"Có lỗi xảy ra: {exc}"}
