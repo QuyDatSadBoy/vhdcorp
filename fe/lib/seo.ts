@@ -27,7 +27,8 @@ export async function buildMetadata(input: BuildMetadataInput = {}): Promise<Met
   const rawTitle = input.title ? seo.titleTemplate.replace("%s", input.title) : `${brand.siteName} — ${brand.tagline}`;
   const title = rawTitle.length > 60 ? rawTitle.slice(0, 57).trimEnd() + "…" : rawTitle;
   const description = (input.description ?? seo.defaultDescription).slice(0, 160);
-  const rawImage = input.image ?? seo.ogImage ?? brand.ogDefaultImage.url;
+  // Dùng || (không dùng ??) để chuỗi rỗng "" trong DB cũng rơi xuống ảnh mặc định → OG luôn có ảnh
+  const rawImage = input.image || seo.ogImage || brand.ogDefaultImage?.url || "";
   const image = rawImage
     ? rawImage.startsWith("http")
       ? rawImage
