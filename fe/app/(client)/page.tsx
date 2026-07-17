@@ -106,11 +106,11 @@ export default async function HomePage() {
     url: SITE_URL,
     priceRange: "$$",
     description:
-      "VHD Corp — tổng kho ống nhựa PVC, tấm cao su kỹ thuật và miến làng nghề chất lượng cao. B2B/B2C, giao toàn quốc.",
+      "VHD Corp — đơn vị phân phối nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam. Phục vụ khách lẻ và doanh nghiệp, giao hàng toàn quốc.",
     address: {
       "@type": "PostalAddress",
-      streetAddress: contactInfo?.address ?? "TP. Hồ Chí Minh",
-      addressLocality: "TP. Hồ Chí Minh",
+      streetAddress: contactInfo?.address ?? "Hà Nội",
+      addressLocality: "Hà Nội",
       addressCountry: "VN",
     },
     telephone: contactInfo?.hotline,
