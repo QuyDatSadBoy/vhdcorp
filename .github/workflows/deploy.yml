@@ -23,6 +23,9 @@ concurrency:
 jobs:
   test:
     name: Test toàn diện (BE + FE + Agent)
+    # Chỉ chạy test khi MỞ/CẬP NHẬT Pull Request (gate bắt buộc để merge) hoặc chạy tay.
+    # Push vào main KHÔNG test lại — commit đã qua PR test + branch protection bảo đảm.
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -84,8 +87,9 @@ jobs:
           uv run pytest -q -m "not live"
 
   deploy:
-    name: Deploy lên VPS (chỉ khi test xanh)
-    needs: test
+    name: Deploy lên VPS (push main — đã qua PR test)
+    # KHÔNG needs:test nữa — commit vào main chỉ đến từ PR đã test xanh (branch protection).
+    # deploy.sh vẫn có smoke test 9 nhóm + tự rollback nếu bản mới lỗi.
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 25
