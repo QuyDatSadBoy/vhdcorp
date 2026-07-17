@@ -131,6 +131,18 @@ export function useChat() {
       let streamError: string | null = null;
       let createdConversation = false;
 
+      // Stream mượt: SSE bắn hàng chục delta/giây — patch mỗi token là mỗi lần
+      // re-render + re-parse markdown. Gom delta lại, flush tối đa 1 lần/frame.
+      let rafId: number | null = null;
+      let toolShowing = false;
+      const flushContent = () => {
+        rafId = null;
+        patchMessage(assistantId, { content });
+      };
+      const scheduleFlush = () => {
+        if (rafId == null) rafId = requestAnimationFrame(flushContent);
+      };
+
       try {
         await streamChat({
           message,
@@ -151,13 +163,18 @@ export function useChat() {
                 break;
               case "message.delta":
                 content += event.content;
-                setActiveTool(null);
-                patchMessage(assistantId, { content });
+                if (toolShowing) {
+                  toolShowing = false;
+                  setActiveTool(null);
+                }
+                scheduleFlush();
                 break;
               case "tool.start":
+                toolShowing = true;
                 setActiveTool(event.name);
                 break;
               case "tool.end":
+                toolShowing = false;
                 setActiveTool(null);
                 break;
               case "ui":
@@ -166,7 +183,9 @@ export function useChat() {
                 patchMessage(assistantId, { uiBlocks });
                 break;
               case "done":
-                patchMessage(assistantId, { id: event.message_id, streaming: false });
+                // Kèm content: sau khi đổi id, patch cuối theo id cũ sẽ không tìm thấy
+                // message nữa — không kèm thì có thể mất chunk cuối chưa kịp flush.
+                patchMessage(assistantId, { id: event.message_id, streaming: false, content });
                 break;
               case "error":
                 streamError = event.message || GENERIC_ERROR;
@@ -174,12 +193,15 @@ export function useChat() {
             }
           },
         });
+        if (rafId != null) cancelAnimationFrame(rafId);
         if (streamError) {
           patchMessage(assistantId, { streaming: false, error: streamError });
         } else {
-          patchMessage(assistantId, { streaming: false });
+          // Flush cuối kèm content — không phụ thuộc frame đã schedule
+          patchMessage(assistantId, { streaming: false, content });
         }
       } catch (err) {
+        if (rafId != null) cancelAnimationFrame(rafId);
         if (err instanceof DOMException && err.name === "AbortError") {
           // User bấm Stop — giữ phần đã stream, không coi là lỗi
           patchMessage(assistantId, { streaming: false, content: content || "(đã dừng)" });

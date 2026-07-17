@@ -97,9 +97,11 @@ export default function ChatWidget() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const handleSend = (text: string, image?: string) => void chat.send(text, false, image);
+  // useCallback: MessageBubble đã memo — callback ổn định để các bubble cũ không re-render khi stream
+  const { send } = chat;
+  const handleSend = useCallback((text: string, image?: string) => void send(text, false, image), [send]);
   // Form gen-UI submit → gửi câu lệnh tự nhiên trở lại agent (HITL)
-  const handleAction = (message: string) => void chat.send(message);
+  const handleAction = useCallback((message: string) => void send(message), [send]);
 
   return (
     <>

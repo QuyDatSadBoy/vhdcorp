@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Volume2, VolumeX } from "lucide-react";
 import { speakText } from "@/services/chat-agent.service";
+import { useVoiceChatStore } from "@/store/voice-chat.store";
 import { cn } from "@/lib/utils";
 
 /** Audio đang phát toàn cục — phát cái mới thì dừng cái cũ */
@@ -27,10 +28,20 @@ type Status = "idle" | "loading" | "playing";
  * Nút loa "đọc to" câu trả lời (§9.3 voice reply): gọi BE proxy TTS →
  * phát audio. Đang phát → bấm để dừng. Cả widget chỉ 1 audio phát cùng lúc.
  */
-export default function TtsButton({ text, eager = false }: { text: string; eager?: boolean }) {
+export default function TtsButton({
+  text,
+  eager = false,
+  autoPlay = false,
+}: {
+  text: string;
+  eager?: boolean;
+  /** Voice mode: tự đọc to ngay khi mount (câu trả lời mới nhất vừa stream xong) */
+  autoPlay?: boolean;
+}) {
   const [status, setStatus] = useState<Status>("idle");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const urlRef = useRef<string | null>(null);
+  const autoPlayedRef = useRef(false);
 
   // Dọn audio + object URL khi unmount
   useEffect(() => {
@@ -78,6 +89,9 @@ export default function TtsButton({ text, eager = false }: { text: string; eager
           urlRef.current = null;
         }
         setStatus("idle");
+        // Voice mode: đọc xong câu trả lời → báo ChatInput tự bật mic nghe câu tiếp theo
+        const voice = useVoiceChatStore.getState();
+        if (voice.enabled) voice.requestListen();
       };
       await audio.play();
       setStatus("playing");
@@ -102,6 +116,15 @@ export default function TtsButton({ text, eager = false }: { text: string; eager
     if (eager) prefetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy khi mount/đổi text
   }, [eager, text]);
+
+  // Voice mode: câu trả lời mới nhất vừa xong → tự đọc to (1 lần duy nhất)
+  useEffect(() => {
+    if (autoPlay && !autoPlayedRef.current) {
+      autoPlayedRef.current = true;
+      void play();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ theo autoPlay lúc mount
+  }, [autoPlay]);
 
   return (
     <button

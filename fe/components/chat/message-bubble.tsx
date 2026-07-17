@@ -1,6 +1,8 @@
 "use client";
 
+import { memo } from "react";
 import { AlertCircle, RotateCcw } from "lucide-react";
+import { useVoiceChatStore } from "@/store/voice-chat.store";
 import type { UiChatMessage } from "@/types/chat";
 import GenUiBlock from "./gen-ui/gen-ui-block";
 import MarkdownContent from "./markdown-content";
@@ -43,8 +45,10 @@ interface MessageBubbleProps {
 }
 
 /** Một dòng tin nhắn: user phải (nền brand), assistant trái (avatar VHD + markdown) */
-export default function MessageBubble({ message, activeTool, onRetry, onAction, isLast = false }: MessageBubbleProps) {
+function MessageBubble({ message, activeTool, onRetry, onAction, isLast = false }: MessageBubbleProps) {
   const isUser = message.role === "user";
+  // Voice mode: câu trả lời mới nhất tự đọc to (voice-to-voice)
+  const voiceOn = useVoiceChatStore((s) => s.enabled);
 
   if (isUser) {
     return (
@@ -146,12 +150,19 @@ export default function MessageBubble({ message, activeTool, onRetry, onAction, 
       {!message.streaming && message.content && (
         <div className="mt-1 flex items-center gap-1.5 pl-10">
           <span className="text-[10px] text-muted-foreground/70">{formatTime(message.createdAt)}</span>
-          <TtsButton text={message.content} eager={isLast && message.role === "assistant"} />
+          <TtsButton
+            text={message.content}
+            eager={isLast && message.role === "assistant"}
+            autoPlay={voiceOn && isLast && message.role === "assistant"}
+          />
         </div>
       )}
     </div>
   );
 }
+
+// memo: đang stream chỉ bubble cuối đổi props — các bubble cũ không re-render
+export default memo(MessageBubble);
 
 /** Avatar logo VHD cho assistant */
 function AssistantAvatar() {

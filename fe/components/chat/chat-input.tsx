@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Mic, SendHorizontal, Square, X } from "lucide-react";
+import { AudioLines, ImagePlus, Mic, SendHorizontal, Square, X } from "lucide-react";
+import { useVoiceChatStore } from "@/store/voice-chat.store";
 import { cn } from "@/lib/utils";
 
 /** Chiều cao tối đa ≈ 5 dòng (5 × 20px line-height + padding) */
@@ -81,6 +82,20 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
   /** Nội dung ô nhập tại thời điểm bắt đầu nói — transcript ghép sau phần này */
   const baseValueRef = useRef("");
 
+  /* ── Voice mode (voice-to-voice): nói tự gửi, trả lời tự đọc, đọc xong tự nghe tiếp ── */
+  const voiceMode = useVoiceChatStore((s) => s.enabled);
+  const setVoiceMode = useVoiceChatStore((s) => s.setEnabled);
+  const listenSignal = useVoiceChatStore((s) => s.listenSignal);
+  /** value mới nhất cho các callback của SpeechRecognition (closure sẽ stale) */
+  const valueRef = useRef("");
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+  const voiceModeRef = useRef(false);
+  useEffect(() => {
+    voiceModeRef.current = voiceMode;
+  }, [voiceMode]);
+
   // Feature-detect mic — không hỗ trợ thì ẩn nút
   useEffect(() => {
     setMicSupported(getSpeechRecognition() !== null);
@@ -111,18 +126,19 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
   };
 
   /* ── Voice-to-text ─────────────────────────────────────────── */
-  const toggleMic = () => {
-    if (listening) {
-      recognitionRef.current?.stop();
-      return;
-    }
+  /**
+   * Bắt đầu nghe. `autoSend=true` (voice mode): dùng phiên nghe ngắn
+   * (continuous=false — tự kết thúc khi ngừng nói) rồi TỰ GỬI transcript.
+   */
+  const startListening = (autoSend: boolean) => {
     const Ctor = getSpeechRecognition();
-    if (!Ctor) return;
+    if (!Ctor || recognitionRef.current) return;
     const rec = new Ctor();
     rec.lang = "vi-VN";
-    rec.continuous = true;
+    rec.continuous = !autoSend;
     rec.interimResults = true;
-    baseValueRef.current = value ? `${value.trim()} ` : "";
+    baseValueRef.current = autoSend ? "" : valueRef.current ? `${valueRef.current.trim()} ` : "";
+    if (autoSend) setValue("");
     rec.onresult = (e) => {
       let transcript = "";
       for (let i = 0; i < e.results.length; i++) {
@@ -130,14 +146,62 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
       }
       const next = baseValueRef.current + transcript;
       setValue(next);
+      valueRef.current = next;
       resize();
     };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => setListening(false);
+    rec.onerror = () => {
+      recognitionRef.current = null;
+      setListening(false);
+    };
+    rec.onend = () => {
+      recognitionRef.current = null;
+      setListening(false);
+      // Voice mode: ngừng nói là gửi luôn — không cần bấm Enter
+      if (autoSend && voiceModeRef.current) {
+        const text = valueRef.current.trim();
+        if (text) {
+          onSend(text);
+          setValue("");
+          valueRef.current = "";
+          requestAnimationFrame(() => {
+            const el = textareaRef.current;
+            if (el) el.style.height = "auto";
+          });
+        }
+      }
+    };
     recognitionRef.current = rec;
     rec.start();
     setListening(true);
   };
+
+  const toggleMic = () => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    startListening(voiceModeRef.current);
+  };
+
+  /** Bật/tắt voice mode: bật là nghe ngay; tắt thì dừng mic */
+  const toggleVoiceMode = () => {
+    const next = !voiceMode;
+    setVoiceMode(next);
+    voiceModeRef.current = next;
+    if (next) {
+      if (!listening && !streaming) startListening(true);
+    } else {
+      recognitionRef.current?.stop();
+    }
+  };
+
+  // TTS đọc xong câu trả lời → tự bật mic nghe câu tiếp theo (vòng voice-to-voice)
+  useEffect(() => {
+    if (listenSignal === 0) return;
+    if (!voiceModeRef.current || streaming || recognitionRef.current) return;
+    startListening(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy theo tín hiệu
+  }, [listenSignal]);
 
   /* ── Đính ảnh ──────────────────────────────────────────────── */
   const onPickImage = async (file: File | undefined) => {
@@ -222,7 +286,15 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
           rows={1}
           value={value}
           disabled={streaming}
-          placeholder={listening ? "Đang nghe…" : "Hỏi về sản phẩm, giá, đặt hàng…"}
+          placeholder={
+            listening
+              ? voiceMode
+                ? "Đang nghe… ngừng nói là gửi luôn"
+                : "Đang nghe…"
+              : voiceMode
+                ? "Chế độ đàm thoại đang bật — bấm mic hoặc nói"
+                : "Hỏi về sản phẩm, giá, đặt hàng…"
+          }
           aria-label="Nhập tin nhắn"
           onChange={(e) => {
             setValue(e.target.value);
@@ -236,6 +308,25 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
           }}
           className="max-h-[124px] min-h-6 flex-1 resize-none self-center bg-transparent text-sm leading-5 text-foreground outline-none placeholder:text-muted-foreground/70 disabled:opacity-60"
         />
+
+        {/* Voice mode (voice-to-voice): nói tự gửi + trả lời tự đọc to */}
+        {micSupported && (
+          <button
+            type="button"
+            onClick={toggleVoiceMode}
+            aria-label={voiceMode ? "Tắt chế độ đàm thoại" : "Bật chế độ đàm thoại (nói ↔ nghe)"}
+            title={voiceMode ? "Tắt chế độ đàm thoại" : "Chế độ đàm thoại: nói tự gửi, trả lời tự đọc to"}
+            aria-pressed={voiceMode}
+            className={cn(
+              "grid h-8 w-8 shrink-0 place-items-center rounded-full transition-all",
+              voiceMode
+                ? "bg-linear-to-br from-brand-primary to-brand-accent text-white shadow-md"
+                : "text-muted-foreground hover:bg-muted hover:text-brand-primary dark:hover:text-brand-accent"
+            )}
+          >
+            <AudioLines className="h-4.5 w-4.5" aria-hidden />
+          </button>
+        )}
 
         {/* Nút mic — chỉ hiện khi trình duyệt hỗ trợ Web Speech */}
         {micSupported && (
