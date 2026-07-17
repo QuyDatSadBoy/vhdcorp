@@ -34,6 +34,9 @@ const execFileAsync = promisify(execFile);
 const PM2_SERVICES = ['vhd-be', 'vhd-fe', 'vhd-agent'] as const;
 type Pm2Name = (typeof PM2_SERVICES)[number];
 
+// Service hệ thống cho phép XEM + restart trên UI (whitelist — không cho tùy ý)
+const SYSTEM_SERVICES = ['nginx', 'postgresql', 'fail2ban', 'ssh'] as const;
+
 /** Tác vụ dọn rác cố định — mỗi key là một lệnh viết sẵn, không có ô gõ lệnh */
 const CLEANUP_TASKS = [
   'pm2-logs',
@@ -721,6 +724,22 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  /** Xóa (truncate) nội dung 1 file log trong whitelist — giải phóng dung lượng */
+  async clearLog(source: string, actor: string) {
+    const src = LOG_SOURCES[source];
+    if (!src) throw new BadRequestException('Nguồn log không hợp lệ');
+    if (src.journal || !src.file)
+      throw new BadRequestException(
+        'Log hệ thống (journalctl) không xóa trực tiếp — dùng mục Dọn rác.',
+      );
+    await this.audit(actor, `clear-log:${source}`);
+    // truncate về 0 byte (giữ file + quyền, tiến trình đang ghi vẫn ghi tiếp được)
+    await fsp.truncate(src.file, 0).catch(async () => {
+      await fsp.writeFile(src.file!, '');
+    });
+    return { message: `Đã xóa nội dung log ${src.label}` };
+  }
+
   /* ─── Chẩn đoán (whitelist chỉ đọc) ─────────────────────────── */
 
   diagnosticList() {
@@ -844,6 +863,97 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
       return { processes: parseTopProcesses(stdout) };
     } catch {
       return { processes: [] };
+    }
+  }
+
+  /** Trạng thái service hệ thống (systemd) trong whitelist */
+  async getSystemServices() {
+    const services = await Promise.all(
+      SYSTEM_SERVICES.map(async (name) => {
+        try {
+          const { stdout } = await execFileAsync(
+            'systemctl',
+            [
+              'show',
+              name,
+              '--property=ActiveState,SubState,UnitFileState,MainPID,MemoryCurrent',
+            ],
+            { env: this.execEnv },
+          );
+          const kv: Record<string, string> = {};
+          stdout
+            .trim()
+            .split('\n')
+            .forEach((l) => {
+              const i = l.indexOf('=');
+              if (i > 0) kv[l.slice(0, i)] = l.slice(i + 1);
+            });
+          const memBytes = Number(kv.MemoryCurrent);
+          return {
+            name,
+            active: kv.ActiveState || 'unknown', // active | inactive | failed
+            sub: kv.SubState || '',
+            enabled: kv.UnitFileState || '',
+            pid: Number(kv.MainPID) || null,
+            memoryMb:
+              Number.isFinite(memBytes) && memBytes > 0
+                ? Math.round(memBytes / 1024 / 1024)
+                : null,
+          };
+        } catch {
+          return {
+            name,
+            active: 'unknown',
+            sub: '',
+            enabled: '',
+            pid: null,
+            memoryMb: null,
+          };
+        }
+      }),
+    );
+    return { services };
+  }
+
+  /** Khởi động lại 1 service hệ thống (chỉ trong whitelist) */
+  async restartSystemService(name: string, actor: string) {
+    if (!(SYSTEM_SERVICES as readonly string[]).includes(name))
+      throw new BadRequestException(
+        'Service không nằm trong danh sách cho phép',
+      );
+    await this.audit(actor, `system-restart:${name}`);
+    await execFileAsync('systemctl', ['restart', name], { env: this.execEnv });
+    return { message: `Đã khởi động lại ${name}` };
+  }
+
+  /** Các cổng đang lắng nghe (ss -tlnp) — soi dịch vụ nào mở cổng nào */
+  async getListeningPorts() {
+    try {
+      const { stdout } = await execFileAsync('ss', ['-tlnp'], {
+        env: this.execEnv,
+        maxBuffer: 2 * 1024 * 1024,
+      });
+      const ports = stdout
+        .trim()
+        .split('\n')
+        .filter((l) => /^\s*LISTEN/.test(l)) // bỏ dòng header
+        .map((line) => {
+          const cols = line.trim().split(/\s+/);
+          const local = cols[3] || ''; // Local Address:Port
+          const port = Number(local.split(':').pop()) || 0;
+          const m = line.match(/\(\("([^"]+)",pid=(\d+)/);
+          return {
+            port,
+            address: local,
+            process: m ? m[1] : '',
+            pid: m ? Number(m[2]) : null,
+          };
+        })
+        .filter((p) => p.port > 0)
+        .sort((a, b) => a.port - b.port);
+      return { ports };
+    } catch {
+      return { ports: [] };
     }
   }
 

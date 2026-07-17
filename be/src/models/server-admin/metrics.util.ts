@@ -62,10 +62,17 @@ export function parseDf(text: string): DiskInfo {
   const parts = line.trim().split(/\s+/);
   const totalKb = Number(parts[1] ?? 0);
   const usedKb = Number(parts[2] ?? 0);
+  // Dùng ĐÚNG % của df (cột Capacity) — df tính used/(used+available), trừ block
+  // dự trữ cho root, nên khớp `df -h` mà admin quen nhìn. Fallback used/total nếu thiếu.
+  const dfPct = Number((parts[4] ?? '').replace('%', ''));
   return {
     totalKb,
     usedKb,
-    pct: totalKb > 0 ? Math.round((usedKb / totalKb) * 1000) / 10 : 0,
+    pct: Number.isFinite(dfPct)
+      ? dfPct
+      : totalKb > 0
+        ? Math.round((usedKb / totalKb) * 1000) / 10
+        : 0,
   };
 }
 

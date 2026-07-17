@@ -46,6 +46,10 @@ import {
   useAppMetrics,
   useBotTraffic,
   useTopProcesses,
+  useSystemServices,
+  useRestartSystem,
+  useListeningPorts,
+  useClearLog,
   serverAdminApi,
   type HistoryPoint,
 } from "@/services/server-admin.service";
@@ -196,6 +200,10 @@ export default function ServerAdminPage() {
   const appMetrics = useAppMetrics();
   const botTraffic = useBotTraffic();
   const topProcs = useTopProcesses();
+  const systemServices = useSystemServices();
+  const restartSystem = useRestartSystem();
+  const ports = useListeningPorts();
+  const clearLog = useClearLog();
   const confirm = useConfirm();
   const [logView, setLogView] = useState<{ name: string; out: string; error: string } | null>(null);
 
@@ -566,6 +574,103 @@ export default function ServerAdminPage() {
         </CardContent>
       </Card>
 
+      {/* ── Service hệ thống (systemd) ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Activity className="h-4 w-4 text-brand-primary" /> Service hệ thống (systemd)
+            <span className="ml-auto text-[11px] font-normal text-muted-foreground">tự làm mới 20s</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {(systemServices.data?.services ?? []).map((s) => {
+            const ok = s.active === "active";
+            return (
+              <div key={s.name} className="flex flex-wrap items-center gap-3 rounded-xl border p-3 text-sm">
+                <span
+                  className={cn("h-2 w-2 shrink-0 rounded-full", ok ? "bg-emerald-500" : "bg-red-500")}
+                  title={s.active}
+                />
+                <span className="font-semibold">{s.name}</span>
+                <span className={cn("text-xs", ok ? "text-emerald-600" : "text-red-600")}>
+                  {s.active}
+                  {s.sub ? ` · ${s.sub}` : ""}
+                </span>
+                {s.enabled && <span className="text-[11px] text-muted-foreground">{s.enabled}</span>}
+                {s.memoryMb != null && <span className="text-[11px] text-muted-foreground">{s.memoryMb} MB</span>}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="ml-auto h-7 gap-1 text-xs"
+                  disabled={restartSystem.isPending}
+                  onClick={async () => {
+                    if (
+                      !(await confirm({
+                        title: `Khởi động lại ${s.name}?`,
+                        description: "Dịch vụ sẽ gián đoạn vài giây.",
+                      }))
+                    )
+                      return;
+                    try {
+                      const r = await restartSystem.mutateAsync(s.name);
+                      toast.success(r.message);
+                    } catch {
+                      toast.error(`Không khởi động lại được ${s.name}`);
+                    }
+                  }}
+                >
+                  <RefreshCcw className="h-3 w-3" /> Khởi động lại
+                </Button>
+              </div>
+            );
+          })}
+          {(systemServices.data?.services ?? []).length === 0 && (
+            <p className="text-sm text-muted-foreground">Đang tải trạng thái service…</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Cổng đang lắng nghe ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Wifi className="h-4 w-4 text-brand-primary" /> Cổng đang lắng nghe
+            <span className="ml-auto text-[11px] font-normal text-muted-foreground">
+              {ports.data ? `${ports.data.ports.length} cổng` : "…"}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {(ports.data?.ports ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">Đang tải danh sách cổng…</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs text-muted-foreground">
+                    <th className="py-1.5 pr-2 font-medium tabular-nums">Cổng</th>
+                    <th className="py-1.5 pr-2 font-medium">Địa chỉ</th>
+                    <th className="py-1.5 font-medium">Tiến trình</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(ports.data?.ports ?? []).map((p) => (
+                    <tr key={`${p.address}-${p.pid}`} className="border-b last:border-0">
+                      <td className="py-1.5 pr-2 font-semibold tabular-nums">{p.port}</td>
+                      <td className="py-1.5 pr-2 text-muted-foreground">{p.address}</td>
+                      <td className="py-1.5">
+                        {p.process}
+                        {p.pid ? <span className="text-muted-foreground"> (pid {p.pid})</span> : ""}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* ── Version & Deploy ── */}
       <Card>
         <CardHeader className="pb-2">
@@ -726,6 +831,30 @@ export default function ServerAdminPage() {
                 }}
               >
                 <Download className="h-3 w-3" /> Tải về
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1 text-xs text-red-600 hover:text-red-700"
+                disabled={clearLog.isPending || logSource === "system"}
+                onClick={async () => {
+                  if (
+                    !(await confirm({
+                      title: "Xóa nội dung log này?",
+                      description: "Xóa sạch file log hiện tại (không khôi phục được). Tiến trình vẫn ghi log mới.",
+                    }))
+                  )
+                    return;
+                  try {
+                    const r = await clearLog.mutateAsync(logSource);
+                    toast.success(r.message);
+                    void logQ.refetch();
+                  } catch {
+                    toast.error("Không xóa được log này");
+                  }
+                }}
+              >
+                <Trash2 className="h-3 w-3" /> Xóa log
               </Button>
             </span>
           </CardTitle>

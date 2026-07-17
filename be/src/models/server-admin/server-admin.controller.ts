@@ -123,6 +123,12 @@ export class ServerAdminController {
     return this.service.getLog(source, Number(lines) || 200);
   }
 
+  @Post('logs/:source/clear')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  clearLog(@Param('source') source: string, @CurrentUser() user: JwtPayload) {
+    return this.service.clearLog(source, user.email);
+  }
+
   @Get('diagnostics')
   diagnostics() {
     return this.service.diagnosticList();
@@ -158,6 +164,22 @@ export class ServerAdminController {
   @Get('processes')
   processes() {
     return this.service.getTopProcesses();
+  }
+
+  @Get('system-services')
+  systemServices() {
+    return this.service.getSystemServices();
+  }
+
+  @Post('system-services/:name/restart')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  restartSystem(@Param('name') name: string, @CurrentUser() user: JwtPayload) {
+    return this.service.restartSystemService(name, user.email);
+  }
+
+  @Get('ports')
+  ports() {
+    return this.service.getListeningPorts();
   }
 
   @Get('audit')

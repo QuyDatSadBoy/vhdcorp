@@ -71,6 +71,7 @@ const api = {
   logSources: () => axios.get<{ data: { key: string; label: string }[] }>("/server/logs").then(unwrap),
   getLog: (source: string, lines: number) =>
     axios.get<{ data: { source: string; log: string } }>(`/server/logs/${source}`, { params: { lines } }).then(unwrap),
+  clearLog: (source: string) => axios.post<{ data: { message: string } }>(`/server/logs/${source}/clear`).then(unwrap),
   diagnostics: () => axios.get<{ data: { key: string; label: string }[] }>("/server/diagnostics").then(unwrap),
   runDiagnostic: (key: string) =>
     axios.post<{ data: { key: string; output: string } }>(`/server/diagnostics/${key}`).then(unwrap),
@@ -79,6 +80,10 @@ const api = {
   appMetrics: () => axios.get<{ data: AppMetrics }>("/server/app-metrics").then(unwrap),
   botTraffic: () => axios.get<{ data: BotTraffic }>("/server/bot-traffic").then(unwrap),
   processes: () => axios.get<{ data: { processes: TopProcess[] } }>("/server/processes").then(unwrap),
+  systemServices: () => axios.get<{ data: { services: SystemService[] } }>("/server/system-services").then(unwrap),
+  restartSystem: (name: string) =>
+    axios.post<{ data: { message: string } }>(`/server/system-services/${name}/restart`).then(unwrap),
+  ports: () => axios.get<{ data: { ports: ListeningPort[] } }>("/server/ports").then(unwrap),
 };
 
 export interface TopProcess {
@@ -87,6 +92,22 @@ export interface TopProcess {
   cpu: number;
   mem: number;
   rssMb: number;
+}
+
+export interface SystemService {
+  name: string;
+  active: string;
+  sub: string;
+  enabled: string;
+  pid: number | null;
+  memoryMb: number | null;
+}
+
+export interface ListeningPort {
+  port: number;
+  address: string;
+  process: string;
+  pid: number | null;
 }
 
 export interface BotTraffic {
@@ -223,4 +244,28 @@ export function useBotTraffic() {
 
 export function useTopProcesses() {
   return useQuery({ queryKey: ["server", "processes"], queryFn: api.processes, refetchInterval: 15_000 });
+}
+
+export function useSystemServices() {
+  return useQuery({ queryKey: ["server", "system-services"], queryFn: api.systemServices, refetchInterval: 20_000 });
+}
+
+export function useRestartSystem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.restartSystem,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["server", "system-services"] }),
+  });
+}
+
+export function useListeningPorts() {
+  return useQuery({ queryKey: ["server", "ports"], queryFn: api.ports, refetchInterval: 30_000 });
+}
+
+export function useClearLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.clearLog,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["server", "log"] }),
+  });
 }
