@@ -118,6 +118,8 @@ export interface UiChatMessage {
   createdAt: string;
   /** Đang nhận delta từ SSE */
   streaming?: boolean;
+  /** Vừa stream xong TRONG phiên này — voice mode chỉ tự đọc tin này (không đọc lịch sử cũ) */
+  finishedLive?: boolean;
   /** Thông báo lỗi — hiện bubble đỏ + nút "Thử lại" */
   error?: string;
   /** data URL ảnh khách đã đính kèm (chỉ bubble user) */

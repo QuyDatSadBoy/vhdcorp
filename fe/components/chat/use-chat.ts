@@ -185,7 +185,7 @@ export function useChat() {
               case "done":
                 // Kèm content: sau khi đổi id, patch cuối theo id cũ sẽ không tìm thấy
                 // message nữa — không kèm thì có thể mất chunk cuối chưa kịp flush.
-                patchMessage(assistantId, { id: event.message_id, streaming: false, content });
+                patchMessage(assistantId, { id: event.message_id, streaming: false, content, finishedLive: true });
                 break;
               case "error":
                 streamError = event.message || GENERIC_ERROR;
@@ -198,7 +198,7 @@ export function useChat() {
           patchMessage(assistantId, { streaming: false, error: streamError });
         } else {
           // Flush cuối kèm content — không phụ thuộc frame đã schedule
-          patchMessage(assistantId, { streaming: false, content });
+          patchMessage(assistantId, { streaming: false, content, finishedLive: true });
         }
       } catch (err) {
         if (rafId != null) cancelAnimationFrame(rafId);

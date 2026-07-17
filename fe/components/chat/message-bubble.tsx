@@ -153,7 +153,7 @@ function MessageBubble({ message, activeTool, onRetry, onAction, isLast = false 
           <TtsButton
             text={message.content}
             eager={isLast && message.role === "assistant"}
-            autoPlay={voiceOn && isLast && message.role === "assistant"}
+            autoPlay={voiceOn && isLast && message.role === "assistant" && Boolean(message.finishedLive)}
           />
         </div>
       )}
