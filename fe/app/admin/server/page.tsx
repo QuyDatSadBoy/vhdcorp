@@ -426,34 +426,39 @@ export default function ServerAdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(topProcs.data?.processes ?? []).map((p) => (
-                    <tr key={p.pid} className="border-b last:border-0">
-                      <td className="py-1.5 pr-2 font-medium">{p.name}</td>
-                      <td className="py-1.5 pr-2 tabular-nums text-muted-foreground">{p.pid}</td>
-                      <td className="py-1.5 pr-2">
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 flex-1 rounded-full bg-muted">
-                            <div
-                              className="h-1.5 rounded-full bg-brand-primary"
-                              style={{ width: `${Math.min(p.cpu, 100)}%` }}
-                            />
+                  {(topProcs.data?.processes ?? []).map((p) => {
+                    const cpu = Number(p.cpu) || 0;
+                    const mem = Number(p.mem) || 0;
+                    const rssMb = Number(p.rssMb) || 0;
+                    return (
+                      <tr key={p.pid} className="border-b last:border-0">
+                        <td className="py-1.5 pr-2 font-medium">{p.name}</td>
+                        <td className="py-1.5 pr-2 tabular-nums text-muted-foreground">{p.pid}</td>
+                        <td className="py-1.5 pr-2">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 flex-1 rounded-full bg-muted">
+                              <div
+                                className="h-1.5 rounded-full bg-brand-primary"
+                                style={{ width: `${Math.min(cpu, 100)}%` }}
+                              />
+                            </div>
+                            <span className="w-12 shrink-0 text-right tabular-nums text-xs">{cpu.toFixed(1)}%</span>
                           </div>
-                          <span className="w-12 shrink-0 text-right tabular-nums text-xs">{p.cpu.toFixed(1)}%</span>
-                        </div>
-                      </td>
-                      <td className="py-1.5">
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 flex-1 rounded-full bg-muted">
-                            <div
-                              className="h-1.5 rounded-full bg-emerald-500"
-                              style={{ width: `${Math.min(p.mem, 100)}%` }}
-                            />
+                        </td>
+                        <td className="py-1.5">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 flex-1 rounded-full bg-muted">
+                              <div
+                                className="h-1.5 rounded-full bg-emerald-500"
+                                style={{ width: `${Math.min(mem, 100)}%` }}
+                              />
+                            </div>
+                            <span className="w-16 shrink-0 text-right tabular-nums text-xs">{rssMb} MB</span>
                           </div>
-                          <span className="w-16 shrink-0 text-right tabular-nums text-xs">{p.rssMb} MB</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -835,11 +835,16 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
   /** Top tiến trình theo CPU (xem cái nào "ăn" tài nguyên ngay trên web) */
   async getTopProcesses() {
     try {
+      // comm để CUỐI vì tên tiến trình có thể chứa khoảng trắng → không làm lệch cột số.
       const { stdout } = await execFileAsync(
         'ps',
-        ['-eo', 'pid,comm,%cpu,%mem,rss', '--sort=-%cpu'],
+        ['-eo', 'pid,%cpu,%mem,rss,comm', '--sort=-%cpu'],
         { env: this.execEnv, maxBuffer: 4 * 1024 * 1024 },
       );
+      const num = (v: string) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : 0; // tránh NaN → JSON.stringify hoá null → FE lỗi
+      };
       const rows = stdout
         .trim()
         .split('\n')
@@ -847,11 +852,11 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
         .map((l) => l.trim().split(/\s+/))
         .filter((c) => c.length >= 5)
         .map((c) => ({
-          pid: Number(c[0]),
-          name: c[1],
-          cpu: Number(c[2]),
-          mem: Number(c[3]),
-          rssMb: Math.round(Number(c[4]) / 1024),
+          pid: num(c[0]),
+          cpu: num(c[1]),
+          mem: num(c[2]),
+          rssMb: Math.round(num(c[3]) / 1024),
+          name: c.slice(4).join(' '),
         }));
       return { processes: rows.slice(0, 10) };
     } catch {
