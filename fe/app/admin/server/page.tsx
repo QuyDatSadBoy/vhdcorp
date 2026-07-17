@@ -358,6 +358,32 @@ export default function ServerAdminPage() {
         </CardContent>
       </Card>
 
+      {/* ── Terminal nâng cao (Cockpit) ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Terminal className="h-4 w-4 text-brand-primary" /> Terminal & quản trị nâng cao (Cockpit)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center gap-3">
+          <Button asChild className="gap-1.5" variant="outline">
+            <a
+              href={process.env.NEXT_PUBLIC_COCKPIT_URL || "https://116.118.6.61:9090"}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Terminal className="h-4 w-4" /> Mở Cockpit
+            </a>
+          </Button>
+          <p className="min-w-0 flex-1 text-[12px] leading-relaxed text-muted-foreground">
+            Terminal SSH đầy đủ + quản lý service/log/update — <b>đăng nhập bằng tài khoản VPS</b> (user{" "}
+            <code className="rounded bg-muted px-1">root</code>, mật khẩu máy chủ). Lần đầu trình duyệt báo chứng chỉ tự
+            ký → bấm &quot;Nâng cao → Tiếp tục&quot;. <b className="text-amber-600">Đang khóa firewall cổng 9090</b> —
+            xem hướng dẫn mở an toàn ở dưới.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* ── Log Viewer đa nguồn ── */}
       <Card>
         <CardHeader className="pb-2">
