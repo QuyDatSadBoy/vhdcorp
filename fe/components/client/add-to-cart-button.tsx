@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Minus, Phone, Plus, ShoppingCart } from "lucide-react";
+import { ClipboardList, Minus, Plus, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { effectivePrice, isContactPrice, saleActive } from "@/lib/price";
 import { useCartStore } from "@/store/cart.store";
+import { useQuoteStore } from "@/store/quote.store";
 import type { Product } from "@/types/domain";
 
 type CartProduct = Pick<Product, "id" | "slug" | "name" | "images" | "price" | "salePrice" | "saleEndsAt" | "stock">;
@@ -28,15 +29,35 @@ export function AddToCartButton({
   const add = useCartStore((s) => s.add);
   const [qty, setQty] = useState(1);
   const out = product.stock <= 0;
+  const router = useRouter();
+  const quoteAdd = useQuoteStore((s) => s.add);
+  const inQuote = useQuoteStore((s) => s.items.some((i) => i.productId === product.id));
 
-  // Sản phẩm "Liên hệ báo giá" (giá = 0): không cho vào giỏ — dẫn thẳng tới form liên hệ
+  // Sản phẩm "Liên hệ báo giá" (giá = 0): gom vào DANH SÁCH BÁO GIÁ — khách chọn
+  // nhiều sản phẩm rồi gửi MỘT yêu cầu ở trang Liên hệ (không phải gửi từng cái).
   if (isContactPrice(product)) {
     return (
-      <Button asChild className={cn("gap-2 rounded-full", withQty ? "h-10 px-6" : "h-9 px-4", className)}>
-        <Link href={`/contact?topic=quote&product=${encodeURIComponent(product.slug)}`}>
-          <Phone className="h-4 w-4" />
-          Liên hệ báo giá
-        </Link>
+      <Button
+        variant={inQuote ? "outline" : "default"}
+        onClick={() => {
+          if (!inQuote) {
+            quoteAdd({
+              productId: product.id,
+              slug: product.slug,
+              name: product.name,
+              image: product.images?.[0] ?? "",
+            });
+            toast.success(`Đã thêm "${product.name}" vào danh sách báo giá`, {
+              action: { label: "Gửi yêu cầu", onClick: () => router.push("/contact?topic=quote") },
+            });
+          } else {
+            router.push("/contact?topic=quote");
+          }
+        }}
+        className={cn("gap-2 rounded-full", withQty ? "h-10 px-6" : "h-9 px-4", className)}
+      >
+        <ClipboardList className="h-4 w-4" />
+        {inQuote ? "Đã chọn — Gửi yêu cầu báo giá" : "Thêm vào DS báo giá"}
       </Button>
     );
   }

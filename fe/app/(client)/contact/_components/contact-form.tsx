@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Mail, Phone, MapPin, Loader2, MessageCircle, Send } from "lucide-react";
+import { ClipboardList, Mail, Phone, MapPin, Loader2, MessageCircle, Send, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { axiosInstance } from "@/lib/axios";
 import { useSiteConfigStore } from "@/store/site-config.store";
+import { useQuoteStore } from "@/store/quote.store";
 
 type InfoItem = {
   icon: React.ComponentType<{ className?: string }>;
@@ -22,6 +25,10 @@ export default function ContactForm() {
   const [pending, setPending] = useState(false);
   const config = useSiteConfigStore((s) => s.config);
   const contact = config?.footer?.contact;
+  // Danh sách sản phẩm "Liên hệ báo giá" khách đã gom — đính kèm vào yêu cầu
+  const quoteItems = useQuoteStore((s) => s.items);
+  const removeQuote = useQuoteStore((s) => s.remove);
+  const clearQuote = useQuoteStore((s) => s.clear);
   // Chữ hero/tiêu đề admin sửa được trong Builder (khối cố định) — fallback nội dung chuẩn
   const fb = config?.fixedBlocks?.contact;
 
@@ -110,16 +117,27 @@ export default function ContactForm() {
               e.preventDefault();
               setPending(true);
               const form = e.target as HTMLFormElement;
+              // Đính kèm danh sách sản phẩm cần báo giá vào nội dung (admin nhận mail đầy đủ link)
+              const quoteBlock = quoteItems.length
+                ? `\n\n— Sản phẩm cần báo giá (${quoteItems.length}) —\n` +
+                  quoteItems.map((i) => `• ${i.name} — /products/${i.slug}`).join("\n")
+                : "";
+              const subjectInput = (form.elements.namedItem("subject") as HTMLInputElement).value;
               const data = {
                 name: (form.elements.namedItem("name") as HTMLInputElement).value,
                 email: (form.elements.namedItem("email") as HTMLInputElement).value,
                 phone: (form.elements.namedItem("phone") as HTMLInputElement).value,
-                subject: (form.elements.namedItem("subject") as HTMLInputElement).value,
-                message: (form.elements.namedItem("message") as HTMLTextAreaElement).value,
+                subject: subjectInput || (quoteItems.length ? "Yêu cầu báo giá sản phẩm" : ""),
+                message: (form.elements.namedItem("message") as HTMLTextAreaElement).value + quoteBlock,
               };
               try {
                 await axiosInstance.post("/contact", data);
-                toast.success("Cảm ơn bạn! Chúng tôi sẽ liên hệ lại sớm nhất.");
+                toast.success(
+                  quoteItems.length
+                    ? "Đã gửi yêu cầu báo giá! Chúng tôi sẽ gửi báo giá sớm nhất."
+                    : "Cảm ơn bạn! Chúng tôi sẽ liên hệ lại sớm nhất."
+                );
+                if (quoteItems.length) clearQuote();
                 form.reset();
               } catch {
                 toast.error("Gửi liên hệ thất bại, vui lòng thử lại.");
@@ -135,6 +153,52 @@ export default function ContactForm() {
                 {fb?.formDescription || "Điền đầy đủ thông tin để chúng tôi hỗ trợ bạn nhanh nhất."}
               </p>
             </div>
+
+            {/* Danh sách sản phẩm cần báo giá — khách gom từ các nút "Thêm vào DS báo giá" */}
+            {quoteItems.length > 0 && (
+              <div className="space-y-2 rounded-2xl border border-(--vhd-color-highlight)/40 bg-(--vhd-color-highlight)/8 p-4">
+                <p className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+                  <ClipboardList className="h-4 w-4 text-brand-highlight" />
+                  Sản phẩm cần báo giá ({quoteItems.length})
+                </p>
+                <ul className="space-y-1.5">
+                  {quoteItems.map((it) => (
+                    <li key={it.productId} className="flex items-center gap-2.5 rounded-lg bg-background/70 p-1.5 pr-2">
+                      {it.image ? (
+                        <Image
+                          src={it.image}
+                          alt=""
+                          width={36}
+                          height={36}
+                          className="h-9 w-9 shrink-0 rounded-md object-cover"
+                        />
+                      ) : (
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-primary/10 text-[9px] font-bold text-brand-primary">
+                          VHD
+                        </span>
+                      )}
+                      <Link
+                        href={`/products/${it.slug}`}
+                        className="min-w-0 flex-1 truncate text-sm font-medium hover:text-brand-primary"
+                      >
+                        {it.name}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => removeQuote(it.productId)}
+                        aria-label={`Bỏ ${it.name} khỏi danh sách báo giá`}
+                        className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-brand-danger"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-[11px] text-muted-foreground">
+                  Danh sách sẽ được đính kèm vào yêu cầu — chúng tôi báo giá tất cả trong một lần phản hồi.
+                </p>
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="name">Họ tên *</Label>

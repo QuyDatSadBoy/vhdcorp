@@ -42,7 +42,18 @@ export default function AdminProductsPage() {
             </div>
           ),
         },
-        { key: "price", header: "Giá", render: (p) => <>{Number(p.price).toLocaleString("vi-VN")} ₫</> },
+        {
+          key: "price",
+          header: "Giá",
+          render: (p) =>
+            Number(p.price) <= 0 ? (
+              <span className="rounded-full bg-(--vhd-color-highlight)/15 px-2 py-0.5 text-[11px] font-bold text-brand-highlight">
+                Liên hệ báo giá
+              </span>
+            ) : (
+              <>{Number(p.price).toLocaleString("vi-VN")} ₫</>
+            ),
+        },
         { key: "stock", header: "Tồn", render: (p) => p.stock },
         {
           key: "status",
