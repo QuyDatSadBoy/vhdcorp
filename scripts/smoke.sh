@@ -9,11 +9,15 @@ ok()  { echo "  ✓ $1"; }
 bad() { echo "  ✗ $1"; fail=1; }
 code() { curl -s -o /dev/null -w '%{http_code}' -m 15 "$1"; }
 has()  { curl -s -m 15 "$1" | grep -q "$2"; }
+# Health check CÓ warm-up: service (nhất là agent Python/uvicorn) mất vài giây khởi động
+# sau reload — thử tối đa 12 lần × 3s (36s) trước khi coi là hỏng, tránh rollback oan.
+code_retry() { local u=$1 want=${2:-200}; for _ in $(seq 1 12); do [ "$(code "$u")" = "$want" ] && return 0; sleep 3; done; return 1; }
+has_retry()  { local u=$1 pat=$2; for _ in $(seq 1 12); do curl -s -m 15 "$u" | grep -q "$pat" && return 0; sleep 3; done; return 1; }
 
-echo "[1] Health 3 service"
-[ "$(code $BE/api/health)" = 200 ] && ok "BE" || bad "BE health"
-[ "$(code $FE/)" = 200 ] && ok "FE" || bad "FE"
-has "$AG/.well-known/agent-card.json" "VHD" && ok "Agent A2A card" || bad "Agent card"
+echo "[1] Health 3 service (có warm-up tối đa 36s)"
+code_retry "$BE/api/health" && ok "BE" || bad "BE health"
+code_retry "$FE/" && ok "FE" || bad "FE"
+has_retry "$AG/.well-known/agent-card.json" "VHD" && ok "Agent A2A card" || bad "Agent card"
 
 echo "[2] Trang public"
 for p in / /products /posts /about /contact /cart; do
