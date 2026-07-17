@@ -770,6 +770,68 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
     return { message: 'Đã reload Nginx (cấu hình hợp lệ)' };
   }
 
+  /**
+   * Phân tích bot SEO từ nginx access.log (bot crawl trang FE → chỉ nginx thấy).
+   * Đếm Googlebot/Bingbot/khác + lần cuối ghé + URL cuối — theo dõi SEO thực tế.
+   */
+  async getBotTraffic() {
+    const text = await this.tailFile('/var/log/nginx/access.log', 5000);
+    const lines = text.split('\n').filter(Boolean);
+    const BOTS: { name: string; re: RegExp }[] = [
+      {
+        name: 'Googlebot',
+        re: /googlebot|storebot-google|google-inspectiontool|apis-google|mediapartners-google/i,
+      },
+      { name: 'Bingbot', re: /bingbot|bingpreview|msnbot/i },
+      { name: 'Cốc Cốc', re: /coccocbot/i },
+      { name: 'Facebook', re: /facebookexternalhit|facebot/i },
+      {
+        name: 'Khác',
+        re: /bot|crawl|spider|slurp|yandex|duckduckbot|baiduspider|ahrefs|semrush/i,
+      },
+    ];
+    const stats = BOTS.map((b) => ({
+      name: b.name,
+      count: 0,
+      lastSeen: '',
+      lastPath: '',
+    }));
+    let botTotal = 0;
+    let humanTotal = 0;
+    for (const line of lines) {
+      // combined log: … "GET /path HTTP/1.1" status size "ref" "user-agent"
+      const uaMatch = line.match(/"([^"]*)"\s*$/);
+      const ua = uaMatch ? uaMatch[1] : '';
+      const pathMatch = line.match(/"[A-Z]+\s+([^\s]+)\s+HTTP/);
+      const path = pathMatch ? pathMatch[1] : '';
+      const timeMatch = line.match(/\[([^\]]+)\]/);
+      const time = timeMatch ? timeMatch[1] : '';
+      const isBot =
+        /bot|crawl|spider|slurp|yandex|duckduckbot|baiduspider|facebookexternalhit|ahrefs|semrush|coccoc/i.test(
+          ua,
+        );
+      if (isBot) {
+        botTotal++;
+        for (let i = 0; i < BOTS.length; i++) {
+          if (BOTS[i].re.test(ua)) {
+            stats[i].count++;
+            stats[i].lastSeen = time;
+            stats[i].lastPath = path;
+            break;
+          }
+        }
+      } else if (ua) {
+        humanTotal++;
+      }
+    }
+    return {
+      windowLines: lines.length,
+      botTotal,
+      humanTotal,
+      bots: stats.filter((s) => s.count > 0),
+    };
+  }
+
   async getDbSize() {
     const url = process.env.DATABASE_URL?.replace(/^"|"$/g, '') ?? '';
     try {
