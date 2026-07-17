@@ -832,6 +832,33 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  /** Top tiến trình theo CPU (xem cái nào "ăn" tài nguyên ngay trên web) */
+  async getTopProcesses() {
+    try {
+      const { stdout } = await execFileAsync(
+        'ps',
+        ['-eo', 'pid,comm,%cpu,%mem,rss', '--sort=-%cpu'],
+        { env: this.execEnv, maxBuffer: 4 * 1024 * 1024 },
+      );
+      const rows = stdout
+        .trim()
+        .split('\n')
+        .slice(1) // bỏ header
+        .map((l) => l.trim().split(/\s+/))
+        .filter((c) => c.length >= 5)
+        .map((c) => ({
+          pid: Number(c[0]),
+          name: c[1],
+          cpu: Number(c[2]),
+          mem: Number(c[3]),
+          rssMb: Math.round(Number(c[4]) / 1024),
+        }));
+      return { processes: rows.slice(0, 10) };
+    } catch {
+      return { processes: [] };
+    }
+  }
+
   async getDbSize() {
     const url = process.env.DATABASE_URL?.replace(/^"|"$/g, '') ?? '';
     try {

@@ -78,7 +78,16 @@ const api = {
   dbSize: () => axios.get<{ data: { size: string } }>("/server/db-size").then(unwrap),
   appMetrics: () => axios.get<{ data: AppMetrics }>("/server/app-metrics").then(unwrap),
   botTraffic: () => axios.get<{ data: BotTraffic }>("/server/bot-traffic").then(unwrap),
+  processes: () => axios.get<{ data: { processes: TopProcess[] } }>("/server/processes").then(unwrap),
 };
+
+export interface TopProcess {
+  pid: number;
+  name: string;
+  cpu: number;
+  mem: number;
+  rssMb: number;
+}
 
 export interface BotTraffic {
   windowLines: number;
@@ -210,4 +219,8 @@ export function useAppMetrics() {
 
 export function useBotTraffic() {
   return useQuery({ queryKey: ["server", "bot-traffic"], queryFn: api.botTraffic, refetchInterval: 60_000 });
+}
+
+export function useTopProcesses() {
+  return useQuery({ queryKey: ["server", "processes"], queryFn: api.processes, refetchInterval: 15_000 });
 }

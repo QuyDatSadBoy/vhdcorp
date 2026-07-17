@@ -155,6 +155,11 @@ export class ServerAdminController {
     return this.service.getBotTraffic();
   }
 
+  @Get('processes')
+  processes() {
+    return this.service.getTopProcesses();
+  }
+
   @Get('audit')
   audit() {
     return this.service.getAudit();
