@@ -872,6 +872,11 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
     await fsp.appendFile(this.auditFile, line).catch(() => undefined);
   }
 
+  /** Cho TerminalGateway ghi audit phiên terminal (mở/đóng). */
+  async recordAudit(actor: string, action: string) {
+    await this.audit(actor, action);
+  }
+
   async getAudit(lines = 50) {
     return { log: await this.tailFile(this.auditFile, lines) };
   }

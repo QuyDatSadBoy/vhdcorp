@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useConfirm } from "@/components/admin/confirm-dialog";
+import { ServerTerminal } from "@/components/admin/server-terminal";
 import { cn } from "@/lib/utils";
 import {
   useBackups,
@@ -740,6 +741,9 @@ export default function ServerAdminPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* ── Terminal SSH trên web (ADMIN) ── */}
+      <ServerTerminal />
 
       {/* ── Chẩn đoán (whitelist chỉ đọc) ── */}
       <Card>
