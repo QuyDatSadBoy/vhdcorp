@@ -17,6 +17,7 @@ import {
   ScrollText,
   Terminal,
   Stethoscope,
+  Wifi,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -103,7 +104,16 @@ export default function ServerAdminPage() {
   const logSources = useLogSources();
   const [logSource, setLogSource] = useState("be-out");
   const [logAuto, setLogAuto] = useState(false);
-  const logQ = useLog(logSource, 300, logAuto);
+  const [logFilter, setLogFilter] = useState("");
+  const [logLines, setLogLines] = useState(300);
+  const logQ = useLog(logSource, logLines, logAuto);
+  const logText = logQ.data?.log ?? "";
+  const filteredLog = logFilter.trim()
+    ? logText
+        .split("\n")
+        .filter((l) => l.toLowerCase().includes(logFilter.toLowerCase()))
+        .join("\n")
+    : logText;
 
   // Chẩn đoán (whitelist)
   const diagList = useDiagnostics();
@@ -135,6 +145,13 @@ export default function ServerAdminPage() {
           value: `${m.disk.percent}%`,
           sub: `${m.disk.usedGb}/${m.disk.totalGb} GB`,
           warn: m.disk.percent > 85,
+        },
+        {
+          icon: Wifi,
+          label: "Mạng",
+          value: `↓${m.network.rxKBps} KB/s`,
+          sub: `↑${m.network.txKBps} KB/s gửi đi`,
+          warn: false,
         },
         {
           icon: Clock,
@@ -391,7 +408,7 @@ export default function ServerAdminPage() {
             <ScrollText className="h-4 w-4 text-brand-primary" /> Xem log
             <span className="ml-auto flex flex-wrap items-center gap-2">
               <Select value={logSource} onValueChange={setLogSource}>
-                <SelectTrigger className="h-8 w-56 text-xs">
+                <SelectTrigger className="h-8 w-52 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -402,6 +419,25 @@ export default function ServerAdminPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={String(logLines)} onValueChange={(v) => setLogLines(Number(v))}>
+                <SelectTrigger className="h-8 w-28 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[200, 500, 1000, 2000, 5000].map((n) => (
+                    <SelectItem key={n} value={String(n)} className="text-xs">
+                      {n.toLocaleString("vi-VN")} dòng
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input
+                value={logFilter}
+                onChange={(e) => setLogFilter(e.target.value)}
+                placeholder="Lọc/tìm trong log…"
+                aria-label="Lọc log"
+                className="h-8 w-40 rounded-md border bg-transparent px-2.5 text-xs outline-none focus:border-brand-accent"
+              />
               <Button
                 size="sm"
                 variant={logAuto ? "default" : "outline"}
@@ -418,7 +454,7 @@ export default function ServerAdminPage() {
                 variant="outline"
                 className="h-8 gap-1 text-xs"
                 onClick={() => {
-                  const blob = new Blob([logQ.data?.log ?? ""], { type: "text/plain" });
+                  const blob = new Blob([logText], { type: "text/plain" });
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
@@ -433,9 +469,14 @@ export default function ServerAdminPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-xl border bg-black/90 p-3 text-[11px] leading-relaxed text-emerald-200/90">
-            {logQ.isFetching && !logQ.data ? "Đang tải…" : logQ.data?.log || "(log trống)"}
+          <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap break-all rounded-xl border bg-black/90 p-3 text-[11px] leading-relaxed text-emerald-200/90">
+            {logQ.isFetching && !logQ.data ? "Đang tải…" : filteredLog || "(log trống hoặc không khớp bộ lọc)"}
           </pre>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Log ghi ra file trên server: PM2 tại <code className="rounded bg-muted px-1">~/.pm2/logs/</code>, Nginx tại{" "}
+            <code className="rounded bg-muted px-1">/var/log/nginx/</code>. Cần xem sâu hơn → dùng SSH (mục Chẩn đoán →
+            hoặc Cockpit).
+          </p>
         </CardContent>
       </Card>
 

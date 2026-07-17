@@ -8,6 +8,7 @@ export interface ServerMetrics {
   ram: { totalMb: number; usedMb: number; percent: number };
   swap: { totalMb: number; usedMb: number };
   disk: { totalGb: number; usedGb: number; percent: number };
+  network: { rxKBps: number; txKBps: number };
   uptimeSec: number;
   services: {
     name: string;

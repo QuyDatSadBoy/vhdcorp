@@ -17,11 +17,14 @@ import { MailService } from '@service/mail/mail.service';
 import {
   cpuPercent,
   isSafeBackupName,
+  netRateKBps,
   parseCpuStat,
   parseDf,
   parseMeminfo,
+  parseNetDev,
   pruneRing,
   type CpuTimes,
+  type NetTotals,
 } from './metrics.util';
 
 const execFileAsync = promisify(execFile);
@@ -102,6 +105,36 @@ const DIAGNOSTICS: Record<
     args: ['-t'],
   },
   'pm2-status': { label: 'Trạng thái PM2', bin: 'pm2', args: ['status'] },
+  firewall: {
+    label: 'Tường lửa (UFW)',
+    bin: 'ufw',
+    args: ['status', 'verbose'],
+  },
+  fail2ban: {
+    label: 'Fail2ban (IP bị chặn)',
+    bin: 'fail2ban-client',
+    args: ['status', 'sshd'],
+  },
+  'disk-dirs': {
+    label: 'Thư mục nặng nhất',
+    bin: 'du',
+    args: [
+      '-sh',
+      '/root/vhdcorp/be',
+      '/root/vhdcorp/fe',
+      '/root/vhdcorp/agent',
+      '/var/log',
+      '/root',
+    ],
+  },
+  'ssl-cert': {
+    label: 'Hạn chứng chỉ SSL (vhdcorp.com)',
+    bin: 'bash',
+    args: [
+      '-c',
+      'echo | openssl s_client -servername vhdcorp.com -connect vhdcorp.com:443 2>/dev/null | openssl x509 -noout -subject -issuer -dates',
+    ],
+  },
 };
 
 export interface Pm2Proc {
@@ -175,6 +208,10 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
     return parseCpuStat(await fsp.readFile('/proc/stat', 'utf8'));
   }
 
+  private async readNet(): Promise<NetTotals> {
+    return parseNetDev(await fsp.readFile('/proc/net/dev', 'utf8'));
+  }
+
   private async readDisk() {
     const { stdout } = await execFileAsync('df', ['-kP', '/'], {
       env: this.execEnv,
@@ -183,13 +220,18 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getMetrics() {
-    const [memText, cpu1] = await Promise.all([
+    const [memText, cpu1, net1] = await Promise.all([
       fsp.readFile('/proc/meminfo', 'utf8'),
       this.readCpuTimes(),
+      this.readNet(),
     ]);
-    // 2 mẫu cách 250ms để tính % CPU tức thời
+    // 2 mẫu cách 250ms để tính % CPU + tốc độ mạng tức thời
     await new Promise((r) => setTimeout(r, 250));
-    const cpu2 = await this.readCpuTimes();
+    const [cpu2, net2] = await Promise.all([
+      this.readCpuTimes(),
+      this.readNet(),
+    ]);
+    const net = netRateKBps(net1, net2, 250);
     const mem = parseMeminfo(memText);
     const disk = await this.readDisk().catch(() => ({
       totalKb: 0,
@@ -219,6 +261,7 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
         usedGb: Math.round((disk.usedKb / 1024 / 1024) * 10) / 10,
         percent: disk.pct,
       },
+      network: { rxKBps: net.rxKBps, txKBps: net.txKBps },
       uptimeSec: Math.round(os.uptime()),
       services: await this.pm2List(),
     };
@@ -449,11 +492,15 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
     return { out, error: err };
   }
 
-  /** Đọc N dòng cuối file mà không load cả file (đọc 256KB cuối) */
+  /** Đọc N dòng cuối file mà không load cả file — buffer co giãn theo số dòng (tối đa 12MB) */
   private async tailFile(file: string, lines: number): Promise<string> {
     try {
       const stat = await fsp.stat(file);
-      const size = 256 * 1024;
+      // ~600 byte/dòng, tối thiểu 256KB, tối đa 12MB (đủ cho 5000 dòng log dài)
+      const size = Math.min(
+        12 * 1024 * 1024,
+        Math.max(256 * 1024, lines * 600),
+      );
       const start = Math.max(0, stat.size - size);
       const fh = await fsp.open(file, 'r');
       try {
@@ -599,7 +646,7 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
   async getLog(source: string, lines: number) {
     const src = LOG_SOURCES[source];
     if (!src) throw new BadRequestException('Nguồn log không hợp lệ');
-    const n = Math.min(Math.max(lines || 200, 10), 1000);
+    const n = Math.min(Math.max(lines || 200, 10), 5000);
     if (src.journal) {
       try {
         const { stdout } = await execFileAsync(
