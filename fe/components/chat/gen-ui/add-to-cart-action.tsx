@@ -39,10 +39,12 @@ export default function AddToCartAction({
 }) {
   const add = useCartStore((s) => s.add);
   const [added, setAdded] = useState(false);
+  // Sản phẩm "Liên hệ báo giá" (giá = 0) — không thêm giỏ, dẫn tới form liên hệ
+  const quoteOnly = Number(product?.originalPrice ?? product?.price ?? 0) <= 0;
 
   useEffect(() => {
     if (!product?.id || !actionId) return;
-    if (markProcessed(actionId)) {
+    if (!quoteOnly && markProcessed(actionId)) {
       add(
         {
           productId: product.id,
@@ -61,6 +63,29 @@ export default function AddToCartAction({
   }, [actionId]);
 
   if (!added) return null;
+
+  if (quoteOnly) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-3 rounded-xl border border-(--vhd-color-highlight)/40 bg-(--vhd-color-highlight)/8 p-3"
+      >
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-(--vhd-color-highlight)/15">
+          <Package className="h-5 w-5 text-brand-highlight" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="text-sm font-semibold">Sản phẩm báo giá theo yêu cầu</span>
+          <span className="line-clamp-1 block text-xs text-muted-foreground">
+            {product.name} — để lại liên hệ, VHD sẽ báo giá riêng cho bạn
+          </span>
+        </span>
+        <Button asChild size="sm" className="shrink-0 rounded-full">
+          <Link href={`/contact?topic=quote&product=${encodeURIComponent(product.slug)}`}>Liên hệ báo giá</Link>
+        </Button>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

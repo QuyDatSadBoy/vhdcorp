@@ -44,6 +44,10 @@ export interface CommonSectionProps {
   textColor?: string;
   /** Căn lề chữ cả khối (hero dùng cùng key để căn flex riêng) */
   align?: "left" | "center" | "right";
+  /** Cỡ chữ tiêu đề (h2/h3) cả khối theo px — 0/trống = mặc định. Hero dùng headingSizePx riêng. */
+  headingSizeAllPx?: number;
+  /** Cỡ chữ nội dung (p/li) cả khối theo px — 0/trống = mặc định */
+  textSizePx?: number;
   background?: { type: "none" | "color" | "image" | "gradient"; value?: string };
   animation?: AnimationType;
   animationDelay?: number;

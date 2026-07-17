@@ -125,7 +125,9 @@ export function SmartSearch({ className, autoFocus = false }: { className?: stri
                 <span className="text-[11px] text-muted-foreground">{s.category}</span>
               </span>
               <span className="shrink-0 text-sm font-bold">
-                {saleActive(s) ? (
+                {Number(s.price) <= 0 ? (
+                  <span className="text-xs font-bold text-brand-highlight">Liên hệ báo giá</span>
+                ) : saleActive(s) ? (
                   <>
                     <span className="text-brand-danger">{formatVnd(s.salePrice)}</span>
                     <span className="ml-1 text-[10px] font-medium text-foreground/40 line-through">

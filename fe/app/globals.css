@@ -248,6 +248,12 @@
   .sec-text-override :is(p, li, blockquote) {
     color: var(--sec-text) !important;
   }
+  .sec-heading-size-override :is(h2, h3) {
+    font-size: var(--sec-heading-size) !important;
+  }
+  .sec-text-size-override :is(p, li) {
+    font-size: var(--sec-text-size) !important;
+  }
 
   /* Brand text colors */
   .text-brand-primary {

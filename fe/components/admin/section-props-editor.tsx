@@ -44,6 +44,8 @@ const FIELD_LABELS: Record<string, string> = {
   subheadingSizePx: "Cỡ chữ mô tả (px, 0 = tự động)",
   subheadingColor: "Màu chữ mô tả",
   textColor: "Màu chữ nội dung",
+  headingSizeAllPx: "Cỡ chữ tiêu đề khối (px)",
+  textSizePx: "Cỡ chữ nội dung (px)",
   marginTop: "Khoảng cách ngoài — trên (px)",
   marginBottom: "Khoảng cách ngoài — dưới (px)",
   paddingTop: "Khoảng đệm trong — trên (px)",
@@ -587,6 +589,8 @@ const COMMON_STYLE_KEYS = [
   "bgColor",
   "headingColor",
   "textColor",
+  "headingSizeAllPx",
+  "textSizePx",
   "animation",
   "animationDelay",
 ];
@@ -634,6 +638,14 @@ function CommonStyleBlock({
         ))}
       </div>
       <PrimitiveField k="align" value={String(props.align ?? "")} onChange={(v) => onChange({ align: v })} />
+      <div className="grid grid-cols-2 gap-2">
+        <OptionalNumberField
+          k="headingSizeAllPx"
+          value={props.headingSizeAllPx}
+          onChange={(v) => onChange({ headingSizeAllPx: v })}
+        />
+        <OptionalNumberField k="textSizePx" value={props.textSizePx} onChange={(v) => onChange({ textSizePx: v })} />
+      </div>
       {(["bgColor", "headingColor", "textColor"] as const).map((k) => (
         <PrimitiveField key={k} k={k} value={String(props[k] ?? "")} onChange={(v) => onChange({ [k]: v })} />
       ))}

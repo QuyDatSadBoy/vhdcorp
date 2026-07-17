@@ -1,34 +1,53 @@
 "use client";
 
+import Image from "next/image";
+import { Sparkle } from "lucide-react";
 import { ScrollVelocityRow } from "@/components/animations/scroll-velocity-row";
+import { useSiteConfigStore } from "@/store/site-config.store";
+
+const Separator = () => (
+  <Sparkle
+    className="mx-7 inline-block h-5 w-5 align-middle text-(--vhd-color-highlight) md:mx-9 md:h-6 md:w-6"
+    fill="currentColor"
+    aria-hidden
+  />
+);
+
+const LogoChip = ({ logo }: { logo: string }) => (
+  <span className="mx-7 inline-grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-white align-middle shadow-[0_4px_16px_rgba(0,0,0,0.25)] ring-1 ring-white/30 md:mx-9 md:h-13 md:w-13">
+    <Image src={logo} alt="" width={52} height={52} className="h-full w-full object-contain p-0.5" />
+  </span>
+);
 
 /**
- * E3 — Dải brand trước footer: MỘT dòng duy nhất, chậm và sang
- * (bản cũ 4 dải chạy chồng nhau gây loạn mắt). Chữ đặc / chữ viền /
- * chữ gradient xen kẽ + glow hai bên cho chiều sâu.
+ * E3 — Dải brand trước footer: MỘT dòng trên nền navy thương hiệu (đúng tông logo),
+ * có logo thật xen giữa các cụm chữ trắng / gradient cyan-vàng / chữ viền.
+ * Chạy chậm, có sheen nhẹ — nhìn như băng rôn thương hiệu, không phải hiệu ứng máy.
  */
 export function HomeMarquees() {
+  const logo = useSiteConfigStore((s) => s.config?.brand?.logo?.url) || "/images/vhdcorplogo.jpeg";
+
   return (
     <section
       aria-hidden
-      className="relative overflow-hidden border-y border-foreground/8 bg-linear-to-r from-brand-primary/6 via-transparent to-brand-accent/6 py-14 md:py-20"
+      className="relative overflow-hidden bg-linear-to-r from-[#122a68] via-(--vhd-color-primary) to-[#122a68] py-10 md:py-14"
     >
-      {/* Glow mềm hai bên — tạo chiều sâu, không che chữ */}
-      <div className="pointer-events-none absolute -left-28 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-(--vhd-color-accent)/15 blur-3xl" />
-      <div className="pointer-events-none absolute -right-28 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-(--vhd-color-highlight)/15 blur-3xl" />
+      {/* Hairline + sheen nhẹ cho cảm giác băng kim loại */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/15" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-white/15" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_140%_at_50%_-40%,rgba(255,255,255,0.14),transparent_55%)]" />
 
-      <ScrollVelocityRow baseVelocity={14} className="py-2">
-        <span className="font-heading text-4xl font-black uppercase leading-[1.2] tracking-tight md:text-6xl">
-          <span className="text-foreground/90">Kết nối giá trị</span>
-          <span className="mx-8 inline-block align-middle text-2xl text-brand-highlight md:text-3xl">✦</span>
-          <span className="text-transparent [-webkit-text-stroke:2px_color-mix(in_srgb,var(--vhd-color-primary)_55%,transparent)]">
-            Hợp tác vững bền
+      <ScrollVelocityRow baseVelocity={12} className="py-1">
+        <span className="inline-flex items-center whitespace-nowrap font-heading text-3xl font-black uppercase leading-none tracking-tight md:text-5xl">
+          <LogoChip logo={logo} />
+          <span className="text-white">VHD Corp</span>
+          <Separator />
+          <span className="bg-linear-to-r from-(--vhd-color-accent) to-(--vhd-color-highlight) bg-clip-text text-transparent">
+            Kết nối giá trị
           </span>
-          <span className="mx-8 inline-block align-middle text-2xl text-brand-accent md:text-3xl">✦</span>
-          <span className="bg-linear-to-r from-brand-primary via-brand-accent to-brand-highlight bg-clip-text text-transparent">
-            VHD Corp
-          </span>
-          <span className="mx-8 inline-block align-middle text-2xl text-brand-primary md:text-3xl">✦</span>
+          <Separator />
+          <span className="text-transparent [-webkit-text-stroke:1.5px_rgba(255,255,255,0.65)]">Hợp tác vững bền</span>
+          <Separator />
         </span>
       </ScrollVelocityRow>
     </section>

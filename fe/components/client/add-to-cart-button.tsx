@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
-import { Minus, Plus, ShoppingCart } from "lucide-react";
+import { Minus, Phone, Plus, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { effectivePrice, saleActive } from "@/lib/price";
+import { effectivePrice, isContactPrice, saleActive } from "@/lib/price";
 import { useCartStore } from "@/store/cart.store";
 import type { Product } from "@/types/domain";
 
@@ -27,6 +28,18 @@ export function AddToCartButton({
   const add = useCartStore((s) => s.add);
   const [qty, setQty] = useState(1);
   const out = product.stock <= 0;
+
+  // Sản phẩm "Liên hệ báo giá" (giá = 0): không cho vào giỏ — dẫn thẳng tới form liên hệ
+  if (isContactPrice(product)) {
+    return (
+      <Button asChild className={cn("gap-2 rounded-full", withQty ? "h-10 px-6" : "h-9 px-4", className)}>
+        <Link href={`/contact?topic=quote&product=${encodeURIComponent(product.slug)}`}>
+          <Phone className="h-4 w-4" />
+          Liên hệ báo giá
+        </Link>
+      </Button>
+    );
+  }
 
   const handleAdd = () => {
     add(

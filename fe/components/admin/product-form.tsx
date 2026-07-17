@@ -219,6 +219,9 @@ export function ProductForm({ initial }: Props) {
             <div className="space-y-2">
               <Label>Giá (VND)</Label>
               <Input type="number" min={0} value={price} onChange={(e) => setPrice(e.target.value)} required />
+              <p className="text-[11px] text-muted-foreground">
+                Để <b>0</b> nếu sản phẩm cần báo giá riêng — site sẽ hiện &quot;Liên hệ báo giá&quot; thay vì giá.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label>Giá khuyến mãi (VND — bỏ trống nếu không giảm)</Label>

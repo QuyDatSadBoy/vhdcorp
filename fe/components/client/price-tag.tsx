@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { effectivePrice, formatVnd, saleActive, salePercent } from "@/lib/price";
+import { effectivePrice, formatVnd, isContactPrice, saleActive, salePercent } from "@/lib/price";
 import type { Product } from "@/types/domain";
 
 type PriceInput = Pick<Product, "price" | "salePrice" | "saleEndsAt">;
@@ -24,8 +24,21 @@ export function PriceTag({
 }) {
   const onSale = saleActive(product);
   const price = effectivePrice(product);
-  if (Number(product.price) <= 0) return null;
   const sizes = { sm: "text-sm", md: "text-base", lg: "text-3xl" } as const;
+  // Giá = 0: sản phẩm báo giá theo yêu cầu — hiện nhãn thay vì con số
+  if (isContactPrice(product)) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center rounded-full bg-(--vhd-color-highlight)/15 px-2.5 py-0.5 font-bold text-brand-highlight",
+          size === "lg" ? "text-lg" : "text-xs",
+          className
+        )}
+      >
+        Liên hệ báo giá
+      </span>
+    );
+  }
   return (
     <span className={cn("inline-flex flex-wrap items-baseline gap-2", className)}>
       <span className={cn("font-extrabold", sizes[size], onSale ? "text-brand-danger" : "text-brand-primary")}>
