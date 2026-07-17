@@ -18,6 +18,7 @@ import {
   Terminal,
   Stethoscope,
   Wifi,
+  ListTree,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +44,7 @@ import {
   useStartDeploy,
   useAppMetrics,
   useBotTraffic,
+  useTopProcesses,
   serverAdminApi,
   type HistoryPoint,
 } from "@/services/server-admin.service";
@@ -192,6 +194,7 @@ export default function ServerAdminPage() {
   const dbSize = useDbSize();
   const appMetrics = useAppMetrics();
   const botTraffic = useBotTraffic();
+  const topProcs = useTopProcesses();
   const confirm = useConfirm();
   const [logView, setLogView] = useState<{ name: string; out: string; error: string } | null>(null);
 
@@ -400,6 +403,64 @@ export default function ServerAdminPage() {
         </CardContent>
       </Card>
 
+      {/* ── Tiến trình nặng nhất (xem cái nào "ăn" CPU/RAM) ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ListTree className="h-4 w-4 text-brand-primary" /> Tiến trình nặng nhất
+            <span className="ml-auto text-[11px] font-normal text-muted-foreground">tự làm mới 15s</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {(topProcs.data?.processes ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">Đang tải danh sách tiến trình…</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs text-muted-foreground">
+                    <th className="py-1.5 pr-2 font-medium">Tiến trình</th>
+                    <th className="py-1.5 pr-2 font-medium tabular-nums">PID</th>
+                    <th className="w-[30%] py-1.5 pr-2 font-medium">CPU</th>
+                    <th className="w-[30%] py-1.5 font-medium">RAM</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(topProcs.data?.processes ?? []).map((p) => (
+                    <tr key={p.pid} className="border-b last:border-0">
+                      <td className="py-1.5 pr-2 font-medium">{p.name}</td>
+                      <td className="py-1.5 pr-2 tabular-nums text-muted-foreground">{p.pid}</td>
+                      <td className="py-1.5 pr-2">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 flex-1 rounded-full bg-muted">
+                            <div
+                              className="h-1.5 rounded-full bg-brand-primary"
+                              style={{ width: `${Math.min(p.cpu, 100)}%` }}
+                            />
+                          </div>
+                          <span className="w-12 shrink-0 text-right tabular-nums text-xs">{p.cpu.toFixed(1)}%</span>
+                        </div>
+                      </td>
+                      <td className="py-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 flex-1 rounded-full bg-muted">
+                            <div
+                              className="h-1.5 rounded-full bg-emerald-500"
+                              style={{ width: `${Math.min(p.mem, 100)}%` }}
+                            />
+                          </div>
+                          <span className="w-16 shrink-0 text-right tabular-nums text-xs">{p.rssMb} MB</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* ── Services ── */}
       <Card>
         <CardHeader className="pb-2">
@@ -596,31 +657,6 @@ export default function ServerAdminPage() {
         </CardContent>
       </Card>
 
-      {/* ── Terminal nâng cao (Cockpit) ── */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Terminal className="h-4 w-4 text-brand-primary" /> Terminal & quản trị nâng cao (Cockpit)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-3">
-          <Button asChild className="gap-1.5" variant="outline">
-            <a
-              href={process.env.NEXT_PUBLIC_COCKPIT_URL || "https://cockpit.vhdcorp.com"}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Terminal className="h-4 w-4" /> Mở Cockpit
-            </a>
-          </Button>
-          <p className="min-w-0 flex-1 text-[12px] leading-relaxed text-muted-foreground">
-            Terminal SSH đầy đủ + quản lý service/log/update tại <b>cockpit.vhdcorp.com</b> (cert xanh qua Cloudflare) —{" "}
-            <b>đăng nhập bằng tài khoản VPS</b> (user <code className="rounded bg-muted px-1">root</code>, mật khẩu máy
-            chủ).
-          </p>
-        </CardContent>
-      </Card>
-
       {/* ── Log Viewer đa nguồn ── */}
       <Card>
         <CardHeader className="pb-2">
@@ -694,8 +730,8 @@ export default function ServerAdminPage() {
           </pre>
           <p className="mt-1.5 text-[11px] text-muted-foreground">
             Log ghi ra file trên server: PM2 tại <code className="rounded bg-muted px-1">~/.pm2/logs/</code>, Nginx tại{" "}
-            <code className="rounded bg-muted px-1">/var/log/nginx/</code>. Cần xem sâu hơn → dùng SSH (mục Chẩn đoán →
-            hoặc Cockpit).
+            <code className="rounded bg-muted px-1">/var/log/nginx/</code>. Cần xem sâu hơn → dùng SSH (xem mục Chẩn
+            đoán bên dưới hoặc các lệnh SSH thường dùng).
           </p>
         </CardContent>
       </Card>

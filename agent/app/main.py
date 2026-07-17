@@ -135,7 +135,13 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    configure_tracing(settings)  # bật LangSmith qua os.environ nếu LANGSMITH_TRACING=true
+    tracing_on = configure_tracing(settings)  # bật LangSmith qua os.environ nếu LANGSMITH_TRACING=true
+    if tracing_on:
+        logging.getLogger("app").info(
+            "LangSmith tracing BẬT → project=%s", settings.langsmith_project
+        )
+    else:
+        logging.getLogger("app").info("LangSmith tracing TẮT (thiếu key hoặc LANGSMITH_TRACING=false)")
 
     app = FastAPI(title="VHD Corp AI Agent", lifespan=lifespan)
     app.add_middleware(
