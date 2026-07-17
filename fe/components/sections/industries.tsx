@@ -13,27 +13,29 @@ import { TextReveal } from "@/components/animations/text-reveal";
 export const DEFAULT_INDUSTRY_ITEMS = [
   {
     icon: "/images/illustrations/industry-plastic.svg",
-    title: "Ống nhựa & Phụ kiện",
-    description: "PVC, HDPE, PPR — đầy đủ kích thước D21–D200, tiêu chuẩn TCVN, đa dụng dân dụng & công nghiệp.",
-    href: "/categories/ong-nhua-cong-nghiep",
-    bullets: ["Tiêu chuẩn TCVN/ISO", "Kho hàng sẵn 2.000m³", "Cắt đúng yêu cầu B2B"],
+    title: "Vật tư điện lạnh",
+    description:
+      "Gas lạnh, ống đồng, xốp bảo ôn, băng cuốn ống đồng, ống mềm thải và rốn nước điều hòa — đầy đủ cho hệ thống lạnh.",
+    href: "/categories/vat-tu-dien-lanh",
+    bullets: ["Hàng sẵn kho, giao nhanh", "Giá sỉ cho đại lý & nhà thầu", "Tư vấn kỹ thuật tận nơi"],
     accent: "primary" as const,
   },
   {
     icon: "/images/illustrations/industry-rubber.svg",
-    title: "Cao su kỹ thuật",
-    description: "Tấm cao su NBR, EPDM, SBR — gioăng, ron, đệm chống rung cho nhà máy chế biến và cơ khí chính xác.",
-    href: "/categories/nhua-cao-su",
-    bullets: ["Chịu dầu, chịu nhiệt", "Đặt theo bản vẽ", "Giao hàng 24h nội thành"],
+    title: "Vật tư cơ điện (M&E)",
+    description:
+      "Dây điện, ghen điện, ruột gà, ống gió mềm, ty ren, ốc vít, đai treo cùng gioăng và tấm cao su cho công trình cơ điện.",
+    href: "/categories/vat-tu-co-dien",
+    bullets: ["Đầy đủ phụ kiện lắp đặt", "Gioăng, tấm cao su đủ quy cách", "Giao nhanh nội thành"],
     accent: "accent" as const,
   },
   {
     icon: "/images/illustrations/industry-noodle.svg",
-    title: "Miến truyền thống",
+    title: "Khuôn mẫu & đúc nhựa",
     description:
-      "Miến dong làng nghề Quốc Oai, miến gạo Hà Tĩnh — đóng gói tiêu chuẩn, sẵn sàng phân phối siêu thị & xuất khẩu.",
-    href: "/categories/thuc-pham-lang-nghe",
-    bullets: ["Nguồn nguyên liệu sạch", "OEM/Private label", "Bao bì xuất khẩu chuẩn"],
+      "Nhà sản xuất khuôn mẫu và đúc nhựa theo yêu cầu — từ thiết kế, gia công khuôn đến ép phun sản phẩm nhựa.",
+    href: "/categories/khuon-mau-duc-nhua",
+    bullets: ["Gia công theo bản vẽ", "OEM/ODM linh hoạt", "Chất lượng ổn định theo lô"],
     accent: "highlight" as const,
   },
 ];
@@ -62,7 +64,7 @@ export default function IndustriesSection({ section }: { section: IndustriesType
   const heading = p.heading ?? "Ba trụ cột kinh doanh của VHD Corp";
   const subheading =
     p.subheading ??
-    "Từ vật tư công nghiệp đến đặc sản làng nghề — VHD Corp là đối tác cung ứng đa ngành, kết nối chất lượng Việt Nam với thị trường B2B/B2C.";
+    "Từ vật tư điện lạnh, cơ điện đến khuôn mẫu và đúc nhựa — VHD Corp là kho tổng cung ứng cho đại lý, nhà thầu và doanh nghiệp trên toàn quốc.";
 
   const cardRefs = useRef<HTMLDivElement[]>([]);
   const prefersReduce = useReducedMotion();

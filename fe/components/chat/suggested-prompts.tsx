@@ -5,8 +5,8 @@ import { useSiteConfigStore } from "@/store/site-config.store";
 
 /** Câu hỏi mẫu mặc định — admin thay trong Cài đặt site → Brand → Trợ lý AI */
 const PROMPTS = [
-  "Cho tôi xem vài sản phẩm cao su",
-  "So sánh ống nhựa PVC D21 và tấm cao su non",
+  "Cho tôi xem vật tư điện lạnh",
+  "Tư vấn gas lạnh và ống đồng",
   "Câu hỏi thường gặp",
   "Tôi muốn để lại thông tin liên hệ",
 ];

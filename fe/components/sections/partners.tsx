@@ -3,16 +3,16 @@
 import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Building2, Factory, ShoppingBag, Truck, Wheat, Wrench } from "lucide-react";
+import { Building2, Factory, ShoppingBag, Snowflake, Truck, Wrench } from "lucide-react";
 import { Reveal } from "@/components/animations/reveal";
 import type { PartnersSection as Section } from "@/types/site-config";
 
 const PLACEHOLDER_BRANDS = [
-  { name: "Sài Gòn Water", icon: Building2 },
+  { name: "Sài Gòn M&E", icon: Building2 },
   { name: "Đông Nam Mech", icon: Factory },
-  { name: "DMK Foods", icon: ShoppingBag },
+  { name: "DMK Trading", icon: ShoppingBag },
   { name: "VietPlast", icon: Wrench },
-  { name: "Quốc Oai Coop", icon: Wheat },
+  { name: "Bách Khoa Lạnh", icon: Snowflake },
   { name: "VHD Logistics", icon: Truck },
 ];
 
@@ -45,7 +45,7 @@ export default function Partners({ section }: { section: Section }) {
         <div className="mb-10 text-center">
           <p className="type-eyebrow text-brand-primary">Đối tác tin cậy</p>
           <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight text-foreground md:text-3xl">
-            {p.heading ?? "Hơn 120+ doanh nghiệp đồng hành cùng VHD"}
+            {p.heading ?? "Doanh nghiệp đồng hành cùng VHD"}
           </h2>
         </div>
       </Reveal>

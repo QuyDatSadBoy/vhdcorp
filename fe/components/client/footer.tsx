@@ -208,41 +208,56 @@ export default function Footer() {
         )}
       </div>
 
-      {/* Khối nhúng: Google Maps (khi bật "Hiện bản đồ" + có link) và Fanpage Facebook */}
-      {((footer?.showMap && toMapEmbedSrc(footer?.mapEmbed)) || toFacebookPageSrc(footer?.facebookPage)) && (
-        <div className="border-t border-white/10">
-          <div className="container mx-auto grid gap-6 px-4 py-8 md:grid-cols-2">
-            {footer?.showMap && toMapEmbedSrc(footer?.mapEmbed) && (
-              <div className="overflow-hidden rounded-xl border border-white/10">
-                <iframe
-                  src={toMapEmbedSrc(footer.mapEmbed)!}
-                  title="Bản đồ VHD Corp"
-                  width="100%"
-                  height={280}
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              </div>
-            )}
-            {toFacebookPageSrc(footer?.facebookPage) && (
-              <div className="overflow-hidden rounded-xl border border-white/10 md:justify-self-end">
-                <iframe
-                  src={toFacebookPageSrc(footer?.facebookPage, { width: 500, height: 280 })!}
-                  title="Fanpage Facebook"
-                  width="500"
-                  height={280}
-                  className="max-w-full"
-                  style={{ border: 0, overflow: "hidden" }}
-                  loading="lazy"
-                  allow="encrypted-media"
-                />
-              </div>
-            )}
+      {/* Khối nhúng: Google Maps (khi bật "Hiện bản đồ" + có link) và Fanpage Facebook.
+          Chỉ hiện ô có dữ liệu; nếu chỉ 1 ô thì căn giữa — tránh lưới trống một nửa (lỗi cũ). */}
+      {(() => {
+        const mapSrc = footer?.showMap ? toMapEmbedSrc(footer?.mapEmbed) : null;
+        const fbSrc = toFacebookPageSrc(footer?.facebookPage);
+        const count = (mapSrc ? 1 : 0) + (fbSrc ? 1 : 0);
+        if (count === 0) return null;
+        return (
+          <div className="border-t border-white/10">
+            <div
+              className={`container mx-auto gap-6 px-4 py-8 ${
+                count > 1 ? "grid md:grid-cols-2" : "flex justify-center"
+              }`}
+            >
+              {mapSrc && (
+                <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-white/10">
+                  <iframe
+                    src={mapSrc}
+                    title="Bản đồ VHD Corp"
+                    width="100%"
+                    height={280}
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              )}
+              {fbSrc && (
+                <div
+                  className={`w-full max-w-xl overflow-hidden rounded-xl border border-white/10 ${
+                    count > 1 ? "md:justify-self-end" : ""
+                  }`}
+                >
+                  <iframe
+                    src={toFacebookPageSrc(footer?.facebookPage, { width: 500, height: 280 })!}
+                    title="Fanpage Facebook"
+                    width="500"
+                    height={280}
+                    className="max-w-full"
+                    style={{ border: 0, overflow: "hidden" }}
+                    loading="lazy"
+                    allow="encrypted-media"
+                  />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div className="border-t border-white/10">
         <div className="container mx-auto flex flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-white/60 md:flex-row">

@@ -216,7 +216,7 @@ export default function ContactForm() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="subject">Tiêu đề *</Label>
-                <Input id="subject" name="subject" required placeholder="VD: Báo giá ống nhựa PVC D21" />
+                <Input id="subject" name="subject" required placeholder="VD: Báo giá gas lạnh và ống đồng" />
               </div>
             </div>
             <div className="space-y-1.5">

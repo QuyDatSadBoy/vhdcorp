@@ -72,7 +72,7 @@ function ProductsContent({ initialData }: ProductsPageClientProps) {
         title={fb?.title || "Sản phẩm VHD Corp"}
         description={
           fb?.description ||
-          "Tổng kho ống nhựa PVC, tấm cao su kỹ thuật và đặc sản miến làng nghề Việt Nam — chất lượng đồng nhất, giao hàng toàn quốc cho khách hàng B2B/B2C."
+          "Kho tổng vật tư điện lạnh, cơ điện (M&E) và khuôn mẫu, đúc nhựa — chất lượng ổn định, giao hàng toàn quốc cho khách hàng B2B/B2C."
         }
         breadcrumbs={[{ label: "Trang chủ", href: "/" }, { label: "Sản phẩm" }]}
         bgImage={fb?.heroImage}

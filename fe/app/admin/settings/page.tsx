@@ -224,7 +224,7 @@ export default function AdminSettingsPage() {
                         .filter(Boolean),
                     })
                   }
-                  placeholder={"Cho tôi xem vài sản phẩm cao su\nSo sánh ống nhựa PVC D21 và tấm cao su non"}
+                  placeholder={"Cho tôi xem vật tư điện lạnh\nTư vấn gas lạnh và ống đồng"}
                 />
               </div>
               <div className="space-y-2">
@@ -414,7 +414,7 @@ export default function AdminSettingsPage() {
               <div className="space-y-2">
                 <Label>Từ khóa mặc định (phân cách bằng dấu phẩy)</Label>
                 <Input
-                  placeholder="nhựa công nghiệp, cao su, làng nghề Việt"
+                  placeholder="vật tư điện lạnh, cơ điện, khuôn mẫu, đúc nhựa"
                   value={keywordsText}
                   onChange={(e) => {
                     setKeywordsText(e.target.value);
@@ -635,7 +635,7 @@ export default function AdminSettingsPage() {
                           { icon: "shield" as const, label: "Cam kết chất lượng", desc: "Chứng nhận ISO" },
                           { icon: "truck" as const, label: "Giao toàn quốc", desc: "B2B/B2C 24h" },
                           { icon: "headphones" as const, label: "Hỗ trợ 7 ngày", desc: "Tư vấn chuyên gia" },
-                          { icon: "award" as const, label: "12+ năm uy tín", desc: "850+ đối tác" },
+                          { icon: "award" as const, label: "Uy tín & tận tâm", desc: "Đối tác tin cậy" },
                         ]),
                         ...(draft.footer.trustBadges?.length ? [{ icon: "star" as const, label: "", desc: "" }] : []),
                       ],

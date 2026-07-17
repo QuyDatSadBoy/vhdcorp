@@ -28,7 +28,7 @@ const MAIL_TEMPLATES: { key: string; label: string; subject: string; html: strin
     label: "🎉 Chào mừng thành viên mới",
     subject: "Chào mừng {{name}} đến với VHD Corp!",
     html: `<h1 style="color:#1B3A8C;font-size:22px;margin:0 0 12px;">Chào mừng {{name}}!</h1>
-<p style="font-size:15px;line-height:1.7;">Cảm ơn bạn đã tin tưởng và đồng hành cùng <b>VHD Corp</b> — tổng kho nhựa, cao su kỹ thuật và đặc sản làng nghề Việt.</p>
+<p style="font-size:15px;line-height:1.7;">Cảm ơn bạn đã tin tưởng và đồng hành cùng <b>VHD Corp</b> — kho tổng vật tư điện lạnh, cơ điện và sản xuất khuôn mẫu, đúc nhựa.</p>
 <p style="font-size:15px;line-height:1.7;">Khám phá ngay danh mục sản phẩm với ưu đãi dành riêng cho thành viên mới.</p>`,
   },
   {

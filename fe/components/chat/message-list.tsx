@@ -12,8 +12,8 @@ function followupsFor(last: UiChatMessage | undefined): string[] {
   if (kinds.has("add-to-cart")) return ["Xem thêm sản phẩm tương tự", "Áp mã giảm giá thế nào?", "Đặt hàng ngay"];
   if (kinds.has("product-carousel") || kinds.has("image-search-result"))
     return ["So sánh các sản phẩm này", "Thêm sản phẩm đầu tiên vào giỏ", "Có khuyến mãi gì không?"];
-  if (kinds.has("post-list")) return ["Có bài nào về làng nghề không?", "Cho mình xem sản phẩm nổi bật"];
-  if (kinds.has("category-list")) return ["Xem sản phẩm nhựa & cao su", "Sản phẩm nào đang khuyến mãi?"];
+  if (kinds.has("post-list")) return ["Có bài nào về vật tư điện lạnh không?", "Cho mình xem sản phẩm nổi bật"];
+  if (kinds.has("category-list")) return ["Xem vật tư điện lạnh & cơ điện", "Sản phẩm nào đang khuyến mãi?"];
   if (kinds.has("comparison-table")) return ["Thêm sản phẩm rẻ hơn vào giỏ", "Tư vấn giúp mình lựa chọn"];
   return [];
 }

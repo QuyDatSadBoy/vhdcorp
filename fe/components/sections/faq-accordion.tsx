@@ -10,7 +10,7 @@ export const DEFAULT_FAQ_ITEMS: NonNullable<FaqAccordionSection["props"]["items"
   {
     question: "VHD Corp cung cấp những sản phẩm gì?",
     answer:
-      "Chúng tôi phân phối các sản phẩm nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam. Danh mục được cập nhật thường xuyên trên website.",
+      "Chúng tôi cung cấp sỉ vật tư ngành điện lạnh và cơ điện (gas lạnh, ống đồng, xốp bảo ôn, băng dính, dây điện, gioăng cao su…), đồng thời sản xuất khuôn mẫu và đúc nhựa. Danh mục được cập nhật thường xuyên trên website.",
   },
   {
     question: "Đơn hàng tối thiểu là bao nhiêu?",

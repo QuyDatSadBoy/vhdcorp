@@ -106,7 +106,7 @@ export default async function HomePage() {
     url: SITE_URL,
     priceRange: "$$",
     description:
-      "VHD Corp — đơn vị phân phối nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam. Phục vụ khách lẻ và doanh nghiệp, giao hàng toàn quốc.",
+      "VHD Corp — kho tổng cung cấp sỉ vật tư ngành điện lạnh và cơ điện (M&E), đồng thời là nhà sản xuất khuôn mẫu và đúc nhựa. Phục vụ đại lý, nhà thầu và doanh nghiệp, giao hàng toàn quốc.",
     address: {
       "@type": "PostalAddress",
       streetAddress: contactInfo?.address ?? "Hà Nội",

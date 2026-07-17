@@ -17,7 +17,7 @@ export const DEFAULT_USE_CASES: NonNullable<UseCasesSection["props"]["cases"]> =
   {
     emoji: "🏷️",
     title: "OEM / Private Label",
-    description: "Sản xuất theo thương hiệu của bạn, bao bì in logo, đóng gói chuẩn xuất khẩu.",
+    description: "Sản xuất theo thương hiệu của bạn, bao bì in logo, đóng gói cẩn thận, chắc chắn.",
     href: "/contact?topic=oem",
     badge: "EXCLUSIVE",
   },

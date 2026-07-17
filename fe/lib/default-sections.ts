@@ -17,9 +17,9 @@ export function defaultHomeSections(): Section[] {
       props: {
         badge: "B2B & B2C",
         trustItems: DEFAULT_HERO_TRUST_ITEMS,
-        heading: "Tổng kho *nhựa*, cao su & *miến* truyền thống Việt",
+        heading: "Kho tổng *vật tư điện lạnh*, cơ điện & *khuôn mẫu* đúc nhựa",
         subheading:
-          "VHD Corp phân phối sản phẩm nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam — phục vụ cả khách lẻ và doanh nghiệp, giao hàng toàn quốc.",
+          "VHD Corp cung cấp sỉ vật tư ngành điện lạnh và cơ điện (M&E), đồng thời là nhà sản xuất khuôn mẫu và đúc nhựa — phục vụ đại lý, nhà thầu và doanh nghiệp, giao hàng toàn quốc.",
         ctaText: "Khám phá sản phẩm",
         ctaLink: "/products",
         align: "left",
@@ -36,9 +36,9 @@ export function defaultHomeSections(): Section[] {
         eyebrow: "Về chúng tôi",
         heading: "VHD Corp — kết nối sản phẩm Việt với khách hàng",
         subheading:
-          "Chúng tôi là đơn vị phân phối sản phẩm nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam. Cam kết đơn giản: hàng đúng mô tả, giá hợp lý, hỗ trợ tận tâm.",
+          "Chúng tôi là kho tổng cung cấp sỉ vật tư ngành điện lạnh và cơ điện, đồng thời là nhà sản xuất khuôn mẫu và đúc nhựa. Cam kết đơn giản: hàng đúng mô tả, giá sỉ hợp lý, hỗ trợ tận tâm.",
         bullets: [
-          "Đa dạng sản phẩm nhựa, cao su và đặc sản làng nghề",
+          "Đa dạng vật tư điện lạnh, cơ điện và khuôn mẫu, đúc nhựa",
           "Phục vụ cả khách lẻ (B2C) và doanh nghiệp (B2B)",
           "Giao hàng toàn quốc, tư vấn nhanh chóng",
         ],
@@ -61,7 +61,7 @@ export function defaultHomeSections(): Section[] {
             image: "",
             title: "Sản phẩm đa dạng",
             caption:
-              "Nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam — một điểm mua sắm cho cả nhu cầu cá nhân và doanh nghiệp.",
+              "Vật tư điện lạnh, cơ điện và khuôn mẫu, đúc nhựa — một điểm cung ứng cho đại lý, nhà thầu và doanh nghiệp.",
           },
           {
             image: "",
@@ -158,7 +158,7 @@ export function defaultAboutSections(): Section[] {
       props: {
         heading: "Về *VHD Corp*",
         subheading:
-          "VHD Corp là đơn vị phân phối sản phẩm nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam. Chúng tôi kết nối nhà sản xuất trong nước với khách hàng cá nhân và doanh nghiệp trên toàn quốc.",
+          "VHD Corp là kho tổng cung cấp sỉ vật tư ngành điện lạnh và cơ điện, đồng thời là nhà sản xuất khuôn mẫu và đúc nhựa. Chúng tôi phục vụ đại lý, nhà thầu và doanh nghiệp trên toàn quốc.",
         ctaText: "Liên hệ với chúng tôi",
         ctaLink: "/contact",
         align: "left",
@@ -201,7 +201,7 @@ export function defaultAboutSections(): Section[] {
             image: "",
             title: "Sản phẩm đa dạng",
             caption:
-              "Nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam — một điểm mua sắm cho cả nhu cầu cá nhân và doanh nghiệp.",
+              "Vật tư điện lạnh, cơ điện và khuôn mẫu, đúc nhựa — một điểm cung ứng cho đại lý, nhà thầu và doanh nghiệp.",
           },
           {
             image: "",
@@ -236,7 +236,7 @@ export function defaultAboutSections(): Section[] {
             emoji: "👁️",
             title: "Tầm nhìn",
             description:
-              "Trở thành địa chỉ phân phối đáng tin cậy về nhựa, cao su kỹ thuật và đặc sản làng nghề Việt Nam.",
+              "Trở thành địa chỉ cung ứng sỉ đáng tin cậy về vật tư điện lạnh, cơ điện và khuôn mẫu, đúc nhựa.",
           },
           {
             emoji: "❤️",
