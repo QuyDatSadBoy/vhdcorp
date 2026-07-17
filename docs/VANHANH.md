@@ -113,3 +113,45 @@ cd .. && pm2 reload ecosystem.config.js
 - Đổi mật khẩu root VPS + mật khẩu admin web (mặc định seed) sau bàn giao.
 - Backup DB hằng đêm: `crontab -e` → `0 2 * * * sudo -u postgres pg_dump vhdcorp_prod > ~/backup_$(date +\%F).sql`
 - (Khuyến nghị Cloudflare) bật security headers: SSL/TLS → Edge → HSTS; Rules → thêm `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`.
+
+## Xem log & quản trị server qua Terminal (SSH)
+
+Trang **Quản trị → Server** đã xem được log + chẩn đoán ngay trên web (an toàn).
+Khi cần shell đầy đủ, SSH vào VPS rồi dùng các lệnh sau:
+
+```bash
+ssh root@116.118.6.61
+
+# Xem log service (theo dõi realtime — Ctrl+C để thoát)
+pm2 logs vhd-be         # backend
+pm2 logs vhd-fe         # frontend
+pm2 logs vhd-agent      # AI agent
+pm2 logs                # tất cả cùng lúc
+pm2 logs vhd-be --lines 200 --nostream   # 200 dòng gần nhất, không theo dõi
+
+# Trạng thái & tài nguyên
+pm2 status              # bảng service
+pm2 monit               # dashboard realtime CPU/RAM từng service
+free -h                 # RAM
+df -h                   # ổ đĩa
+top / htop              # tiến trình
+
+# Nginx
+tail -f /var/log/nginx/error.log     # log lỗi nginx
+tail -f /var/log/nginx/access.log    # log truy cập
+nginx -t && systemctl reload nginx   # kiểm tra cấu hình rồi reload
+
+# Log hệ điều hành
+journalctl -n 200 --no-pager         # 200 dòng gần nhất
+journalctl -u nginx -f               # theo dõi service cụ thể
+
+# Deploy tay (khi cần — vẫn qua pipeline có test + rollback)
+cd /root/vhdcorp && git fetch origin main && git checkout -B main origin/main && bash scripts/deploy.sh
+
+# Backup DB tay
+sudo -u postgres pg_dump vhdcorp_prod | gzip > /root/vhd_backup_$(date +%F).sql.gz
+```
+
+> ⚠️ KHÔNG bao giờ nhúng web terminal chạy lệnh tùy ý vào trang admin — nếu tài khoản
+> admin bị lộ, kẻ tấn công có full quyền root qua trình duyệt. Shell qua SSH (có key)
+> an toàn hơn nhiều. Trang Server chỉ chạy các lệnh whitelist chỉ-đọc.

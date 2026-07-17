@@ -39,6 +39,71 @@ const CLEANUP_TASKS = [
 ] as const;
 type CleanupTask = (typeof CLEANUP_TASKS)[number];
 
+/** Nguồn log xem được — ánh xạ cố định sang đường dẫn file (không nhận path tự do) */
+const HOME = process.env.HOME || '/root';
+const LOG_SOURCES: Record<
+  string,
+  { label: string; file?: string; journal?: boolean }
+> = {
+  'be-out': {
+    label: 'Backend — output',
+    file: `${HOME}/.pm2/logs/vhd-be-out.log`,
+  },
+  'be-err': {
+    label: 'Backend — lỗi',
+    file: `${HOME}/.pm2/logs/vhd-be-error.log`,
+  },
+  'fe-out': {
+    label: 'Frontend — output',
+    file: `${HOME}/.pm2/logs/vhd-fe-out.log`,
+  },
+  'fe-err': {
+    label: 'Frontend — lỗi',
+    file: `${HOME}/.pm2/logs/vhd-fe-error.log`,
+  },
+  'agent-out': {
+    label: 'AI Agent — output',
+    file: `${HOME}/.pm2/logs/vhd-agent-out.log`,
+  },
+  'agent-err': {
+    label: 'AI Agent — lỗi',
+    file: `${HOME}/.pm2/logs/vhd-agent-error.log`,
+  },
+  'nginx-access': {
+    label: 'Nginx — truy cập',
+    file: '/var/log/nginx/access.log',
+  },
+  'nginx-error': { label: 'Nginx — lỗi', file: '/var/log/nginx/error.log' },
+  system: { label: 'Hệ điều hành (journalctl)', journal: true },
+};
+
+/** Lệnh chẩn đoán CHỈ ĐỌC — whitelist tuyệt đối, không phá hoại, không nhận input tự do */
+const DIAGNOSTICS: Record<
+  string,
+  { label: string; bin: string; args: string[] }
+> = {
+  disk: { label: 'Dung lượng ổ đĩa (df -h)', bin: 'df', args: ['-h'] },
+  mem: { label: 'Bộ nhớ (free -h)', bin: 'free', args: ['-h'] },
+  ports: { label: 'Cổng đang mở (ss -tlnp)', bin: 'ss', args: ['-tlnp'] },
+  top: {
+    label: 'Tiến trình nặng nhất (top)',
+    bin: 'top',
+    args: ['-bn1', '-o', '%MEM'],
+  },
+  uptime: { label: 'Tải hệ thống (uptime)', bin: 'uptime', args: [] },
+  'nginx-status': {
+    label: 'Trạng thái Nginx',
+    bin: 'systemctl',
+    args: ['status', 'nginx', '--no-pager', '-l'],
+  },
+  'nginx-test': {
+    label: 'Kiểm tra cấu hình Nginx',
+    bin: 'nginx',
+    args: ['-t'],
+  },
+  'pm2-status': { label: 'Trạng thái PM2', bin: 'pm2', args: ['status'] },
+};
+
 export interface Pm2Proc {
   name: string;
   status: string;
@@ -520,6 +585,108 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
     await this.audit(actor, `backup:delete:${name}`);
     await fsp.rm(p);
     return { deleted: name };
+  }
+
+  /* ─── Log viewer (đa nguồn, whitelist) ──────────────────────── */
+
+  logSources() {
+    return Object.entries(LOG_SOURCES).map(([key, v]) => ({
+      key,
+      label: v.label,
+    }));
+  }
+
+  async getLog(source: string, lines: number) {
+    const src = LOG_SOURCES[source];
+    if (!src) throw new BadRequestException('Nguồn log không hợp lệ');
+    const n = Math.min(Math.max(lines || 200, 10), 1000);
+    if (src.journal) {
+      try {
+        const { stdout } = await execFileAsync(
+          'journalctl',
+          ['-n', String(n), '--no-pager'],
+          {
+            env: this.execEnv,
+            maxBuffer: 8 * 1024 * 1024,
+          },
+        );
+        return { source, log: stdout };
+      } catch {
+        return { source, log: '(không đọc được journalctl)' };
+      }
+    }
+    return {
+      source,
+      log: (await this.tailFile(src.file!, n)) || '(log trống)',
+    };
+  }
+
+  /* ─── Chẩn đoán (whitelist chỉ đọc) ─────────────────────────── */
+
+  diagnosticList() {
+    return Object.entries(DIAGNOSTICS).map(([key, v]) => ({
+      key,
+      label: v.label,
+    }));
+  }
+
+  async runDiagnostic(key: string) {
+    const d = DIAGNOSTICS[key];
+    if (!d) throw new BadRequestException('Lệnh chẩn đoán không hợp lệ');
+    try {
+      const { stdout, stderr } = await execFileAsync(d.bin, d.args, {
+        env: this.execEnv,
+        maxBuffer: 4 * 1024 * 1024,
+        timeout: 15_000,
+      });
+      // top/nginx-status dài → cắt 120 dòng đầu cho gọn
+      const out = (stdout || stderr || '(không có output)')
+        .split('\n')
+        .slice(0, 120)
+        .join('\n');
+      return { key, output: out };
+    } catch (e) {
+      const err = e as { stdout?: string; stderr?: string; message?: string };
+      return {
+        key,
+        output: err.stdout || err.stderr || err.message || 'Lệnh thất bại',
+      };
+    }
+  }
+
+  /** Reload nginx an toàn: test cấu hình trước, chỉ reload khi hợp lệ (không downtime) */
+  async reloadNginx(actor: string) {
+    await this.audit(actor, 'nginx:reload');
+    try {
+      await execFileAsync('nginx', ['-t'], { env: this.execEnv });
+    } catch (e) {
+      const err = e as { stderr?: string };
+      throw new BadRequestException(
+        `Cấu hình Nginx lỗi — KHÔNG reload: ${(err.stderr || '').slice(0, 200)}`,
+      );
+    }
+    await execFileAsync('systemctl', ['reload', 'nginx'], {
+      env: this.execEnv,
+    });
+    return { message: 'Đã reload Nginx (cấu hình hợp lệ)' };
+  }
+
+  async getDbSize() {
+    const url = process.env.DATABASE_URL?.replace(/^"|"$/g, '') ?? '';
+    try {
+      const { stdout } = await execFileAsync(
+        'psql',
+        [
+          url,
+          '-tAc',
+          'SELECT pg_size_pretty(pg_database_size(current_database()))',
+        ],
+        { env: this.execEnv, timeout: 10_000 },
+      );
+      return { size: stdout.trim() || 'N/A' };
+    } catch {
+      return { size: 'N/A' };
+    }
   }
 
   /* ─── Audit ─────────────────────────────────────────────────── */

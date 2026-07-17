@@ -98,6 +98,38 @@ export class ServerAdminController {
     return this.service.deleteBackup(file, user.email);
   }
 
+  @Get('logs')
+  logSources() {
+    return this.service.logSources();
+  }
+
+  @Get('logs/:source')
+  getLog(@Param('source') source: string, @Query('lines') lines?: string) {
+    return this.service.getLog(source, Number(lines) || 200);
+  }
+
+  @Get('diagnostics')
+  diagnostics() {
+    return this.service.diagnosticList();
+  }
+
+  @Post('diagnostics/:key')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  runDiagnostic(@Param('key') key: string) {
+    return this.service.runDiagnostic(key);
+  }
+
+  @Post('nginx/reload')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  reloadNginx(@CurrentUser() user: JwtPayload) {
+    return this.service.reloadNginx(user.email);
+  }
+
+  @Get('db-size')
+  dbSize() {
+    return this.service.getDbSize();
+  }
+
   @Get('audit')
   audit() {
     return this.service.getAudit();

@@ -15,18 +15,25 @@ import {
   Trash2,
   Clock,
   ScrollText,
+  Terminal,
+  Stethoscope,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useConfirm } from "@/components/admin/confirm-dialog";
 import { cn } from "@/lib/utils";
 import {
   useBackups,
   useCleanup,
   useCreateBackup,
+  useDbSize,
   useDeleteBackup,
   useDeployInfo,
   useDeployLog,
+  useDiagnostics,
+  useLog,
+  useLogSources,
   useRestartService,
   useServerAudit,
   useServerHistory,
@@ -88,8 +95,20 @@ export default function ServerAdminPage() {
   const createBackup = useCreateBackup();
   const deleteBackup = useDeleteBackup();
   const audit = useServerAudit();
+  const dbSize = useDbSize();
   const confirm = useConfirm();
   const [logView, setLogView] = useState<{ name: string; out: string; error: string } | null>(null);
+
+  // Log viewer đa nguồn
+  const logSources = useLogSources();
+  const [logSource, setLogSource] = useState("be-out");
+  const [logAuto, setLogAuto] = useState(false);
+  const logQ = useLog(logSource, 300, logAuto);
+
+  // Chẩn đoán (whitelist)
+  const diagList = useDiagnostics();
+  const [diagOut, setDiagOut] = useState<{ label: string; output: string } | null>(null);
+  const [diagBusy, setDiagBusy] = useState<string | null>(null);
 
   const m = metrics.data;
   const hist = history.data ?? [];
@@ -339,6 +358,131 @@ export default function ServerAdminPage() {
         </CardContent>
       </Card>
 
+      {/* ── Log Viewer đa nguồn ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+            <ScrollText className="h-4 w-4 text-brand-primary" /> Xem log
+            <span className="ml-auto flex flex-wrap items-center gap-2">
+              <Select value={logSource} onValueChange={setLogSource}>
+                <SelectTrigger className="h-8 w-56 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(logSources.data ?? []).map((s) => (
+                    <SelectItem key={s.key} value={s.key} className="text-xs">
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                variant={logAuto ? "default" : "outline"}
+                className="h-8 gap-1 text-xs"
+                onClick={() => setLogAuto((v) => !v)}
+              >
+                <RefreshCcw className={cn("h-3 w-3", logAuto && "animate-spin")} /> Auto 5s
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => void logQ.refetch()}>
+                <RefreshCcw className="h-3 w-3" /> Tải lại
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1 text-xs"
+                onClick={() => {
+                  const blob = new Blob([logQ.data?.log ?? ""], { type: "text/plain" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `${logSource}.log`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
+                <Download className="h-3 w-3" /> Tải về
+              </Button>
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-xl border bg-black/90 p-3 text-[11px] leading-relaxed text-emerald-200/90">
+            {logQ.isFetching && !logQ.data ? "Đang tải…" : logQ.data?.log || "(log trống)"}
+          </pre>
+        </CardContent>
+      </Card>
+
+      {/* ── Chẩn đoán (whitelist chỉ đọc) ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Stethoscope className="h-4 w-4 text-brand-primary" /> Chẩn đoán nhanh
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {(diagList.data ?? []).map((d) => (
+              <Button
+                key={d.key}
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1 text-xs"
+                disabled={diagBusy !== null}
+                onClick={async () => {
+                  setDiagBusy(d.key);
+                  try {
+                    const r = await serverAdminApi.runDiagnostic(d.key);
+                    setDiagOut({ label: d.label, output: r.output });
+                  } catch {
+                    toast.error("Lệnh thất bại");
+                  } finally {
+                    setDiagBusy(null);
+                  }
+                }}
+              >
+                {diagBusy === d.key ? <Loader2 className="h-3 w-3 animate-spin" /> : <Terminal className="h-3 w-3" />}
+                {d.label}
+              </Button>
+            ))}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1 text-xs text-amber-700"
+              onClick={async () => {
+                if (
+                  !(await confirm({
+                    title: "Reload Nginx?",
+                    description: "Kiểm tra cấu hình rồi reload (không downtime).",
+                  }))
+                )
+                  return;
+                try {
+                  const r = await serverAdminApi.reloadNginx();
+                  toast.success(r.message);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Reload Nginx thất bại");
+                }
+              }}
+            >
+              <RefreshCcw className="h-3 w-3" /> Reload Nginx
+            </Button>
+          </div>
+          {diagOut && (
+            <div>
+              <p className="mb-1 text-xs font-bold">{diagOut.label}</p>
+              <pre className="max-h-80 overflow-auto whitespace-pre rounded-xl border bg-black/90 p-3 text-[11px] leading-relaxed text-emerald-200/90">
+                {diagOut.output}
+              </pre>
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            Chỉ chạy các lệnh <b>xem thông tin</b> (không sửa/xóa gì). Cần shell đầy đủ → dùng SSH (xem hướng dẫn trong
+            docs/VANHANH.md).
+          </p>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 lg:grid-cols-2">
         {/* ── Dọn rác ── */}
         <Card>
@@ -406,7 +550,10 @@ export default function ServerAdminPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1.5">
-            <p className="text-[11px] text-muted-foreground">Tự động backup 2:00 sáng hằng ngày, giữ 7 bản gần nhất.</p>
+            <p className="text-[11px] text-muted-foreground">
+              Tự động backup 2:00 sáng hằng ngày, giữ 7 bản gần nhất. Dung lượng DB hiện tại:{" "}
+              <b className="text-foreground">{dbSize.data?.size ?? "…"}</b>
+            </p>
             {(backups.data ?? []).map((b) => (
               <div key={b.name} className="flex items-center gap-2 rounded-lg border p-2 text-sm">
                 <span className="min-w-0 flex-1 truncate font-mono text-xs">{b.name}</span>

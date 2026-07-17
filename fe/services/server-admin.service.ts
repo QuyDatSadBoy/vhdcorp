@@ -64,6 +64,14 @@ const api = {
   createBackup: () => axios.post<{ data: { name: string; sizeMb: number } }>("/server/backups").then(unwrap),
   deleteBackup: (name: string) => axios.delete(`/server/backups/${encodeURIComponent(name)}`).then(() => undefined),
   audit: () => axios.get<{ data: { log: string } }>("/server/audit").then(unwrap),
+  logSources: () => axios.get<{ data: { key: string; label: string }[] }>("/server/logs").then(unwrap),
+  getLog: (source: string, lines: number) =>
+    axios.get<{ data: { source: string; log: string } }>(`/server/logs/${source}`, { params: { lines } }).then(unwrap),
+  diagnostics: () => axios.get<{ data: { key: string; label: string }[] }>("/server/diagnostics").then(unwrap),
+  runDiagnostic: (key: string) =>
+    axios.post<{ data: { key: string; output: string } }>(`/server/diagnostics/${key}`).then(unwrap),
+  reloadNginx: () => axios.post<{ data: { message: string } }>("/server/nginx/reload").then(unwrap),
+  dbSize: () => axios.get<{ data: { size: string } }>("/server/db-size").then(unwrap),
 };
 
 export const serverAdminApi = api;
@@ -140,4 +148,25 @@ export function useDeleteBackup() {
 
 export function useServerAudit() {
   return useQuery({ queryKey: serverKeys.audit, queryFn: api.audit });
+}
+
+export function useLogSources() {
+  return useQuery({ queryKey: ["server", "log-sources"], queryFn: api.logSources, staleTime: Infinity });
+}
+
+/** Log 1 nguồn — tự làm mới 5s khi bật auto */
+export function useLog(source: string, lines: number, auto: boolean) {
+  return useQuery({
+    queryKey: ["server", "log", source, lines],
+    queryFn: () => api.getLog(source, lines),
+    refetchInterval: auto ? 5_000 : false,
+  });
+}
+
+export function useDiagnostics() {
+  return useQuery({ queryKey: ["server", "diagnostics"], queryFn: api.diagnostics, staleTime: Infinity });
+}
+
+export function useDbSize() {
+  return useQuery({ queryKey: ["server", "db-size"], queryFn: api.dbSize, refetchInterval: 60_000 });
 }
