@@ -113,3 +113,6 @@ be/uploads/
 agent/**/__pycache__/
 agent/.pytest_cache/
 .opencode
+
+# Server-admin runtime state (metrics history, audit, deploy log)
+be/storage/

@@ -16,6 +16,7 @@ import {
   Image as ImageIcon,
   Megaphone,
   Wrench,
+  Server as ServerIcon,
   LogOut,
   Settings,
   Sparkles,
@@ -38,6 +39,8 @@ interface NavItem {
 interface NavGroup {
   label: string;
   items: NavItem[];
+  /** Chỉ ADMIN thấy (STAFF ẩn) — dùng cho nhóm Hệ thống */
+  adminOnly?: boolean;
 }
 
 /** Nhóm menu theo mục đích — gọn gàng, dễ tìm */
@@ -78,6 +81,11 @@ const navGroups: NavGroup[] = [
       { href: "/admin/settings", label: "Cài đặt site", icon: Settings },
       { href: "/admin/knowledge", label: "Kiến thức AI", icon: Bot },
     ],
+  },
+  {
+    label: "Hệ thống",
+    adminOnly: true,
+    items: [{ href: "/admin/server", label: "Server", icon: ServerIcon }],
   },
 ];
 
@@ -122,41 +130,43 @@ export function AdminSidebar() {
 
       {/* Nav groups */}
       <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-2">
-        {navGroups.map((group) => (
-          <div key={group.label}>
-            <p className="mb-0.5 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-              {group.label}
-            </p>
-            <ul className="space-y-px">
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        "group flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all",
-                        active
-                          ? "bg-brand-primary text-white shadow-sm shadow-brand-primary/20"
-                          : "text-foreground/70 hover:bg-accent/50 hover:text-foreground"
-                      )}
-                    >
-                      <Icon
+        {navGroups
+          .filter((group) => !group.adminOnly || user?.role === "ADMIN")
+          .map((group) => (
+            <div key={group.label}>
+              <p className="mb-0.5 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                {group.label}
+              </p>
+              <ul className="space-y-px">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
                         className={cn(
-                          "h-3.75 w-3.75 shrink-0 transition-transform",
-                          active ? "" : "group-hover:scale-110"
+                          "group flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all",
+                          active
+                            ? "bg-brand-primary text-white shadow-sm shadow-brand-primary/20"
+                            : "text-foreground/70 hover:bg-accent/50 hover:text-foreground"
                         )}
-                      />
-                      <span className="flex-1 truncate">{item.label}</span>
-                      {active && <ChevronRight className="h-3 w-3 opacity-80" />}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
+                      >
+                        <Icon
+                          className={cn(
+                            "h-3.75 w-3.75 shrink-0 transition-transform",
+                            active ? "" : "group-hover:scale-110"
+                          )}
+                        />
+                        <span className="flex-1 truncate">{item.label}</span>
+                        {active && <ChevronRight className="h-3 w-3 opacity-80" />}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
       </nav>
 
       {/* User card + logout */}

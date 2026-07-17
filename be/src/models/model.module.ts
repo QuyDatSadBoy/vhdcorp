@@ -12,6 +12,7 @@ import { SiteConfigModule } from '@model/site-config/site-config.module';
 import { StatisticsModule } from '@model/statistics/statistics.module';
 import { ContactModule } from '@model/contact/contact.module';
 import { TrackModule } from '@model/track/track.module';
+import { ServerAdminModule } from '@model/server-admin/server-admin.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { TrackModule } from '@model/track/track.module';
     StatisticsModule,
     ContactModule,
     TrackModule,
+    ServerAdminModule,
   ],
   exports: [
     UserModule,
