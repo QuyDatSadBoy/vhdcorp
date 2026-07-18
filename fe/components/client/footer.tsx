@@ -208,52 +208,51 @@ export default function Footer() {
         )}
       </div>
 
-      {/* Khối nhúng: Google Maps (khi bật "Hiện bản đồ" + có link) và Fanpage Facebook.
-          Chỉ hiện ô có dữ liệu; nếu chỉ 1 ô thì căn giữa — tránh lưới trống một nửa (lỗi cũ). */}
+      {/* Khối "Kết nối": Google Maps + Fanpage Facebook.
+          - Có CẢ hai → lưới 2 cột.
+          - Chỉ 1 → thẻ đơn căn giữa, bề ngang vừa phải (không trơ trọi/tràn ngang). */}
       {(() => {
         const mapSrc = footer?.showMap ? toMapEmbedSrc(footer?.mapEmbed) : null;
-        const fbSrc = toFacebookPageSrc(footer?.facebookPage);
+        const fbSrc = toFacebookPageSrc(footer?.facebookPage, { width: 400, height: 240 });
         const count = (mapSrc ? 1 : 0) + (fbSrc ? 1 : 0);
         if (count === 0) return null;
+        const both = count > 1;
         return (
-          <div className="border-t border-white/10">
-            <div
-              className={`container mx-auto gap-6 px-4 py-8 ${
-                count > 1 ? "grid md:grid-cols-2" : "flex justify-center"
-              }`}
-            >
-              {mapSrc && (
-                <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-white/10">
-                  <iframe
-                    src={mapSrc}
-                    title="Bản đồ VHD Corp"
-                    width="100%"
-                    height={280}
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    allowFullScreen
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
-              )}
-              {fbSrc && (
-                <div
-                  className={`w-full max-w-xl overflow-hidden rounded-xl border border-white/10 ${
-                    count > 1 ? "md:justify-self-end" : ""
-                  }`}
-                >
-                  <iframe
-                    src={toFacebookPageSrc(footer?.facebookPage, { width: 500, height: 280 })!}
-                    title="Fanpage Facebook"
-                    width="500"
-                    height={280}
-                    className="max-w-full"
-                    style={{ border: 0, overflow: "hidden" }}
-                    loading="lazy"
-                    allow="encrypted-media"
-                  />
-                </div>
-              )}
+          <div className="border-t border-white/10 bg-white/[0.02]">
+            <div className="container mx-auto px-4 py-8">
+              <p className="mb-5 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                Kết nối với VHD Corp
+              </p>
+              <div className={both ? "grid gap-5 md:grid-cols-2 md:items-stretch" : "mx-auto max-w-md"}>
+                {mapSrc && (
+                  <div className="h-full overflow-hidden rounded-2xl border border-white/10 shadow-lg shadow-black/20">
+                    <iframe
+                      src={mapSrc}
+                      title="Bản đồ VHD Corp"
+                      width="100%"
+                      height={both ? 260 : 240}
+                      style={{ border: 0, display: "block" }}
+                      loading="lazy"
+                      allowFullScreen
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+                )}
+                {fbSrc && (
+                  <div className="flex h-full items-stretch justify-center overflow-hidden rounded-2xl border border-white/10 bg-white shadow-lg shadow-black/20">
+                    <iframe
+                      src={fbSrc}
+                      title="Fanpage Facebook VHD Corp"
+                      width="100%"
+                      height={both ? 260 : 240}
+                      className="w-full"
+                      style={{ border: 0, display: "block", overflow: "hidden" }}
+                      loading="lazy"
+                      allow="encrypted-media"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         );
