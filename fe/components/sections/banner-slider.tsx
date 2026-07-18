@@ -93,14 +93,14 @@ export default function BannerSlider({ section }: { section: Section }) {
               <button
                 aria-label="Previous"
                 onClick={() => setIdx((i) => (i - 1 + slides.length) % slides.length)}
-                className="absolute left-4 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-white/80 text-foreground shadow backdrop-blur transition hover:bg-white"
+                className="absolute left-4 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-white/90 text-foreground shadow transition hover:bg-white"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <button
                 aria-label="Next"
                 onClick={() => setIdx((i) => (i + 1) % slides.length)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-white/80 text-foreground shadow backdrop-blur transition hover:bg-white"
+                className="absolute right-4 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-white/90 text-foreground shadow transition hover:bg-white"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>

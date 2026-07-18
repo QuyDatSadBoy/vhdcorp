@@ -70,7 +70,7 @@ export default function Testimonials({ section }: { section: Section }) {
                 type="button"
                 onClick={prev}
                 aria-label="Đánh giá trước"
-                className="group hidden cursor-pointer rounded-2xl border border-foreground/8 bg-card/80 p-5 text-left opacity-60 backdrop-blur transition-all hover:opacity-100 hover:-translate-y-0.5 lg:block"
+                className="group hidden cursor-pointer rounded-2xl border border-foreground/8 bg-card p-5 text-left opacity-60 transition-all hover:opacity-100 hover:-translate-y-0.5 lg:block"
               >
                 <p className="line-clamp-3 text-sm leading-relaxed text-foreground/70">
                   &ldquo;{wings?.prev.quote}&rdquo;
@@ -139,7 +139,7 @@ export default function Testimonials({ section }: { section: Section }) {
                 type="button"
                 onClick={next}
                 aria-label="Đánh giá tiếp theo"
-                className="group hidden cursor-pointer rounded-2xl border border-foreground/8 bg-card/80 p-5 text-left opacity-60 backdrop-blur transition-all hover:opacity-100 hover:-translate-y-0.5 lg:block"
+                className="group hidden cursor-pointer rounded-2xl border border-foreground/8 bg-card p-5 text-left opacity-60 transition-all hover:opacity-100 hover:-translate-y-0.5 lg:block"
               >
                 <p className="line-clamp-3 text-sm leading-relaxed text-foreground/70">
                   &ldquo;{wings?.next.quote}&rdquo;

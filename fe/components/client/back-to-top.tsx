@@ -43,7 +43,7 @@ export function BackToTop() {
           exit={{ opacity: 0, scale: 0.8 }}
           transition={{ duration: 0.25 }}
           // bottom-40/42: xếp trên FloatingContact (bottom-24) + nút chat AI (bottom-6) để không đè nhau
-          className="group fixed bottom-40 right-4 z-30 grid h-12 w-12 place-items-center rounded-full bg-background/95 text-foreground shadow-[0_8px_24px_-10px_rgba(15,35,86,0.4)] backdrop-blur transition-colors hover:text-brand-primary sm:bottom-42 sm:right-6"
+          className="group fixed bottom-40 right-4 z-30 grid h-12 w-12 place-items-center rounded-full bg-background/95 text-foreground shadow-[0_8px_24px_-10px_rgba(15,35,86,0.4)] transition-colors hover:text-brand-primary sm:bottom-42 sm:right-6"
         >
           <svg aria-hidden viewBox={`0 0 ${SIZE} ${SIZE}`} className="absolute inset-0 -rotate-90">
             <circle

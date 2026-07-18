@@ -148,7 +148,7 @@ export default function FloatingContact() {
         {!open && (
           <span
             aria-hidden
-            className="hidden rounded-full bg-foreground/85 px-2.5 py-1 text-[11px] font-semibold text-background shadow-lg backdrop-blur sm:block"
+            className="hidden rounded-full bg-foreground/85 px-2.5 py-1 text-[11px] font-semibold text-background shadow-lg sm:block"
           >
             Liên hệ nhanh
           </span>

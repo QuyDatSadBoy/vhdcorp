@@ -57,7 +57,7 @@ export function SectionToc({ items, ctaHref = "/contact", ctaLabel = "Liên hệ
       ref={ref}
       aria-hidden={visible ? "false" : "true"}
       className={cn(
-        "sticky top-16 z-40 border-b border-foreground/8 bg-background/95 shadow-[0_2px_8px_-4px_rgba(15,35,86,0.1)] backdrop-blur transition-all duration-300 md:top-20",
+        "sticky top-16 z-40 border-b border-foreground/8 bg-background/95 shadow-[0_2px_8px_-4px_rgba(15,35,86,0.1)] transition-all duration-300 md:top-20",
         visible ? "translate-y-0 opacity-100" : "-translate-y-full pointer-events-none opacity-0"
       )}
     >

@@ -22,7 +22,7 @@ export function ImageFallback({
       <div className="fallback-dot-pattern absolute inset-0 opacity-[0.04]" />
       <div className="relative flex flex-col items-center gap-2.5">
         {/* Brand monogram with soft glow */}
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/30 ring-1 ring-white/40 backdrop-blur-sm">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/60 ring-1 ring-white/40">
           <svg
             width="28"
             height="28"
