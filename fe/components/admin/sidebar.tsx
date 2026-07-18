@@ -47,7 +47,10 @@ interface NavGroup {
 const navGroups: NavGroup[] = [
   {
     label: "Tổng quan",
-    items: [{ href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+    items: [
+      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admin/ai-assistant", label: "Trợ lý AI", icon: Sparkles },
+    ],
   },
   {
     label: "Nội dung",
