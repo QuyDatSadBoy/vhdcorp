@@ -37,6 +37,15 @@ export class ProductController {
     return this.service.suggest(q ?? '');
   }
 
+  /** Validate + lấy dữ liệu mới cho "Đã xem gần đây" — sp đã xoá tự loại. */
+  @Get('by-slugs')
+  @Public()
+  bySlugs(@Query('slugs') slugs?: string) {
+    return this.service.findManyPublishedBySlugs(
+      (slugs ?? '').split(',').map((s) => s.trim()),
+    );
+  }
+
   @Get(':id/recommendations')
   @Public()
   async recommendations(@Param('id', ParseIntPipe) id: number) {
