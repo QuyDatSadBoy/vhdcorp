@@ -156,7 +156,7 @@ export default function IndustriesSection({ section }: { section: IndustriesType
                   <div className={cn("absolute left-0 top-7 h-12 w-1.5 rounded-r-full", ACCENT_BAR[accent])} />
 
                   <div className="relative flex items-start justify-between gap-4">
-                    <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-background/70 ring-1 ring-foreground/5 backdrop-blur">
+                    <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-background ring-1 ring-foreground/5">
                       {it.icon ? (
                         <Image
                           src={it.icon}
@@ -169,7 +169,7 @@ export default function IndustriesSection({ section }: { section: IndustriesType
                         <div className="h-12 w-12 rounded-xl bg-brand-primary/10" />
                       )}
                     </div>
-                    <span className="grid h-9 w-9 place-items-center rounded-full border border-foreground/10 bg-background/70 text-foreground/55 transition-all group-hover:border-brand-primary/40 group-hover:bg-brand-primary group-hover:text-white">
+                    <span className="grid h-9 w-9 place-items-center rounded-full border border-foreground/10 bg-background text-foreground/55 transition-all group-hover:border-brand-primary/40 group-hover:bg-brand-primary group-hover:text-white">
                       <ArrowUpRight className="h-4 w-4 -rotate-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                     </span>
                   </div>

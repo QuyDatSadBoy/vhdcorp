@@ -72,7 +72,7 @@ export function StickyCtaBar({ ctaHref = "/contact" }: Props) {
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           className="fixed inset-x-0 bottom-4 z-30 mx-auto max-w-4xl px-4 sm:bottom-6"
         >
-          <div className="relative flex flex-col items-stretch gap-3 rounded-2xl border border-foreground/10 bg-background/95 p-3 pl-10 shadow-[0_18px_60px_-20px_rgba(15,35,86,0.35)] backdrop-blur sm:flex-row sm:items-center sm:gap-4 sm:p-3 sm:pl-3">
+          <div className="relative flex flex-col items-stretch gap-3 rounded-2xl border border-foreground/10 bg-background/95 p-3 pl-10 shadow-[0_18px_60px_-20px_rgba(15,35,86,0.35)] sm:flex-row sm:items-center sm:gap-4 sm:p-3 sm:pl-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-(--vhd-color-highlight)/15 text-brand-highlight">
               <MessageCircle className="h-5 w-5" />
             </span>

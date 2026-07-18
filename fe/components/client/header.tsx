@@ -74,11 +74,13 @@ export default function Header() {
         className={cn(
           // Luôn hiển thị glass-blur để header không bị "biến mất" trên hero tối.
           // Khi cuộn xuống → opacity dày hơn + shadow rõ hơn.
-          "sticky top-0 z-50 w-full transition-[background-color,backdrop-filter,box-shadow,border-color] duration-300",
-          "border-b backdrop-blur-md supports-backdrop-filter:backdrop-blur-xl",
+          // Nền ĐỤC (không backdrop-blur — blur gây jank khi cuộn). Header sticky
+          // toàn chiều rộng nên đây là nguồn giật lớn nhất; dùng nền đặc thay blur.
+          "sticky top-0 z-50 w-full transition-[background-color,box-shadow,border-color] duration-300",
+          "border-b",
           scrolled
-            ? "border-foreground/10 bg-background/90 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)] supports-backdrop-filter:bg-background/75"
-            : "border-white/10 bg-background/55 supports-backdrop-filter:bg-background/35"
+            ? "border-foreground/10 bg-background shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)]"
+            : "border-white/10 bg-background/92"
         )}
       >
         <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4 md:h-20">

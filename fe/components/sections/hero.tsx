@@ -215,7 +215,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/6 px-4 py-1.5 shadow-lg backdrop-blur-md"
+          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 shadow-lg"
         >
           {brand?.logo?.url ? (
             <Image
@@ -334,7 +334,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
             return (
               <li
                 key={it.label}
-                className="group/trust relative flex items-center gap-3 overflow-hidden rounded-xl border border-white/10 bg-white/5 p-3 shadow-sm backdrop-blur-md transition-all hover:border-white/20 hover:bg-white/8"
+                className="group/trust relative flex items-center gap-3 overflow-hidden rounded-xl border border-white/10 bg-white/10 p-3 shadow-sm transition-all hover:border-white/20 hover:bg-white/8"
               >
                 <span
                   aria-hidden
