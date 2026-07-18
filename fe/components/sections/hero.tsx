@@ -16,18 +16,6 @@ import { MagneticButton } from "@/components/animations/magnetic-button";
 import { CursorGlow } from "@/components/animations/cursor-glow";
 import { ParticlesCSS } from "@/components/animations/particles-css";
 
-// WebGL shader canvas: lazy + ssr:false để tránh bundle three vào server.
-const AuroraShaderCanvas = dynamic(
-  () => import("@/components/animations/aurora-shader-canvas").then((m) => m.AuroraShaderCanvas),
-  { ssr: false, loading: () => null }
-);
-
-// Hero 3D scene — Shopify Editions inspired floating glass primitives.
-const Hero3DScene = dynamic(() => import("@/components/animations/hero-3d-scene").then((m) => m.Hero3DScene), {
-  ssr: false,
-  loading: () => null,
-});
-
 function AnimatedHeading({
   text,
   className,
@@ -100,19 +88,6 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
   const prefersReduce = useReducedMotion();
   const [videoOpen, setVideoOpen] = useState(false);
 
-  // Hiệu ứng NẶNG (WebGL aurora + 3D three.js) CHỈ bật trên desktop rộng + không
-  // giảm chuyển động. Mobile/low-end/reduced-motion → không mount → chunk three.js
-  // KHÔNG tải, không chạy vòng render GPU → hết lag. Desktop vẫn đẹp.
-  const [heavyFx, setHeavyFx] = useState(false);
-  useEffect(() => {
-    if (prefersReduce) return;
-    const mq = window.matchMedia("(min-width: 1024px) and (pointer: fine)");
-    const apply = () => setHeavyFx(mq.matches);
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, [prefersReduce]);
-
   const heroEmbedUrl = p.videoUrl?.includes("youtube.com/watch?v=")
     ? p.videoUrl.replace("watch?v=", "embed/") + "?autoplay=1&rel=0"
     : p.videoUrl?.includes("youtu.be/")
@@ -180,23 +155,11 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
 
       {!p.bgImage && (
         <>
-          {/* WebGL/3D chỉ mount khi heavyFx (desktop rộng, không reduced-motion).
-              Mobile/low-end → dùng nền CSS gradient nhẹ bên dưới, không tải three.js. */}
-          {heavyFx && (
-            <>
-              {/* WebGL mesh-gradient aurora — tone NAVY + CYAN của logo VHD. */}
-              <AuroraShaderCanvas className="-z-30" intensity={0.85} />
-              {/* 3D R3F scene — floating glass primitives, parallax theo chuột. */}
-              <Hero3DScene className="-z-15 left-auto right-0 hidden w-[55%] lg:block" />
-            </>
-          )}
-          {/* Nền gradient CSS nhẹ (luôn có) — đẹp trên mọi thiết bị, 0 chi phí GPU đáng kể */}
-          {!heavyFx && (
-            <div
-              aria-hidden
-              className="absolute inset-0 -z-30 bg-[radial-gradient(120%_120%_at_15%_10%,color-mix(in_srgb,var(--vhd-color-primary)_55%,transparent),transparent_60%),radial-gradient(120%_120%_at_85%_90%,color-mix(in_srgb,var(--vhd-color-accent)_45%,transparent),transparent_55%)]"
-            />
-          )}
+          {/* Nền gradient CSS thuần — đẹp, nhẹ, 0 chi phí GPU (đã bỏ WebGL/3D three.js). */}
+          <div
+            aria-hidden
+            className="absolute inset-0 -z-30 bg-[radial-gradient(120%_120%_at_15%_10%,color-mix(in_srgb,var(--vhd-color-primary)_60%,transparent),transparent_60%),radial-gradient(120%_120%_at_85%_90%,color-mix(in_srgb,var(--vhd-color-accent)_50%,transparent),transparent_55%)]"
+          />
 
           {/* Readability scrim — gradient tối ở rìa trái + đáy để text luôn đọc được.
               Pointer-events:none → không chặn cursor warp. */}
