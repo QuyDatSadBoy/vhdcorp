@@ -64,4 +64,42 @@ export class AgentService {
   private get adminSecret(): string {
     return this.config.get<string>('AGENT_ADMIN_SECRET') ?? '';
   }
+
+  /** AI viết mô tả sản phẩm từ ảnh + prompt (proxy sang agent, secret ẩn ở BE). */
+  async aiProductDescription(body: {
+    images?: string[];
+    prompt?: string;
+    name?: string;
+  }): Promise<Record<string, unknown>> {
+    return this.postAi('/api/admin/ai/product-description', body);
+  }
+
+  /** AI soạn dàn ý/bài viết từ ý tưởng + ảnh. */
+  async aiPostDraft(body: {
+    idea?: string;
+    images?: string[];
+  }): Promise<Record<string, unknown>> {
+    return this.postAi('/api/admin/ai/post-draft', body);
+  }
+
+  private async postAi(
+    path: string,
+    body: unknown,
+  ): Promise<Record<string, unknown>> {
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      method: 'POST',
+      headers: {
+        'X-Admin-Secret': this.adminSecret,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(60_000),
+    }).catch(() => null);
+    if (!res || !res.ok) {
+      throw new BadGatewayException(
+        'AI không phản hồi — thử lại sau giây lát.',
+      );
+    }
+    return (await res.json()) as Record<string, unknown>;
+  }
 }

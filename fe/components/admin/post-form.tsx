@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import type { Post } from "@/types/domain";
+import { aiApi } from "@/services/ai.service";
 import { useCreatePost, useUpdatePost } from "@/services/post.service";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,29 @@ export function PostForm({ initial }: Props) {
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED" | "SCHEDULED">(initial?.status ?? "DRAFT");
   const [metaTitle, setMetaTitle] = useState(initial?.metaTitle ?? "");
   const [metaDesc, setMetaDesc] = useState(initial?.metaDesc ?? "");
+  const [aiIdea, setAiIdea] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+
+  async function handleAiDraft() {
+    if (!aiIdea.trim() && !coverImage) {
+      toast.error("Nhập ý tưởng hoặc tải ảnh bìa để AI gợi ý bài viết.");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const r = await aiApi.postDraft({ idea: aiIdea.trim() || undefined, images: coverImage ? [coverImage] : [] });
+      if (r.title && !title.trim()) setTitle(r.title);
+      if (r.excerpt) setExcerpt(r.excerpt);
+      if (r.content) setContent(r.content);
+      if (r.metaTitle) setMetaTitle(r.metaTitle);
+      if (r.metaDesc) setMetaDesc(r.metaDesc);
+      toast.success("AI đã soạn nháp — bạn xem lại và chỉnh sửa nhé.");
+    } catch {
+      toast.error("AI không phản hồi, thử lại sau giây lát.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (!slugLocked.current && title) {
@@ -82,6 +106,24 @@ export function PostForm({ initial }: Props) {
       <div className="space-y-6">
         <Card>
           <CardContent className="p-6 space-y-4">
+            {/* AI trợ giúp: nhập ý tưởng hoặc dùng ảnh bìa → AI đọc ảnh + web search → soạn nháp */}
+            <div className="rounded-xl border border-brand-primary/30 bg-brand-primary/5 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-brand-primary">
+                <Sparkles className="h-4 w-4" /> AI gợi ý bài viết (ý tưởng/ảnh + tìm web)
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  value={aiIdea}
+                  onChange={(e) => setAiIdea(e.target.value)}
+                  placeholder="Nhập ý tưởng/chủ đề (vd: cách chọn gas lạnh) — hoặc tải ảnh bìa rồi bấm AI"
+                  className="flex-1"
+                />
+                <Button type="button" onClick={handleAiDraft} disabled={aiLoading} className="gap-1.5 shrink-0">
+                  {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {aiLoading ? "Đang soạn…" : "AI soạn bài"}
+                </Button>
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Tiêu đề</Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} required />

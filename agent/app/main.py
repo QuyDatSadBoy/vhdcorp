@@ -10,6 +10,7 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from app.api import a2a as a2a_api
 from app.api import admin as admin_api
+from app.api import admin_ai as admin_ai_api
 from app.api import chat as chat_api
 from app.api import conversations as conversations_api
 from app.api import health as health_api
@@ -157,6 +158,7 @@ def create_app() -> FastAPI:
     app.include_router(tts_api.router)
     app.include_router(a2a_api.router)
     app.include_router(admin_api.router)
+    app.include_router(admin_ai_api.router)
 
     # MCP streamable-http tại /mcp (instance riêng mỗi app; lifespan chạy session_manager)
     mcp_server = build_mcp()
