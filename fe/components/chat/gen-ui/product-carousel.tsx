@@ -38,7 +38,7 @@ export default function ProductCarousel({ products }: { products: ChatProduct[] 
             type="button"
             onClick={() => scrollBy(-1)}
             aria-label="Cuộn trái"
-            className="absolute -left-2 top-1/2 z-10 hidden -translate-y-1/2 place-items-center rounded-full border border-border bg-background/90 p-1.5 shadow-md backdrop-blur transition-colors hover:bg-muted sm:grid"
+            className="absolute -left-2 top-1/2 z-10 hidden -translate-y-1/2 place-items-center rounded-full border border-border bg-background/90 p-1.5 shadow-md transition-colors hover:bg-muted sm:grid"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden />
           </button>
@@ -46,7 +46,7 @@ export default function ProductCarousel({ products }: { products: ChatProduct[] 
             type="button"
             onClick={() => scrollBy(1)}
             aria-label="Cuộn phải"
-            className="absolute -right-2 top-1/2 z-10 hidden -translate-y-1/2 place-items-center rounded-full border border-border bg-background/90 p-1.5 shadow-md backdrop-blur transition-colors hover:bg-muted sm:grid"
+            className="absolute -right-2 top-1/2 z-10 hidden -translate-y-1/2 place-items-center rounded-full border border-border bg-background/90 p-1.5 shadow-md transition-colors hover:bg-muted sm:grid"
           >
             <ChevronRight className="h-4 w-4" aria-hidden />
           </button>

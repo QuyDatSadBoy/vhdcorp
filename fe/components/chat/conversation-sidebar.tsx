@@ -125,7 +125,7 @@ export default function ConversationSidebar({
                   {!isEditing && (
                     <div
                       className={cn(
-                        "absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-0.5 rounded-md bg-background/90 p-0.5 shadow-sm backdrop-blur transition-opacity",
+                        "absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-0.5 rounded-md bg-background/90 p-0.5 shadow-sm transition-opacity",
                         isConfirming ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
                       )}
                     >

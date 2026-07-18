@@ -31,7 +31,7 @@ export function HeroDomainArt({ className }: { className?: string }) {
 
       {/* Floating brand chips — gợi các lĩnh vực */}
       <motion.div
-        className="pointer-events-none absolute left-[8%] top-[18%] hidden rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-brand-primary shadow-md backdrop-blur md:inline-flex"
+        className="pointer-events-none absolute left-[8%] top-[18%] hidden rounded-full bg-white px-3 py-1 text-xs font-semibold text-brand-primary shadow-md md:inline-flex"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: [0, -8, 0] }}
         transition={{ delay: 0.6, duration: 6, repeat: Infinity, ease: "easeInOut" }}
@@ -40,7 +40,7 @@ export function HeroDomainArt({ className }: { className?: string }) {
         Vật tư điện lạnh
       </motion.div>
       <motion.div
-        className="pointer-events-none absolute right-[8%] top-[12%] hidden rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-brand-primary shadow-md backdrop-blur md:inline-flex"
+        className="pointer-events-none absolute right-[8%] top-[12%] hidden rounded-full bg-white px-3 py-1 text-xs font-semibold text-brand-primary shadow-md md:inline-flex"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: [0, 6, 0] }}
         transition={{ delay: 0.9, duration: 7, repeat: Infinity, ease: "easeInOut" }}
@@ -49,7 +49,7 @@ export function HeroDomainArt({ className }: { className?: string }) {
         Vật tư cơ điện
       </motion.div>
       <motion.div
-        className="pointer-events-none absolute bottom-[12%] left-[20%] hidden rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-brand-primary shadow-md backdrop-blur md:inline-flex"
+        className="pointer-events-none absolute bottom-[12%] left-[20%] hidden rounded-full bg-white px-3 py-1 text-xs font-semibold text-brand-primary shadow-md md:inline-flex"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: [0, -6, 0] }}
         transition={{ delay: 1.2, duration: 8, repeat: Infinity, ease: "easeInOut" }}
