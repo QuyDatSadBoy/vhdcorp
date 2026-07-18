@@ -131,6 +131,25 @@ export class ProductService {
     );
   }
 
+  /** Lấy sản phẩm PUBLISHED theo danh sách slug — giữ thứ tự, tự loại sp đã xoá.
+   *  Dùng cho "Đã xem gần đây": luôn trả dữ liệu mới, sản phẩm xoá tự biến mất. */
+  async findManyPublishedBySlugs(slugs: string[]) {
+    const clean = slugs.filter(Boolean).slice(0, 20);
+    if (clean.length === 0) return [];
+    const products = await this.prisma.product.findMany({
+      where: {
+        slug: { in: clean },
+        deletedAt: null,
+        status: ProductStatus.PUBLISHED,
+      },
+      include: { category: { select: { id: true, name: true, slug: true } } },
+    });
+    const order = new Map(clean.map((s, i) => [s, i]));
+    return products.sort(
+      (a, b) => (order.get(a.slug) ?? 99) - (order.get(b.slug) ?? 99),
+    );
+  }
+
   /** Sản phẩm liên quan: cùng category, khác id, PUBLISHED */
   async related(productId: number, take = 8) {
     const current = await this.findById(productId);

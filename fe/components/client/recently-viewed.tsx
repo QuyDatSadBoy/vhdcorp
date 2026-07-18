@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { History, Package } from "lucide-react";
+import axios from "@/lib/axios";
 import { PriceTag } from "@/components/client/price-tag";
 
 export interface RecentProduct {
@@ -34,13 +35,53 @@ export function pushRecentProduct(p: RecentProduct) {
 export function RecentlyViewed({ excludeSlug }: { excludeSlug?: string }) {
   const [items, setItems] = useState<RecentProduct[]>([]);
 
+  // Đọc slug đã xem từ localStorage → RE-VALIDATE qua API: lấy dữ liệu MỚI +
+  // TỰ LOẠI sản phẩm đã xoá (không còn hiện sp không tồn tại). Đồng bộ lại localStorage.
   useEffect(() => {
+    let slugs: string[] = [];
     try {
       const list: RecentProduct[] = JSON.parse(localStorage.getItem(KEY) ?? "[]");
-      setItems(list.filter((x) => x.slug !== excludeSlug));
+      slugs = list.map((x) => x.slug).filter((s) => s && s !== excludeSlug);
     } catch {
-      setItems([]);
+      slugs = [];
     }
+    if (slugs.length === 0) {
+      setItems([]);
+      return;
+    }
+    axios
+      .get("/products/by-slugs", { params: { slugs: slugs.join(",") } })
+      .then((r) => {
+        const data = (r.data?.data ?? r.data ?? []) as Array<{
+          slug: string;
+          name: string;
+          images?: string[];
+          price: string | number;
+          salePrice?: string | number | null;
+          saleEndsAt?: string | null;
+        }>;
+        const bySlug = new Map(data.map((p) => [p.slug, p]));
+        const fresh: RecentProduct[] = slugs
+          .map((s) => bySlug.get(s))
+          .filter((p): p is NonNullable<typeof p> => Boolean(p))
+          .map((p) => ({
+            slug: p.slug,
+            name: p.name,
+            image: p.images?.[0] ?? "",
+            price: Number(p.price),
+            salePrice: p.salePrice ? Number(p.salePrice) : null,
+            saleEndsAt: p.saleEndsAt ?? null,
+          }));
+        setItems(fresh);
+        try {
+          const store = JSON.parse(localStorage.getItem(KEY) ?? "[]") as RecentProduct[];
+          const keep = new Set(fresh.map((f) => f.slug));
+          localStorage.setItem(KEY, JSON.stringify(store.filter((x) => keep.has(x.slug))));
+        } catch {
+          /* bỏ qua */
+        }
+      })
+      .catch(() => setItems([]));
   }, [excludeSlug]);
 
   if (items.length === 0) return null;
