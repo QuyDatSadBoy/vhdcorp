@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import Image from "next/image";
-import { Loader2, Upload, X } from "lucide-react";
+import { Loader2, Upload, X, Sparkles } from "lucide-react";
 import type { Product } from "@/types/domain";
+import { aiApi } from "@/services/ai.service";
 import { useCreateProduct, useUpdateProduct } from "@/services/product.service";
 import { useCategories } from "@/services/category.service";
 import { uploadToCloudinary } from "@/services/media.service";
@@ -48,6 +49,28 @@ export function ProductForm({ initial }: Props) {
   const [metaTitle, setMetaTitle] = useState(initial?.metaTitle ?? "");
   const [metaDesc, setMetaDesc] = useState(initial?.metaDesc ?? "");
   const [uploading, setUploading] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("Viết chuẩn SEO, súc tích, đúng ngành, nhấn mạnh bán sỉ");
+  const [aiLoading, setAiLoading] = useState(false);
+
+  async function handleAiDescribe() {
+    if (!images.length && !name.trim()) {
+      toast.error("Hãy tải ảnh sản phẩm hoặc nhập tên trước để AI viết mô tả.");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const r = await aiApi.productDescription({ images, prompt: aiPrompt, name: name.trim() || undefined });
+      if (r.description) setDescription(r.description);
+      if (r.name && !name.trim()) setName(r.name);
+      if (r.metaTitle) setMetaTitle(r.metaTitle);
+      if (r.metaDesc) setMetaDesc(r.metaDesc);
+      toast.success("AI đã viết mô tả — bạn kiểm tra và chỉnh lại nếu cần.");
+    } catch {
+      toast.error("AI không phản hồi, thử lại sau giây lát.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (!slugLocked.current && name) {
@@ -129,7 +152,30 @@ export function ProductForm({ initial }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label>Mô tả chi tiết</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <Label className="mr-auto">Mô tả chi tiết</Label>
+              </div>
+              {/* AI trợ giúp: đọc ảnh đã tải + web search → viết mô tả (sửa prompt được) */}
+              <div className="rounded-xl border border-brand-primary/30 bg-brand-primary/5 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-brand-primary">
+                  <Sparkles className="h-4 w-4" /> AI viết mô tả (đọc ảnh + tìm web)
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder="Yêu cầu cho AI (vd: ngắn gọn, nêu quy cách…)"
+                    className="flex-1"
+                  />
+                  <Button type="button" onClick={handleAiDescribe} disabled={aiLoading} className="gap-1.5 shrink-0">
+                    {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    {aiLoading ? "Đang viết…" : "AI viết mô tả"}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Mẹo: tải ảnh sản phẩm lên trước → AI đọc ảnh + tra cứu web để viết chính xác hơn. Bạn luôn sửa được.
+                </p>
+              </div>
               <RichEditor
                 value={description}
                 onChange={setDescription}

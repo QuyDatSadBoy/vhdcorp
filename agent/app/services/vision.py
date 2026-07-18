@@ -11,9 +11,9 @@ from langchain_core.messages import HumanMessage
 logger = logging.getLogger(__name__)
 
 _VISION_PROMPT = (
-    "Bạn là trợ lý của VHD Corp (nhựa PVC, cao su kỹ thuật, đặc sản làng nghề Việt Nam). "
-    "Nhìn ảnh và cho biết NGẮN GỌN đây có thể là sản phẩm gì (ví dụ: ống nhựa, tấm cao su, "
-    "nón lá, tranh Đông Hồ, chè, nước mắm, túi vải...). "
+    "Bạn là trợ lý của VHD Corp — kho tổng vật tư ngành điện lạnh & cơ điện (M&E) và sản xuất "
+    "khuôn mẫu, đúc nhựa. Nhìn ảnh và cho biết NGẮN GỌN đây có thể là sản phẩm gì (ví dụ: gas lạnh, "
+    "ống đồng, gioăng cao su, đai treo, băng dính, dây điện, van, ốc vít...). "
     "Chỉ trả về 3-8 từ khóa tiếng Việt mô tả loại sản phẩm, không giải thích."
 )
 
