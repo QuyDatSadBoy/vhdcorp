@@ -145,7 +145,7 @@ export default function ChatWidget() {
       {!open && (
         <span
           aria-hidden
-          className="fixed bottom-10 right-22 z-40 hidden rounded-full bg-foreground/85 px-2.5 py-1 text-[11px] font-semibold text-background shadow-lg backdrop-blur sm:block"
+          className="fixed bottom-10 right-22 z-40 hidden rounded-full bg-foreground/85 px-2.5 py-1 text-[11px] font-semibold text-background shadow-lg sm:block"
         >
           Trợ lý AI
         </span>

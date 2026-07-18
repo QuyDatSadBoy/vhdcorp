@@ -304,12 +304,10 @@
     color: var(--vhd-color-text);
   }
 
-  /* Glass morphism card */
+  /* Glass card — BỎ backdrop-filter (gây giật khi cuộn); dùng nền đục nhẹ thay frosted */
   .glass-card {
-    background: rgb(255 255 255 / 6%);
-    border: 1px solid rgb(255 255 255 / 12%);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
+    background: color-mix(in srgb, var(--card) 88%, transparent);
+    border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
   }
   .dark .glass-card {
     background: rgb(255 255 255 / 4%);
@@ -681,9 +679,8 @@
    FROSTED GLASS — premium glass card
    ============================================================ */
 @utility glass-premium {
-  background: color-mix(in srgb, var(--background) 70%, transparent);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  /* BỎ backdrop-filter blur (nguồn giật khi cuộn ở đoạn đánh giá) — nền gần đục thay thế */
+  background: color-mix(in srgb, var(--background) 94%, transparent);
   border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
 }
 

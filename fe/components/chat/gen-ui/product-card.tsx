@@ -24,7 +24,7 @@ function ProductPlaceholder() {
     >
       <div className="fallback-dot-pattern absolute inset-0 opacity-[0.05]" />
       <div className="relative flex flex-col items-center gap-2">
-        <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/40 ring-1 ring-white/50 backdrop-blur-sm dark:bg-white/10 dark:ring-white/15">
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/40 ring-1 ring-white/50 dark:bg-white/10 dark:ring-white/15">
           <svg
             width="24"
             height="24"
