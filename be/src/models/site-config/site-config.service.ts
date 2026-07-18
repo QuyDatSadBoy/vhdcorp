@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@prisma/prisma.service';
 import { ConfigStatus, type Prisma } from '@vhd/prisma-client';
 import { UpdateSiteConfigDto } from './dto/site-config.dto';
+import { revalidateFe } from '@util/revalidate';
 
 @Injectable()
 export class SiteConfigService {
@@ -81,7 +82,7 @@ export class SiteConfigService {
     });
     if (!draft) throw new NotFoundException('Không có DRAFT để publish');
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // SiteConfig có @@unique([key, status]) nên không thể có 2 bản DRAFT/PUBLISHED.
       // Cách an toàn (giữ FK history.configId): snapshot value cũ vào history,
       // ghi đè PUBLISHED hiện tại bằng nội dung của draft, rồi xóa draft.
@@ -114,6 +115,9 @@ export class SiteConfigService {
         data: { status: ConfigStatus.PUBLISHED, updatedBy: userId },
       });
     });
+    // Xoá cache FE → mọi trang thấy nội dung mới NGAY (site-config nằm ở mọi trang)
+    revalidateFe('site-config');
+    return result;
   }
 
   /** Lịch sử cho timeline UI builder */

@@ -6,14 +6,14 @@ import { buildMetadata } from "@/lib/seo";
 import { stripHtml } from "@/lib/utils";
 import ProductDetailClient from "./_components/product-detail-client";
 
-export const dynamic = "force-dynamic";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 
 /** Fetch review đã duyệt server-side để JSON-LD Product có aggregateRating ngay trong HTML đầu. */
 async function getProductReviews(slug: string): Promise<Review[]> {
   try {
-    const res = await fetch(`${API_URL}/reviews/product/${encodeURIComponent(slug)}`, { cache: "no-store" });
+    const res = await fetch(`${API_URL}/reviews/product/${encodeURIComponent(slug)}`, {
+      next: { tags: ["reviews", "products"], revalidate: 300 },
+    });
     if (!res.ok) return [];
     const json: { data?: Review[] } = await res.json();
     return json.data ?? [];

@@ -11,7 +11,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 async function getInitialProducts(): Promise<PaginatedResult<Product> | undefined> {
   try {
     const res = await fetch(`${API_URL}/products?pageNumber=1&pageSize=24&sort=newest`, {
-      cache: "no-store", // real-time: admin sửa là thấy ngay
+      next: { tags: ["products"], revalidate: 300 }, // cache + BE revalidate khi sửa
     });
     if (!res.ok) return undefined;
     const json: { data?: PaginatedResult<Product> } = await res.json();

@@ -6,6 +6,7 @@ import { ProductStatus, type Prisma } from '@vhd/prisma-client';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { buildPaginationParams, toPaginated } from '@util/pagination';
+import { revalidateFe } from '@util/revalidate';
 
 interface ListParams {
   pageNumber?: string | number;
@@ -168,7 +169,8 @@ export class ProductService {
         status: dto.status ?? ProductStatus.DRAFT,
       },
     });
-    this.agent.notifyProductsChanged(); // chat AI thấy sản phẩm mới ngay lập tức
+    this.agent.notifyProductsChanged();
+    revalidateFe('products', 'categories'); // chat AI thấy sản phẩm mới ngay lập tức
     return created;
   }
 
@@ -205,6 +207,7 @@ export class ProductService {
       },
     });
     this.agent.notifyProductsChanged();
+    revalidateFe('products', 'categories');
     return updated;
   }
 
@@ -260,6 +263,7 @@ export class ProductService {
       data: { deletedAt: new Date() },
     });
     this.agent.notifyProductsChanged();
+    revalidateFe('products', 'categories');
     return deleted;
   }
 
@@ -269,6 +273,7 @@ export class ProductService {
       data: { deletedAt: null },
     });
     this.agent.notifyProductsChanged();
+    revalidateFe('products', 'categories');
     return restored;
   }
 }
