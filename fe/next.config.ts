@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
   // Cho phép truy cập HMR từ các thiết bị trong mạng nội bộ khi dev
   allowedDevOrigins: ["*.local", "192.168.*.*", "10.*.*.*", "172.16.*.*"],
   images: {
+    // Tối ưu ảnh Cloudinary ngay trên CDN (webp/avif + nén + resize) — nhẹ, nhanh,
+    // không tốn optimizer của Next server.
+    loader: "custom",
+    loaderFile: "./lib/cloudinary-loader.ts",
     remotePatterns: [
       { protocol: "https", hostname: "res.cloudinary.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
