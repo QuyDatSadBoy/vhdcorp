@@ -24,7 +24,7 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import { useSiteConfigStore } from "@/store/site-config.store";
-import { toMapEmbedSrc, toFacebookPageSrc } from "@/lib/embeds";
+import { toMapEmbedSrc } from "@/lib/embeds";
 
 const socialIcon: Record<string, React.ComponentType<{ className?: string }>> = {
   facebook: Facebook,
@@ -208,15 +208,14 @@ export default function Footer() {
         )}
       </div>
 
-      {/* Khối "Kết nối": Google Maps + Fanpage Facebook.
-          - Có CẢ hai → lưới 2 cột.
-          - Chỉ 1 → thẻ đơn căn giữa, bề ngang vừa phải (không trơ trọi/tràn ngang). */}
+      {/* Khối "Kết nối": Google Maps (lazy) + thẻ Fanpage nhẹ (LINK, KHÔNG nhúng SDK Facebook
+          — SDK FB nặng + lỗi + tải trên mọi trang; thay bằng thẻ bấm để mở fanpage). */}
       {(() => {
         const mapSrc = footer?.showMap ? toMapEmbedSrc(footer?.mapEmbed) : null;
-        const fbSrc = toFacebookPageSrc(footer?.facebookPage, { width: 400, height: 240 });
-        const count = (mapSrc ? 1 : 0) + (fbSrc ? 1 : 0);
-        if (count === 0) return null;
-        const both = count > 1;
+        const fbUrl = (footer?.facebookPage || "").trim();
+        const hasFb = /facebook\.com\//i.test(fbUrl);
+        if (!mapSrc && !hasFb) return null;
+        const both = Boolean(mapSrc && hasFb);
         return (
           <div className="border-t border-white/10 bg-white/[0.02]">
             <div className="container mx-auto px-4 py-8">
@@ -230,7 +229,7 @@ export default function Footer() {
                       src={mapSrc}
                       title="Bản đồ VHD Corp"
                       width="100%"
-                      height={both ? 260 : 240}
+                      height={both ? 240 : 220}
                       style={{ border: 0, display: "block" }}
                       loading="lazy"
                       allowFullScreen
@@ -238,19 +237,23 @@ export default function Footer() {
                     />
                   </div>
                 )}
-                {fbSrc && (
-                  <div className="flex h-full items-stretch justify-center overflow-hidden rounded-2xl border border-white/10 bg-white shadow-lg shadow-black/20">
-                    <iframe
-                      src={fbSrc}
-                      title="Fanpage Facebook VHD Corp"
-                      width="100%"
-                      height={both ? 260 : 240}
-                      className="w-full"
-                      style={{ border: 0, display: "block", overflow: "hidden" }}
-                      loading="lazy"
-                      allow="encrypted-media"
-                    />
-                  </div>
+                {hasFb && (
+                  <a
+                    href={fbUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-full items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition hover:bg-white/[0.08]"
+                  >
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#1877F2]">
+                      <Facebook className="h-6 w-6 text-white" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-semibold text-white">Fanpage Facebook</span>
+                      <span className="block text-sm text-white/60">
+                        Theo dõi VHD Corp để cập nhật sản phẩm &amp; báo giá mới nhất
+                      </span>
+                    </span>
+                  </a>
                 )}
               </div>
             </div>
