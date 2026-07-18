@@ -31,8 +31,6 @@ const TOC_LABELS: Record<string, string> = {
   "sticky-story": "Quy trình",
 };
 
-export const dynamic = "force-dynamic";
-
 export default async function HomePage() {
   const config = await getSiteConfig();
   const sections = config.pages?.home?.sections?.length ? config.pages.home.sections : defaultHomeSections();

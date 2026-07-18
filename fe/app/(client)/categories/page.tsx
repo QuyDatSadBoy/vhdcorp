@@ -8,8 +8,6 @@ import { PageHero } from "@/components/client/page-hero";
 import { Card, CardContent } from "@/components/ui/card";
 import { ImageFallback } from "@/components/client/image-fallback";
 
-export const dynamic = "force-dynamic";
-
 export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({
     title: "Danh mục sản phẩm",

@@ -5,6 +5,7 @@ import { AgentService } from '@service/agent/agent.service';
 import type { Category, Prisma } from '@vhd/prisma-client';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { revalidateFe } from '@util/revalidate';
 
 @Injectable()
 export class CategoryService {
@@ -77,7 +78,8 @@ export class CategoryService {
         order: dto.order ?? 0,
       },
     });
-    this.agent.notifyProductsChanged(); // tên danh mục nằm trong catalog chat AI
+    this.agent.notifyProductsChanged();
+    revalidateFe('categories', 'products'); // tên danh mục nằm trong catalog chat AI
     return created;
   }
 
@@ -104,6 +106,7 @@ export class CategoryService {
       },
     });
     this.agent.notifyProductsChanged();
+    revalidateFe('categories', 'products');
     return updated;
   }
 
@@ -124,5 +127,6 @@ export class CategoryService {
     }
     await this.prisma.category.delete({ where: { id } });
     this.agent.notifyProductsChanged();
+    revalidateFe('categories', 'products');
   }
 }

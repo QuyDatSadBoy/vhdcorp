@@ -5,8 +5,6 @@ import { SITE_URL } from "@/components/seo/json-ld";
 import { PageRenderer } from "@/components/sections";
 import { defaultAboutSections } from "@/lib/default-sections";
 
-export const dynamic = "force-dynamic";
-
 export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({
     title: "Giới thiệu",

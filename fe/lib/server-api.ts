@@ -10,9 +10,11 @@ interface Envelope<T> {
   message?: string;
 }
 
-async function getJson<T>(path: string): Promise<T | null> {
+// Cache dữ liệu (Data Cache) theo TAG + fallback 5 phút. BE gọi /api/revalidate
+// theo tag khi admin sửa → cập nhật NGAY, còn bình thường phục vụ từ cache (siêu nhanh).
+async function getJson<T>(path: string, tags: string[] = []): Promise<T | null> {
   try {
-    const res = await fetch(`${API_URL}${path}`, { cache: "no-store" });
+    const res = await fetch(`${API_URL}${path}`, { next: { tags, revalidate: 300 } });
     if (!res.ok) return null;
     const json = (await res.json()) as Envelope<T>;
     return json.data;
@@ -22,12 +24,16 @@ async function getJson<T>(path: string): Promise<T | null> {
 }
 
 export const serverApi = {
-  productBySlug: (slug: string) => getJson<Product>(`/products/slug/${slug}`),
-  postBySlug: (slug: string) => getJson<Post>(`/posts/slug/${slug}`),
+  productBySlug: (slug: string) => getJson<Product>(`/products/slug/${slug}`, ["products"]),
+  postBySlug: (slug: string) => getJson<Post>(`/posts/slug/${slug}`, ["posts"]),
   products: (params?: { pageSize?: number }) =>
-    getJson<PaginatedResult<Product>>(`/products${params?.pageSize ? `?pageSize=${params.pageSize}` : ""}`),
-  categoryBySlug: (slug: string) => getJson<Category>(`/categories/slug/${slug}`),
-  categories: () => getJson<Category[]>(`/categories?includeChildren=true`),
+    getJson<PaginatedResult<Product>>(`/products${params?.pageSize ? `?pageSize=${params.pageSize}` : ""}`, [
+      "products",
+    ]),
+  categoryBySlug: (slug: string) => getJson<Category>(`/categories/slug/${slug}`, ["categories"]),
+  categories: () => getJson<Category[]>(`/categories?includeChildren=true`, ["categories"]),
   productsByCategorySlug: (slug: string, pageSize = 24) =>
-    getJson<PaginatedResult<Product>>(`/products?categorySlug=${encodeURIComponent(slug)}&pageSize=${pageSize}`),
+    getJson<PaginatedResult<Product>>(`/products?categorySlug=${encodeURIComponent(slug)}&pageSize=${pageSize}`, [
+      "products",
+    ]),
 };

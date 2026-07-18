@@ -7,8 +7,6 @@ import { JsonLd, SITE_URL } from "@/components/seo/json-ld";
 import { PageHero } from "@/components/client/page-hero";
 import { CategoryProductsClient } from "./_components/category-products-client";
 
-export const dynamic = "force-dynamic";
-
 interface Params {
   slug: string;
 }

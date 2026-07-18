@@ -5,8 +5,6 @@ import { getSiteConfig } from "@/lib/site-config";
 import { PageRenderer } from "@/components/sections";
 import ContactForm from "./_components/contact-form";
 
-export const dynamic = "force-dynamic";
-
 export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({
     title: "Liên hệ",

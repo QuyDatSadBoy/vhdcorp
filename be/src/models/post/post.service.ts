@@ -5,6 +5,7 @@ import { PostStatus, type Prisma } from '@vhd/prisma-client';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { buildPaginationParams, toPaginated } from '@util/pagination';
+import { revalidateFe } from '@util/revalidate';
 
 interface ListParams {
   pageNumber?: string | number;
@@ -99,7 +100,7 @@ export class PostService {
           ? new Date(dto.publishedAt)
           : null;
 
-    return this.prisma.post.create({
+    const created = await this.prisma.post.create({
       data: {
         title: dto.title,
         slug,
@@ -115,6 +116,8 @@ export class PostService {
         authorId,
       },
     });
+    revalidateFe('posts');
+    return created;
   }
 
   async update(id: number, dto: UpdatePostDto) {
@@ -131,7 +134,7 @@ export class PostService {
     else if (dto.status === PostStatus.PUBLISHED && !current.publishedAt)
       publishedAt = new Date();
 
-    return this.prisma.post.update({
+    const updated = await this.prisma.post.update({
       where: { id },
       data: {
         title: dto.title,
@@ -147,6 +150,8 @@ export class PostService {
         tags: dto.tags,
       },
     });
+    revalidateFe('posts');
+    return updated;
   }
 
   async softDelete(id: number) {

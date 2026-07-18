@@ -127,8 +127,12 @@ export const getSiteConfig = cache(async (): Promise<SiteConfigValue> => {
       }
       // Không đủ quyền / draft lỗi → rơi xuống bản published
     }
-    // Real-time 100%: không cache — admin publish là mọi lượt xem tiếp theo thấy ngay.
-    const res = await fetch(`${API_URL}/site-config`, { cache: "no-store" });
+    // Cache theo tag 'site-config' + fallback 5 phút. Admin publish → BE gọi
+    // /api/revalidate?tag=site-config → mọi trang cập nhật NGAY; còn lại phục vụ
+    // từ cache nên siêu nhanh (không round-trip BE mỗi request).
+    const res = await fetch(`${API_URL}/site-config`, {
+      next: { tags: ["site-config"], revalidate: 300 },
+    });
     if (!res.ok) return DEFAULT_SITE_CONFIG;
     const json = (await res.json()) as { data?: SiteConfigDto };
     return mergeWithDefaults(json.data?.value as Partial<SiteConfigValue> | undefined);

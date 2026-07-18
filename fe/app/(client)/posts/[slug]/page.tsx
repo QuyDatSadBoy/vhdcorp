@@ -4,8 +4,6 @@ import { JsonLd, SITE_URL } from "@/components/seo/json-ld";
 import { buildMetadata } from "@/lib/seo";
 import PostDetailClient from "./_components/post-detail-client";
 
-export const dynamic = "force-dynamic";
-
 interface Params {
   slug: string;
 }
