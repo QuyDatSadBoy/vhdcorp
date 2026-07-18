@@ -42,4 +42,17 @@ export class AgentController {
   aiPostDraft(@Body() body: { idea?: string; images?: string[] }) {
     return this.agent.aiPostDraft(body);
   }
+
+  /** Trợ lý tổng quát admin: chat → soạn nháp sản phẩm/bài viết. */
+  @Post('ai/assistant')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  aiAssistant(
+    @Body()
+    body: {
+      messages?: { role: string; content: string }[];
+      categories?: string[];
+    },
+  ) {
+    return this.agent.aiAssistant(body);
+  }
 }

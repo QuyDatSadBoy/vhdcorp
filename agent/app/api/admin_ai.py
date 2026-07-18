@@ -169,3 +169,59 @@ async def post_draft(
     if not data.get("content"):
         raise HTTPException(status_code=502, detail="AI không tạo được nội dung, thử lại.")
     return {"ok": True, **{k: str(data.get(k, "")) for k in ("title", "excerpt", "content", "metaTitle", "metaDesc")}}
+
+
+# ─────────────── Trợ lý tổng quát admin (chat → soạn nháp sản phẩm/bài viết) ───────────────
+class Msg(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str
+
+
+class AssistantReq(BaseModel):
+    messages: list[Msg] = []
+    categories: list[str] = []  # tên danh mục hiện có (để AI gợi ý đúng)
+
+
+@router.post("/assistant")
+async def assistant(
+    body: AssistantReq,
+    x_admin_secret: str = Header(None, alias="X-Admin-Secret"),
+):
+    """Trợ lý admin: chat để soạn NHÁP sản phẩm/bài viết. Trả JSON {reply, action?}.
+    KHÔNG tự ghi DB — FE hiển thị nháp để admin DUYỆT rồi mới tạo (bằng quyền admin)."""
+    _check(x_admin_secret)
+    if not body.messages:
+        raise HTTPException(status_code=400, detail="Thiếu nội dung chat.")
+    llm = _llm(0.6)
+
+    convo = "\n".join(f"{m.role}: {m.content}" for m in body.messages[-8:])
+    last = body.messages[-1].content if body.messages else ""
+    web = ""
+    if len(last) > 3:
+        try:
+            web = await _tavily_search(f"{last} vật tư điện lạnh cơ điện")
+        except Exception:  # noqa: BLE001
+            pass
+
+    instr = (
+        f"{BRAND}\n\nBạn là TRỢ LÝ ADMIN của website VHD Corp. Giúp admin bằng cách CHAT: "
+        "trả lời câu hỏi, và khi admin muốn TẠO sản phẩm hoặc bài viết thì soạn sẵn nội dung.\n"
+        f"Danh mục hiện có: {', '.join(body.categories) or '(chưa rõ)'}\n"
+        f"Hội thoại gần đây:\n{convo}\n\n"
+        f"Tham khảo web (có thể rỗng):\n{web[:1200]}\n\n"
+        "Trả về DUY NHẤT một JSON tiếng Việt:\n"
+        '{"reply":"câu trả lời thân thiện cho admin",'
+        '"action":null hoặc {"type":"product","data":{"name","description","categoryHint","metaTitle","metaDesc"}}'
+        ' hoặc {"type":"post","data":{"title","excerpt","content","metaTitle","metaDesc"}}}\n'
+        "Chỉ đặt action khi admin RÕ RÀNG muốn tạo sản phẩm/bài viết. content bài viết là Markdown ~400 từ. "
+        "categoryHint là tên danh mục phù hợp nhất trong danh sách. Nếu chỉ hỏi/đáp thì action=null."
+    )
+    try:
+        r = await llm.ainvoke([HumanMessage(content=[{"type": "text", "text": instr}])])
+        data = _parse_json(_text(r))
+    except Exception:  # noqa: BLE001
+        logger.exception("assistant lỗi")
+        raise HTTPException(status_code=502, detail="Trợ lý AI lỗi, thử lại.")
+    reply = str(data.get("reply") or "Mình chưa rõ ý bạn, bạn nói lại giúp nhé.")
+    action = data.get("action") if isinstance(data.get("action"), dict) else None
+    return {"ok": True, "reply": reply, "action": action}

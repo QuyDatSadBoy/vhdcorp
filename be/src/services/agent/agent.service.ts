@@ -82,6 +82,14 @@ export class AgentService {
     return this.postAi('/api/admin/ai/post-draft', body);
   }
 
+  /** Trợ lý tổng quát admin: chat → soạn nháp sản phẩm/bài viết (admin duyệt sau). */
+  async aiAssistant(body: {
+    messages?: { role: string; content: string }[];
+    categories?: string[];
+  }): Promise<Record<string, unknown>> {
+    return this.postAi('/api/admin/ai/assistant', body);
+  }
+
   private async postAi(
     path: string,
     body: unknown,
