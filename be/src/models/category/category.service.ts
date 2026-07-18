@@ -114,7 +114,11 @@ export class CategoryService {
     // Category không soft delete — chỉ xóa nếu không có sản phẩm + không có con
     const cat = await this.prisma.category.findUnique({
       where: { id },
-      include: { children: true, products: { take: 1 } },
+      // Chỉ tính sản phẩm CÒN SỐNG — sản phẩm đã xoá mềm không được chặn xoá danh mục
+      include: {
+        children: true,
+        products: { where: { deletedAt: null }, take: 1 },
+      },
     });
     if (!cat) throw new NotFoundException('Không tìm thấy danh mục');
     if (cat.children.length > 0) {
