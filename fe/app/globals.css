@@ -396,6 +396,32 @@
       transform: none;
     }
   }
+  /* Wordmark: chữ GIÃN RỘNG thu về vị trí — cinematic (one-shot 0.9s) */
+  .hero-curtain-word {
+    animation: curtain-word 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+  }
+  @keyframes curtain-word {
+    from {
+      opacity: 0;
+      letter-spacing: 0.38em;
+    }
+    to {
+      opacity: 1;
+      letter-spacing: 0.01em;
+    }
+  }
+  /* Ảnh kho hàng trong curtain: zoom nhẹ về nét trong lúc màn còn che */
+  .hero-curtain-img {
+    animation: curtain-img 2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes curtain-img {
+    from {
+      transform: scale(1.08);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
   .hero-curtain-line {
     animation: curtain-line 0.45s ease-out 0.7s both;
   }
