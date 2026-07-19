@@ -34,6 +34,9 @@ export const productService = {
   adminList: (params?: ProductListParams) =>
     axios.get<{ data: PaginatedResult<Product> }>("/products/admin", { params }).then(unwrap),
   bySlug: (slug: string) => axios.get<{ data: Product }>(`/products/slug/${slug}`).then(unwrap),
+  /** Lấy nhiều sản phẩm PUBLISHED theo slug — sp đã xoá tự vắng mặt (dùng re-validate giỏ/đã xem) */
+  bySlugs: (slugs: string[]) =>
+    axios.get<{ data: Product[] }>("/products/by-slugs", { params: { slugs: slugs.join(",") } }).then(unwrap),
   byId: (id: number) => axios.get<{ data: Product }>(`/products/${id}`).then(unwrap),
   // "Khách xem X cũng xem Y" (tracking thật) — BE tự fallback sản phẩm cùng danh mục khi thiếu dữ liệu
   related: (id: number) => axios.get<{ data: Product[] }>(`/products/${id}/recommendations`).then(unwrap),

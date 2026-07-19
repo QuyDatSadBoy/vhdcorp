@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -36,8 +36,24 @@ export default function CartPageClient() {
   const setQty = useCartStore((s) => s.setQty);
   const remove = useCartStore((s) => s.remove);
   const clear = useCartStore((s) => s.clear);
+  const syncWithServer = useCartStore((s) => s.syncWithServer);
   const subtotal = useCartStore(selectCartSubtotal);
   const user = useAuthStore((s) => s.user);
+
+  // Re-validate giỏ với server: sản phẩm ĐÃ XOÁ tự rơi khỏi giỏ, giá/tồn kho được làm tươi.
+  const cartSlugs = items.map((i) => i.slug);
+  const freshQ = useQuery({
+    queryKey: ["cart", "validate", [...cartSlugs].sort().join(",")],
+    queryFn: () => productService.bySlugs(cartSlugs),
+    enabled: cartSlugs.length > 0,
+    staleTime: 60_000,
+  });
+  useEffect(() => {
+    if (!freshQ.data) return;
+    const removed = syncWithServer(freshQ.data);
+    if (removed > 0) toast.info(`${removed} sản phẩm trong giỏ đã ngừng bán và được bỏ khỏi giỏ.`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy khi dữ liệu server đổi
+  }, [freshQ.data]);
 
   const [voucherCode, setVoucherCode] = useState("");
   const [voucher, setVoucher] = useState<{ code: string; discount: number } | null>(null);

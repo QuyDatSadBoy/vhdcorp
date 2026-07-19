@@ -14,12 +14,28 @@ export interface CartItem {
   stock: number;
 }
 
+/** Dữ liệu tươi từ server để đối chiếu giỏ (GET /products/by-slugs) */
+export interface FreshProduct {
+  slug: string;
+  name: string;
+  images: string[];
+  price: string | number;
+  salePrice?: string | number | null;
+  saleEndsAt?: string | null;
+  stock: number;
+}
+
 interface CartState {
   items: CartItem[];
   add: (item: Omit<CartItem, "qty">, qty?: number) => void;
   setQty: (productId: number, qty: number) => void;
   remove: (productId: number) => void;
   clear: () => void;
+  /**
+   * Đồng bộ giỏ với dữ liệu server: sản phẩm ĐÃ XOÁ/ngừng bán bị loại khỏi giỏ,
+   * sản phẩm còn bán được làm tươi tên/ảnh/giá/tồn kho. Trả về số dòng bị loại.
+   */
+  syncWithServer: (fresh: FreshProduct[]) => number;
 }
 
 export const useCartStore = create<CartState>()(
@@ -51,6 +67,32 @@ export const useCartStore = create<CartState>()(
         })),
       remove: (productId) => set((s) => ({ items: s.items.filter((i) => i.productId !== productId) })),
       clear: () => set({ items: [] }),
+      syncWithServer: (fresh) => {
+        let removed = 0;
+        set((s) => {
+          const bySlug = new Map(fresh.map((p) => [p.slug, p]));
+          const next: CartItem[] = [];
+          for (const item of s.items) {
+            const f = bySlug.get(item.slug);
+            if (!f) {
+              removed += 1; // đã xoá / ngừng bán → loại khỏi giỏ
+              continue;
+            }
+            const saleOk = f.salePrice != null && (!f.saleEndsAt || new Date(f.saleEndsAt) > new Date());
+            next.push({
+              ...item,
+              name: f.name,
+              image: f.images?.[0] ?? item.image,
+              price: Number(f.price),
+              salePrice: saleOk ? Number(f.salePrice) : null,
+              stock: f.stock,
+              qty: f.stock > 0 ? Math.min(item.qty, f.stock) : item.qty,
+            });
+          }
+          return { items: next };
+        });
+        return removed;
+      },
     }),
     { name: "vhd_cart" }
   )
