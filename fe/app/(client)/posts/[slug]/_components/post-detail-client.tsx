@@ -20,7 +20,12 @@ function readingTime(html?: string) {
 
 function fmtDate(iso?: string | null) {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString("vi-VN", { day: "2-digit", month: "long", year: "numeric" });
+  return new Date(iso).toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Ho_Chi_Minh",
+  });
 }
 
 export default function PostDetailPage({ params }: { params: Promise<{ slug: string }> }) {

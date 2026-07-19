@@ -128,7 +128,7 @@ function SearchContent() {
                         {post.excerpt && <p className="line-clamp-2 text-sm text-foreground/60">{post.excerpt}</p>}
                         {post.publishedAt && (
                           <p className="text-xs text-foreground/45">
-                            {new Date(post.publishedAt).toLocaleDateString("vi-VN")}
+                            {new Date(post.publishedAt).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}
                           </p>
                         )}
                       </div>
