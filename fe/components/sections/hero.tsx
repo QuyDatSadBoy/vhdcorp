@@ -140,19 +140,32 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
     // -mt-16 md:-mt-20: kéo hero lên sau sticky header trong suốt (h-16/h-20)
     // để dark background lấp đầy phần header trong suốt, không để trắng lộ ra
     <section ref={sectionRef} className="relative isolate overflow-hidden min-h-screen -mt-16 md:-mt-20">
-      {/* MÀN MỞ MÀN thương hiệu — 1 lần khi vào trang, thuần CSS, tự biến sau ~2s */}
-      <div
-        aria-hidden
-        className="hero-curtain pointer-events-none absolute inset-0 z-30 grid place-items-center bg-[linear-gradient(135deg,#0d1f4d_0%,#1B3A8C_55%,#0d1f4d_100%)]"
-      >
-        <div className="hero-curtain-brand text-center">
-          <span className="font-heading text-4xl font-black tracking-tight text-white md:text-6xl">
-            VHD <span className="text-brand-highlight">CORP</span>
-          </span>
-          <span className="hero-curtain-line mt-3 block h-0.5 w-full origin-left scale-x-0 rounded-full bg-brand-highlight" />
-          <span className="mt-3 block text-[11px] font-bold uppercase tracking-[0.3em] text-white/60">
-            Kết nối giá trị · Hợp tác vững bền
-          </span>
+      {/* MÀN MỞ MÀN thương hiệu — 1 lần khi vào trang, thuần CSS, tự biến sau ~2s.
+          "Cùng chủ đề": nền là CHÍNH ảnh kho hàng (cùng URL với hero → 1 lần tải)
+          phủ navy đậm + lưới blueprint kỹ thuật + quầng sáng vàng sau wordmark. */}
+      <div aria-hidden className="hero-curtain pointer-events-none absolute inset-0 z-30 overflow-hidden">
+        {/* Ảnh kho hàng mờ tối — preview đúng cảnh hero sẽ lộ ra */}
+        {p.bgImage && (
+          <div className="hero-curtain-img absolute inset-0">
+            <Image src={p.bgImage} alt="" fill priority sizes="100vw" className="object-cover" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(9,20,48,0.94)_0%,rgba(20,42,104,0.88)_55%,rgba(9,20,48,0.94)_100%)]" />
+        {/* Lưới blueprint kỹ thuật — chất "nhà máy/kho" */}
+        <div className="absolute inset-0 opacity-[0.07] bg-[linear-gradient(rgba(255,255,255,0.9)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.9)_1px,transparent_1px)] bg-size-[52px_52px]" />
+        {/* Quầng sáng vàng ấm sau wordmark */}
+        <div className="absolute left-1/2 top-1/2 h-[26rem] w-[26rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(245,166,35,0.22)_0%,transparent_62%)]" />
+
+        <div className="hero-curtain-brand relative grid h-full place-items-center text-center">
+          <div>
+            <span className="hero-curtain-word block font-heading text-4xl font-black text-white md:text-6xl">
+              VHD <span className="text-brand-highlight">CORP</span>
+            </span>
+            <span className="hero-curtain-line mx-auto mt-4 block h-0.5 w-40 origin-left scale-x-0 rounded-full bg-linear-to-r from-brand-highlight via-brand-accent to-brand-highlight md:w-56" />
+            <span className="mt-4 block text-[11px] font-bold uppercase tracking-[0.32em] text-white/65">
+              Kho tổng vật tư điện lạnh · Cơ điện · Khuôn mẫu
+            </span>
+          </div>
         </div>
       </div>
 
