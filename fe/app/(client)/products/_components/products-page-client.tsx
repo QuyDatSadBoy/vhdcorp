@@ -146,7 +146,7 @@ function ProductsContent({ initialData }: ProductsPageClientProps) {
               <motion.div key={p.id} variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}>
                 <Link href={`/products/${p.slug}`}>
                   <Card className="group h-full overflow-hidden border-transparent transition-all hover:-translate-y-1 hover:border-brand-primary/40 hover:shadow-lg">
-                    <div className="relative aspect-square overflow-hidden bg-muted">
+                    <div className="shine-sweep relative aspect-square overflow-hidden bg-muted">
                       {p.images?.[0] ? (
                         <Image
                           src={p.images[0]}

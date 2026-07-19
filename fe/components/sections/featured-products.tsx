@@ -110,7 +110,7 @@ export default function FeaturedProducts({ section }: { section: Section }) {
           {products.map((prod) => (
             <StaggerItem key={prod.id} variants={fadeUpItem}>
               <SpotlightCard href={`/products/${prod.slug}`}>
-                <div className="relative aspect-square overflow-hidden bg-muted">
+                <div className="shine-sweep relative aspect-square overflow-hidden bg-muted">
                   {prod.images?.[0] ? (
                     <Image
                       src={prod.images[0]}
