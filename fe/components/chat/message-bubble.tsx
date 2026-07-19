@@ -116,7 +116,13 @@ function MessageBubble({ message, activeTool, onRetry, onAction, isLast = false 
                 )
               ) : (
                 <>
-                  <MarkdownContent content={message.content} />
+                  {/* Đang stream: chữ thuần (0 lần parse markdown mỗi frame → siêu mượt);
+                      stream xong mới render Markdown 1 lần duy nhất. */}
+                  {message.streaming ? (
+                    <div className="whitespace-pre-wrap break-words leading-relaxed">{message.content}</div>
+                  ) : (
+                    <MarkdownContent content={message.content} />
+                  )}
                   {message.streaming && activeTool && (
                     <div className="mt-2">
                       <ToolIndicator name={activeTool} />
