@@ -144,6 +144,10 @@ model Product {
   metaDesc    String?
   ogImage     String?
   status      ProductStatus @default(DRAFT)
+  /// Sản phẩm nổi bật — admin bật để đưa lên đầu trang chủ / slider
+  isFeatured   Boolean      @default(false)
+  /// Sản phẩm bán chạy — admin bật để hiện ở mục "Bán chạy nhất"
+  isBestSeller Boolean      @default(false)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   deletedAt   DateTime?
@@ -156,6 +160,8 @@ model Product {
   @@index([status])
   @@index([deletedAt])
   @@index([createdAt])
+  @@index([isFeatured])
+  @@index([isBestSeller])
   @@map("products")
 }
 
@@ -174,6 +180,8 @@ model Post {
   metaDesc    String?
   ogImage     String?
   tags        String[]
+  /// Bài viết nổi bật — admin bật để đưa lên đầu / vào slider
+  isFeatured  Boolean    @default(false)
   authorId    Int
   author      User       @relation(fields: [authorId], references: [id])
   createdAt   DateTime   @default(now())
@@ -184,6 +192,7 @@ model Post {
   @@index([publishedAt])
   @@index([deletedAt])
   @@index([authorId])
+  @@index([isFeatured])
   @@map("posts")
 }
 

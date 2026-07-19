@@ -102,6 +102,8 @@ export type FeaturedProductsSection = BaseSection<
     limit?: number;
     categoryId?: number;
     layout?: "grid" | "carousel";
+    /** Nguồn sản phẩm: mới nhất | nổi bật (admin bật) | bán chạy (admin bật) */
+    mode?: "newest" | "featured" | "best-seller";
   }
 >;
 
@@ -120,10 +122,20 @@ export type BannerSliderSection = BaseSection<
     slides: { image?: string; link?: string; alt?: string; title?: string; caption?: string }[];
     autoplay?: boolean;
     interval?: number;
-    /** "banners" → lấy slide từ trang Quản trị → Banner (theo vị trí bên dưới) thay vì slides tự nhập */
-    source?: "manual" | "banners";
+    /**
+     * Nguồn slide:
+     * - "manual"   → slides tự nhập bên dưới
+     * - "banners"  → lấy từ Quản trị → Banner (theo vị trí)
+     * - "products" → ảnh sản phẩm bán chạy / nổi bật tự chạy
+     * - "posts"    → ảnh bìa bài viết nổi bật tự chạy
+     */
+    source?: "manual" | "banners" | "products" | "posts";
     /** Vị trí banner cần lấy khi source="banners" (mặc định home-hero) */
     bannerPosition?: string;
+    /** Khi source="products": lấy bán chạy hay nổi bật (mặc định best-seller) */
+    productMode?: "best-seller" | "featured";
+    /** Số slide tối đa khi source="products"/"posts" (mặc định 6) */
+    limit?: number;
   }
 >;
 
@@ -134,6 +146,8 @@ export type BlogPreviewSection = BaseSection<
     limit?: number;
     layout?: "list" | "grid";
     tagFilter?: string;
+    /** Nguồn bài: mới nhất | nổi bật (admin bật) */
+    mode?: "newest" | "featured";
   }
 >;
 

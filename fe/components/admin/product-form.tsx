@@ -45,6 +45,8 @@ export function ProductForm({ initial }: Props) {
   const [stock, setStock] = useState(initial?.stock ?? 0);
   const [categoryId, setCategoryId] = useState<number | undefined>(initial?.categoryId);
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">(initial?.status ?? "DRAFT");
+  const [isFeatured, setIsFeatured] = useState(initial?.isFeatured ?? false);
+  const [isBestSeller, setIsBestSeller] = useState(initial?.isBestSeller ?? false);
   const [images, setImages] = useState<string[]>(initial?.images ?? []);
   const [metaTitle, setMetaTitle] = useState(initial?.metaTitle ?? "");
   const [metaDesc, setMetaDesc] = useState(initial?.metaDesc ?? "");
@@ -105,6 +107,8 @@ export function ProductForm({ initial }: Props) {
       stock,
       categoryId,
       status,
+      isFeatured,
+      isBestSeller,
       images,
       metaTitle,
       metaDesc,
@@ -246,6 +250,31 @@ export function ProductForm({ initial }: Props) {
                   <SelectItem value="PUBLISHED">Xuất bản</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            {/* Ưu tiên hiển thị — admin bật để sản phẩm lên đầu trang chủ / slider */}
+            <div className="space-y-2 rounded-lg border border-brand-primary/20 bg-brand-primary/5 p-3">
+              <p className="text-sm font-semibold text-brand-primary">Ưu tiên hiển thị</p>
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={isFeatured}
+                  onChange={(e) => setIsFeatured(e.target.checked)}
+                  className="h-4 w-4 accent-brand-primary"
+                />
+                Sản phẩm nổi bật
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={isBestSeller}
+                  onChange={(e) => setIsBestSeller(e.target.checked)}
+                  className="h-4 w-4 accent-brand-primary"
+                />
+                Bán chạy nhất
+              </label>
+              <p className="text-[11px] text-muted-foreground">
+                Bật để đưa sản phẩm lên mục &quot;Nổi bật&quot; / &quot;Bán chạy nhất&quot; ở trang chủ.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Danh mục</Label>

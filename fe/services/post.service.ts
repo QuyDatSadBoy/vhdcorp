@@ -9,6 +9,8 @@ export interface PostListParams {
   search?: string;
   tag?: string;
   status?: "DRAFT" | "PUBLISHED" | "SCHEDULED";
+  /** Chỉ lấy bài viết nổi bật (admin bật). */
+  featured?: boolean;
 }
 
 export const postKeys = {

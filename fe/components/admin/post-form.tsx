@@ -35,6 +35,7 @@ export function PostForm({ initial }: Props) {
   const [coverImage, setCoverImage] = useState(initial?.coverImage ?? "");
   const [tags, setTags] = useState<string>(initial?.tags?.join(", ") ?? "");
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED" | "SCHEDULED">(initial?.status ?? "DRAFT");
+  const [isFeatured, setIsFeatured] = useState(initial?.isFeatured ?? false);
   const [metaTitle, setMetaTitle] = useState(initial?.metaTitle ?? "");
   const [metaDesc, setMetaDesc] = useState(initial?.metaDesc ?? "");
   const [aiIdea, setAiIdea] = useState("");
@@ -80,6 +81,7 @@ export function PostForm({ initial }: Props) {
         .map((t) => t.trim())
         .filter(Boolean),
       status,
+      isFeatured,
       metaTitle: metaTitle || null,
       metaDesc: metaDesc || null,
     };
@@ -186,6 +188,17 @@ export function PostForm({ initial }: Props) {
                 </SelectContent>
               </Select>
             </div>
+            {/* Bài nổi bật — admin bật để đưa lên đầu / vào slider trang chủ */}
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-brand-primary/20 bg-brand-primary/5 p-3 text-sm">
+              <input
+                type="checkbox"
+                checked={isFeatured}
+                onChange={(e) => setIsFeatured(e.target.checked)}
+                className="h-4 w-4 accent-brand-primary"
+              />
+              <span className="font-medium text-brand-primary">Bài viết nổi bật</span>
+              <span className="text-[11px] text-muted-foreground">(lên đầu / vào slider)</span>
+            </label>
             <div className="space-y-2">
               <Label>Tags (cách nhau bằng phẩy)</Label>
               <Input value={tags} onChange={(e) => setTags(e.target.value)} />

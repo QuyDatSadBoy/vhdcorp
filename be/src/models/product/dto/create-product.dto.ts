@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDateString,
   ArrayMaxSize,
   IsArray,
@@ -71,4 +72,14 @@ export class CreateProductDto {
   @IsOptional()
   @IsEnum(ProductStatus)
   status?: ProductStatus;
+
+  /** Sản phẩm nổi bật — hiện lên đầu / slider */
+  @IsOptional()
+  @IsBoolean()
+  isFeatured?: boolean;
+
+  /** Sản phẩm bán chạy — hiện ở mục "Bán chạy nhất" */
+  @IsOptional()
+  @IsBoolean()
+  isBestSeller?: boolean;
 }

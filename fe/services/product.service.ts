@@ -13,6 +13,10 @@ export interface ProductListParams {
   minPrice?: number;
   maxPrice?: number;
   sort?: "newest" | "price_asc" | "price_desc" | "name";
+  /** Chỉ lấy sản phẩm nổi bật (admin bật). */
+  featured?: boolean;
+  /** Chỉ lấy sản phẩm bán chạy (admin bật). */
+  bestSeller?: boolean;
 }
 
 export const productKeys = {

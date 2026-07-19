@@ -3,18 +3,64 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import type { BannerSliderSection as Section } from "@/types/site-config";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useBanners } from "@/services/banner.service";
+import { productService } from "@/services/product.service";
+import { postService } from "@/services/post.service";
 
 export default function BannerSlider({ section }: { section: Section }) {
   const p = section.props;
+  const source = p.source ?? "manual";
+  const slideLimit = p.limit ?? 6;
+
   // Nguồn "banners": lấy slide từ Quản trị → Banner theo vị trí (đổi banner không cần sửa layout)
-  const fromBanners = p.source === "banners";
-  const bannersQ = useBanners(fromBanners ? p.bannerPosition || "home-hero" : undefined);
-  const slides: { image?: string; link?: string; alt?: string; title?: string; caption?: string }[] = fromBanners
-    ? (bannersQ.data ?? []).map((b) => ({ image: b.imageUrl, link: b.link ?? undefined, alt: b.alt ?? undefined }))
-    : (p.slides ?? []);
+  const bannersQ = useBanners(source === "banners" ? p.bannerPosition || "home-hero" : undefined);
+  // Nguồn "products": ảnh sản phẩm bán chạy / nổi bật tự chạy trong slider
+  const productsQ = useQuery({
+    queryKey: ["banner-slider", "products", p.productMode, slideLimit],
+    queryFn: () =>
+      productService.list({
+        pageSize: slideLimit,
+        featured: p.productMode === "featured",
+        bestSeller: (p.productMode ?? "best-seller") === "best-seller",
+      }),
+    enabled: source === "products",
+    staleTime: 60_000,
+  });
+  // Nguồn "posts": ảnh bìa bài viết nổi bật tự chạy trong slider
+  const postsQ = useQuery({
+    queryKey: ["banner-slider", "posts", slideLimit],
+    queryFn: () => postService.list({ pageSize: slideLimit, featured: true }),
+    enabled: source === "posts",
+    staleTime: 60_000,
+  });
+
+  const slides: { image?: string; link?: string; alt?: string; title?: string; caption?: string }[] =
+    source === "banners"
+      ? (bannersQ.data ?? []).map((b) => ({ image: b.imageUrl, link: b.link ?? undefined, alt: b.alt ?? undefined }))
+      : source === "products"
+        ? (productsQ.data?.records ?? [])
+            .filter((pr) => pr.images?.[0])
+            .map((pr) => ({
+              image: pr.images[0],
+              link: `/products/${pr.slug}`,
+              alt: pr.name,
+              title: pr.name,
+              caption: pr.category?.name,
+            }))
+        : source === "posts"
+          ? (postsQ.data?.records ?? [])
+              .filter((po) => po.coverImage)
+              .map((po) => ({
+                image: po.coverImage ?? undefined,
+                link: `/posts/${po.slug}`,
+                alt: po.title,
+                title: po.title,
+                caption: po.excerpt ?? undefined,
+              }))
+          : (p.slides ?? []);
   const [idx, setIdx] = useState(0);
   const interval = p.interval ?? 5000;
   const autoplay = p.autoplay ?? true;

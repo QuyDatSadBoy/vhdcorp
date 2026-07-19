@@ -34,7 +34,7 @@ function fmtDate(iso?: string | null) {
 export default function BlogPreview({ section }: { section: Section }) {
   const p = section.props;
   const limit = p.limit ?? 4;
-  const { data, isLoading } = usePosts({ pageSize: limit, tag: p.tagFilter });
+  const { data, isLoading } = usePosts({ pageSize: limit, tag: p.tagFilter, featured: p.mode === "featured" });
   const posts = data?.records ?? [];
   const sectionRef = useRef<HTMLElement>(null);
 

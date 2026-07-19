@@ -18,6 +18,8 @@ interface ListParams {
   tag?: string;
   status?: PostStatus;
   publishedOnly?: boolean;
+  /** Chỉ lấy bài viết nổi bật (admin bật). */
+  featured?: boolean;
 }
 
 @Injectable()
@@ -51,6 +53,7 @@ export class PostService {
       ];
     }
     if (params.tag) where.tags = { has: params.tag };
+    if (params.featured) where.isFeatured = true;
 
     const [records, totalItems] = await this.prisma.$transaction([
       this.prisma.post.findMany({
@@ -113,6 +116,7 @@ export class PostService {
         metaDesc: dto.metaDesc,
         ogImage: dto.ogImage,
         tags: dto.tags ?? [],
+        isFeatured: dto.isFeatured ?? false,
         authorId,
       },
     });
@@ -148,6 +152,7 @@ export class PostService {
         metaDesc: dto.metaDesc,
         ogImage: dto.ogImage,
         tags: dto.tags,
+        isFeatured: dto.isFeatured,
       },
     });
     revalidateFe('posts');
