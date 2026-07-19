@@ -116,13 +116,9 @@ function MessageBubble({ message, activeTool, onRetry, onAction, isLast = false 
                 )
               ) : (
                 <>
-                  {/* Đang stream: chữ thuần (0 lần parse markdown mỗi frame → siêu mượt);
-                      stream xong mới render Markdown 1 lần duy nhất. */}
-                  {message.streaming ? (
-                    <div className="whitespace-pre-wrap break-words leading-relaxed">{message.content}</div>
-                  ) : (
-                    <MarkdownContent content={message.content} />
-                  )}
+                  {/* Markdown NGAY TỪ ĐẦU (đổi chữ thuần→markdown cuối stream làm
+                      "text tự thay đổi"); mượt nhờ use-chat throttle flush ~140ms. */}
+                  <MarkdownContent content={message.content} />
                   {message.streaming && activeTool && (
                     <div className="mt-2">
                       <ToolIndicator name={activeTool} />
@@ -133,8 +129,11 @@ function MessageBubble({ message, activeTool, onRetry, onAction, isLast = false 
             </div>
           )}
 
-          {/* Tool indicator khi đã có block nhưng chưa có chữ */}
-          {!message.content && hasBlocks && message.streaming && activeTool && <ToolIndicator name={activeTool} />}
+          {/* Đã có block nhưng chữ chưa tới: tool indicator hoặc chấm-gõ — không để khoảng chết */}
+          {!message.content &&
+            hasBlocks &&
+            message.streaming &&
+            (activeTool ? <ToolIndicator name={activeTool} /> : <TypingDots />)}
 
           {/* Generative-UI blocks (carousel/form/table/faq…) */}
           {hasBlocks && (
