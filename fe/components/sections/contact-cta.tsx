@@ -83,7 +83,7 @@ export default function ContactCta({ section }: { section: Section }) {
               <Button
                 asChild
                 size="lg"
-                className="group h-12 rounded-full bg-brand-highlight px-7 text-base font-semibold text-brand-primary hover:brightness-95"
+                className="group h-12 rounded-full bg-brand-highlight px-7 text-base font-semibold text-brand-primary hover:brightness-95 [a]:hover:bg-brand-highlight"
               >
                 <Link href={ctaLink}>
                   <span className="flex items-center gap-2">
