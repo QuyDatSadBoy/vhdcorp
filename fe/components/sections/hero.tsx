@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
@@ -49,22 +49,25 @@ function AnimatedHeading({
     <h1 className={className} style={{ ...(color ? { color } : undefined), ...style }}>
       {tokens.map(({ word, marked: isMarked, suffix }, i) => {
         return (
-          <motion.span
-            key={i}
-            suppressHydrationWarning
-            initial={{ opacity: 0, y: 28 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.15 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
-            className="inline-block mr-[0.22em]"
-          >
-            <span
-              className={cn(isMarked && !highlightColor && "text-shimmer-brand rounded-sm")}
-              style={isMarked && highlightColor ? { color: highlightColor } : undefined}
+          // Dau cach THAT giua cac tu - dat NGOAI inline-block (trong inline-block
+          // bi CSS nuot) -> bot/SEO doc dung "KHO TONG VAT TU..." thay vi chuoi dinh lien.
+          <Fragment key={i}>
+            <motion.span
+              suppressHydrationWarning
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.15 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+              className="inline-block"
             >
-              {word}
-            </span>
-            {suffix}
-          </motion.span>
+              <span
+                className={cn(isMarked && !highlightColor && "text-shimmer-brand rounded-sm")}
+                style={isMarked && highlightColor ? { color: highlightColor } : undefined}
+              >
+                {word}
+              </span>
+              {suffix}
+            </motion.span>{" "}
+          </Fragment>
         );
       })}
     </h1>
