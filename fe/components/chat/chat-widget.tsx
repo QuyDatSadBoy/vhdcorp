@@ -38,17 +38,16 @@ export default function ChatWidget() {
     const el = panelRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
-      // LUÔN chặn default (trang phía sau tuyệt đối không cuộn), rồi tự cuộn
-      // scroller gần nhất bên trong panel (message list / sidebar / textarea…).
-      e.preventDefault();
+      // Trong scroller (message list / sidebar / textarea): DE TRINH DUYET cuon
+      // native - muot, co quan tinh (tu set scrollTop bang JS la nguon giat);
+      // overscroll-contain tren scroller da chan cuon lan ra trang phia sau.
+      // Chi chan default khi con lan nam NGOAI moi scroller (header, nut...).
       let node = e.target as HTMLElement | null;
       while (node && node !== el) {
-        if (node.scrollHeight > node.clientHeight + 1) {
-          node.scrollTop += e.deltaY; // browser tự clamp tại biên
-          return;
-        }
+        if (node.scrollHeight > node.clientHeight + 1) return;
         node = node.parentElement;
       }
+      e.preventDefault();
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);

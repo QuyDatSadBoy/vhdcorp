@@ -27,7 +27,11 @@ export default function AiAssistantPage() {
     {
       role: "assistant",
       content:
-        'Chào bạn 👋 Mình là trợ lý AI của VHD. Nói mình cần gì nhé — ví dụ: "tạo sản phẩm gas lạnh R32" hoặc "viết bài về cách chọn ống đồng". Mình soạn sẵn, bạn duyệt là đăng.',
+        "Chào bạn 👋 Mình là trợ lý AI của VHD. Mình làm được:\n\n" +
+        '• Soạn nháp SẢN PHẨM — gõ "tạo sản phẩm gas lạnh R32" → mình viết tên, mô tả chuẩn SEO, bạn duyệt là thành nháp.\n' +
+        '• Soạn nháp BÀI VIẾT — gõ "viết bài về cách chọn ống đồng" → mình viết cả bài (có tra cứu web).\n' +
+        "• Tư vấn nội dung, từ khoá SEO, ý tưởng bài theo mùa vụ.\n\n" +
+        "Ngoài ra trong form Sản phẩm có nút “AI viết mô tả” (đọc ảnh + web) và form Bài viết có nút “AI soạn bài”. Kiến thức nền của AI chỉnh ở mục Kiến thức AI. Mình chỉ soạn nháp — bạn luôn duyệt trước khi đăng.",
     },
   ]);
   const [input, setInput] = useState("");

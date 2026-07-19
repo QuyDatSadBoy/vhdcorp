@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { PriceTag } from "@/components/client/price-tag";
 import { ArrowRight } from "lucide-react";
-import { Reveal, Stagger, StaggerItem, fadeUpItem } from "@/components/animations/reveal";
+import { Reveal } from "@/components/animations/reveal";
 import { useProducts } from "@/services/product.service";
 import type { FeaturedProductsSection as Section } from "@/types/site-config";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -106,9 +106,11 @@ export default function FeaturedProducts({ section }: { section: Section }) {
           ))}
         </div>
       ) : (
-        <Stagger className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
           {products.map((prod) => (
-            <StaggerItem key={prod.id} variants={fadeUpItem}>
+            // sr-reveal: card trồi lên THEO NHỊP CUỘN (CSS view-timeline, 0 JS) —
+            // thay Stagger cũ animate lúc mount (chạy xong trước khi khách cuộn tới).
+            <div key={prod.id} className="sr-reveal">
               <SpotlightCard href={`/products/${prod.slug}`}>
                 <div className="shine-sweep relative aspect-square overflow-hidden bg-muted">
                   {prod.images?.[0] ? (
@@ -157,9 +159,9 @@ export default function FeaturedProducts({ section }: { section: Section }) {
                   )}
                 </div>
               </SpotlightCard>
-            </StaggerItem>
+            </div>
           ))}
-        </Stagger>
+        </div>
       )}
     </section>
   );

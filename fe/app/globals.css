@@ -372,6 +372,27 @@
     }
   }
 
+  /* Entrance 1 lần khi VÀO TRANG: ảnh hero hiện ra từ scale lớn + mờ → nét,
+     phối với chữ chạy từng từ = khoảnh khắc "wow" mở màn. Chạy 1 lần rồi thôi. */
+  .hero-enter {
+    animation: hero-enter 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes hero-enter {
+    from {
+      opacity: 0;
+      transform: scale(1.08);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-enter {
+      animation: none;
+    }
+  }
+
   /* Ken Burns — zoom chậm qua lại cho ảnh hero (transform thuần, chạy trên GPU) */
   .hero-kenburns {
     animation: hero-kenburns 26s ease-in-out infinite alternate;
@@ -387,6 +408,39 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .hero-kenburns {
+      animation: none;
+    }
+  }
+
+  /* Scroll-reveal SCRUB (nâng cao, thuần CSS view-timeline): phần tử trồi lên
+     THEO NHỊP CUỘN khi vào màn hình, cuộn ngược thì thu về — cảm giác Apple.
+     Chỉ transform/opacity (compositor). Trình duyệt cũ → hiện bình thường. */
+  @supports (animation-timeline: view()) {
+    .sr-reveal {
+      animation: sr-rise-in linear both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 45%;
+    }
+    @keyframes sr-rise-in {
+      from {
+        opacity: 0;
+        transform: translateY(46px) scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    /* so le nhẹ theo vị trí trong hàng — cột sau vào trễ hơn một nhịp */
+    .sr-reveal:nth-child(2n) {
+      animation-range: entry 12% entry 52%;
+    }
+    .sr-reveal:nth-child(3n) {
+      animation-range: entry 18% entry 58%;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sr-reveal {
       animation: none;
     }
   }

@@ -69,7 +69,7 @@ export default function ConversationSidebar({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2 pb-2">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-2 pb-2">
         {conversations.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 px-4 py-8 text-center">
             <MessagesSquare className="h-8 w-8 text-muted-foreground/40" aria-hidden />

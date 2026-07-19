@@ -148,7 +148,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
           bên dưới KHÔNG render → hero còn nhẹ hơn. */}
       {p.bgImage && (
         <>
-          <div aria-hidden className="absolute inset-0 -z-20 overflow-hidden">
+          <div aria-hidden className="hero-enter absolute inset-0 -z-20 overflow-hidden">
             {/* Ken Burns: zoom chậm 26s qua lại — sống động mà thuần CSS transform (GPU) */}
             <Image src={p.bgImage} alt="" fill priority sizes="100vw" className="hero-kenburns object-cover" />
           </div>

@@ -102,6 +102,13 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
     return () => recognitionRef.current?.stop();
   }, []);
 
+  // AI trả lời xong → tự focus lại ô nhập để khách chat tiếp luôn (không phải bấm lại)
+  const prevStreamingRef = useRef(false);
+  useEffect(() => {
+    if (prevStreamingRef.current && !streaming) textareaRef.current?.focus();
+    prevStreamingRef.current = streaming;
+  }, [streaming]);
+
   const resize = () => {
     const el = textareaRef.current;
     if (!el) return;
@@ -281,11 +288,12 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
           <ImagePlus className="h-4.5 w-4.5" aria-hidden />
         </button>
 
+        {/* KHÔNG disable khi streaming: khách gõ tiếp được ngay (submit đã tự chặn);
+            disable làm mất focus → phải bấm lại ô nhập mới chat tiếp được. */}
         <textarea
           ref={textareaRef}
           rows={1}
           value={value}
-          disabled={streaming}
           placeholder={
             listening
               ? voiceMode
