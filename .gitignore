@@ -116,3 +116,5 @@ agent/.pytest_cache/
 
 # Server-admin runtime state (metrics history, audit, deploy log)
 be/storage/
+/*.png
+.playwright-mcp/
