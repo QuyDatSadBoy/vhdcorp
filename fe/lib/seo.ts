@@ -26,7 +26,13 @@ export async function buildMetadata(input: BuildMetadataInput = {}): Promise<Met
 
   // Trang con dùng template; trang chủ ưu tiên seo.defaultTitle (giàu từ khoá) rồi mới "Brand — Tagline".
   const homeTitle = seo.defaultTitle || `${brand.siteName} — ${brand.tagline}`;
-  const rawTitle = input.title ? seo.titleTemplate.replace("%s", input.title) : homeTitle;
+  // Nếu metaTitle admin nhập ĐÃ chứa tên brand ("… | VHD Corp") thì không áp template
+  // nữa — tránh title lặp "| VHD Corp | VHD Corp".
+  const rawTitle = input.title
+    ? input.title.includes(brand.siteName)
+      ? input.title
+      : seo.titleTemplate.replace("%s", input.title)
+    : homeTitle;
   const title = rawTitle.length > 65 ? rawTitle.slice(0, 62).trimEnd() + "…" : rawTitle;
   const description = (input.description ?? seo.defaultDescription).slice(0, 160);
   // Dùng || (không dùng ??) để chuỗi rỗng "" trong DB cũng rơi xuống ảnh mặc định → OG luôn có ảnh
