@@ -54,7 +54,7 @@ export function PriceTag({
           </span>
           {showDeadline && product.saleEndsAt && (
             <span className="text-[11px] font-medium text-brand-danger/80">
-              KM đến {new Date(product.saleEndsAt).toLocaleDateString("vi-VN")}
+              KM đến {new Date(product.saleEndsAt).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}
             </span>
           )}
         </>

@@ -28,7 +28,12 @@ function PostCover({ src, alt }: { src?: string | null; alt: string }) {
 
 function fmtDate(iso?: string | null) {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return new Date(iso).toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Asia/Ho_Chi_Minh",
+  });
 }
 
 export default function BlogPreview({ section }: { section: Section }) {

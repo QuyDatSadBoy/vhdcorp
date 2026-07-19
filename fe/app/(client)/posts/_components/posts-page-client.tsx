@@ -83,7 +83,10 @@ export default function PostsPageClient({ initialData }: PostsPageClientProps) {
                   </h2>
                   {post.excerpt && <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{post.excerpt}</p>}
                   <div className="mt-3 text-xs text-muted-foreground">
-                    {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString("vi-VN") : ""}
+                    {/* timeZone cố định — server (UTC) và trình duyệt (GMT+7) render giống nhau, hết lỗi hydration */}
+                    {post.publishedAt
+                      ? new Date(post.publishedAt).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })
+                      : ""}
                   </div>
                 </Link>
               </motion.article>
