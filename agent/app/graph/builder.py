@@ -72,6 +72,9 @@ class ChatGraphBuilder(BaseGraphBuilder):
             model=settings.agent_model,
             google_api_key=settings.google_api_key,
             temperature=0.3,
+            # Chat khách cần REAL-TIME: tắt thinking → TTFT ~1.2s thay vì ~2.4s
+            # (đo thật trên VPS với gemini-3-flash-preview).
+            thinking_budget=0,
         )
         self.llm_with_tools = self.llm.bind_tools(self.tools)
 

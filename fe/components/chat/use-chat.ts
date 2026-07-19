@@ -134,13 +134,19 @@ export function useChat() {
       // Stream mượt: SSE bắn hàng chục delta/giây — patch mỗi token là mỗi lần
       // re-render + re-parse markdown. Gom delta lại, flush tối đa 1 lần/frame.
       let rafId: number | null = null;
+      let lastFlush = 0;
       let toolShowing = false;
       const flushContent = () => {
         rafId = null;
+        lastFlush = performance.now();
         patchMessage(assistantId, { content });
       };
+      // Throttle ~140ms/lần: markdown render từ đầu vẫn mượt (parse ~7 lần/s
+      // thay vì mỗi frame), chữ hiện theo nhịp gõ tự nhiên.
       const scheduleFlush = () => {
-        if (rafId == null) rafId = requestAnimationFrame(flushContent);
+        if (rafId != null) return;
+        const wait = Math.max(0, 140 - (performance.now() - lastFlush));
+        rafId = window.setTimeout(flushContent, wait) as unknown as number;
       };
 
       try {
@@ -193,7 +199,7 @@ export function useChat() {
             }
           },
         });
-        if (rafId != null) cancelAnimationFrame(rafId);
+        if (rafId != null) clearTimeout(rafId);
         if (streamError) {
           patchMessage(assistantId, { streaming: false, error: streamError });
         } else {
@@ -201,7 +207,7 @@ export function useChat() {
           patchMessage(assistantId, { streaming: false, content, finishedLive: true });
         }
       } catch (err) {
-        if (rafId != null) cancelAnimationFrame(rafId);
+        if (rafId != null) clearTimeout(rafId);
         if (err instanceof DOMException && err.name === "AbortError") {
           // User bấm Stop — giữ phần đã stream, không coi là lỗi
           patchMessage(assistantId, { streaming: false, content: content || "(đã dừng)" });
