@@ -372,6 +372,43 @@
     }
   }
 
+  /* Ken Burns — zoom chậm qua lại cho ảnh hero (transform thuần, chạy trên GPU) */
+  .hero-kenburns {
+    animation: hero-kenburns 26s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+  @keyframes hero-kenburns {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.07);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-kenburns {
+      animation: none;
+    }
+  }
+
+  /* Shine sweep — vệt sáng lướt qua khi hover (nút chính, ảnh card) */
+  .shine-sweep {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine-sweep::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, 0.32) 50%, transparent 58%);
+    transform: translateX(-130%);
+    pointer-events: none;
+  }
+  .shine-sweep:hover::after {
+    transform: translateX(130%);
+    transition: transform 0.65s ease;
+  }
+
   /* Scroll-journey — parallax cảnh bằng CSS view-timeline (0 JS, chỉ transform/opacity).
      Trình duyệt không hỗ trợ → cảnh vẫn hiện tĩnh đẹp, không hụt gì. */
   @supports (animation-timeline: view()) {

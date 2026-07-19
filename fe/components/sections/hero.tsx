@@ -4,7 +4,8 @@ import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, ChevronDown, Play, ShieldCheck, Truck, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronDown, Play } from "lucide-react";
+import { ShieldDuo, TruckDuo, SparkDuo } from "@/components/client/duo-icons";
 import type { HeroSection as HeroSectionType } from "@/types/site-config";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -129,7 +130,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
     "VHD Corp — kho tổng vật tư điện lạnh, cơ điện (M&E) và nhà sản xuất khuôn mẫu, đúc nhựa. Đặt hàng B2B/B2C, giao nhanh toàn quốc.";
 
   // Chip cam kết: admin sửa trong builder (icon xoay vòng theo thứ tự)
-  const TRUST_ICONS = [ShieldCheck, Truck, Sparkles];
+  const TRUST_ICONS = [ShieldDuo, TruckDuo, SparkDuo];
   const trustItems = (p.trustItems?.length ? p.trustItems : DEFAULT_HERO_TRUST_ITEMS).map((it, i) => ({
     ...it,
     icon: TRUST_ICONS[i % TRUST_ICONS.length],
@@ -147,19 +148,20 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
           bên dưới KHÔNG render → hero còn nhẹ hơn. */}
       {p.bgImage && (
         <>
-          <div aria-hidden className="absolute inset-0 -z-20">
-            <Image src={p.bgImage} alt="" fill priority sizes="100vw" className="object-cover" />
+          <div aria-hidden className="absolute inset-0 -z-20 overflow-hidden">
+            {/* Ken Burns: zoom chậm 26s qua lại — sống động mà thuần CSS transform (GPU) */}
+            <Image src={p.bgImage} alt="" fill priority sizes="100vw" className="hero-kenburns object-cover" />
           </div>
-          {/* Overlay gradient navy: đậm bên trái cho chữ nổi, hé ảnh dần về phải.
-              Độ đậm tổng chỉnh bằng overlayOpacity trong Builder. */}
+          {/* Overlay NAVY (không đen kịt): tint xanh thương hiệu, đậm vừa bên trái cho
+              chữ nổi, hé ảnh rõ về phải. Độ đậm tổng chỉnh bằng overlayOpacity. */}
           <div
             ref={overlayRef}
             aria-hidden
-            className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,#050c1a_0%,rgba(5,12,26,0.78)_45%,rgba(5,12,26,0.38)_100%)]"
+            className="absolute inset-0 -z-10 bg-[linear-gradient(92deg,rgba(13,31,77,0.86)_0%,rgba(13,31,77,0.55)_48%,rgba(13,31,77,0.18)_100%)]"
           />
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 bg-linear-to-t from-[#050c1a] to-transparent"
+            className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-28 bg-linear-to-t from-[#0d1f4d]/85 to-transparent"
           />
         </>
       )}
@@ -310,7 +312,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
               <Button
                 asChild
                 size="lg"
-                className="group h-12 rounded-full bg-brand-primary px-7 text-base font-semibold text-white shadow-[0_10px_30px_-10px_color-mix(in_srgb,var(--vhd-color-primary)_60%,transparent)] hover:bg-brand-primary/95 animate-cta-glow"
+                className="group shine-sweep h-12 rounded-full bg-brand-primary px-7 text-base font-semibold text-white shadow-[0_10px_30px_-10px_color-mix(in_srgb,var(--vhd-color-primary)_60%,transparent)] hover:bg-brand-primary/95"
               >
                 <Link href={p.ctaLink}>
                   <span className="flex items-center gap-2">

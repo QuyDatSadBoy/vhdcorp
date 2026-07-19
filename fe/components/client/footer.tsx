@@ -3,26 +3,17 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { Facebook, Youtube, Instagram, MessageCircle, Linkedin, Phone, Mail, MapPin, Music2, Send } from "lucide-react";
 import {
-  Facebook,
-  Youtube,
-  Instagram,
-  MessageCircle,
-  Linkedin,
-  Phone,
-  Mail,
-  MapPin,
-  Music2,
-  Send,
-  ShieldCheck,
-  Truck,
-  HeadphonesIcon,
-  Award,
-  Star,
-  Clock,
-  Leaf,
-  ThumbsUp,
-} from "lucide-react";
+  ShieldDuo,
+  TruckDuo,
+  HeadsetDuo,
+  MedalDuo,
+  StarDuo,
+  ClockDuo,
+  LeafDuo,
+  ThumbsUpDuo,
+} from "@/components/client/duo-icons";
 import { useSiteConfigStore } from "@/store/site-config.store";
 import { toMapEmbedSrc } from "@/lib/embeds";
 
@@ -39,16 +30,16 @@ const socialIcon: Record<string, React.ComponentType<{ className?: string }>> = 
   email: Mail,
 };
 
-/** Map tên icon (config) → component — cho dải cam kết admin tự chỉnh */
+/** Map tên icon (config) → component — duotone vẽ tay (đẹp hơn outline mảnh) */
 const TRUST_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  shield: ShieldCheck,
-  truck: Truck,
-  headphones: HeadphonesIcon,
-  award: Award,
-  star: Star,
-  clock: Clock,
-  leaf: Leaf,
-  thumbsup: ThumbsUp,
+  shield: ShieldDuo,
+  truck: TruckDuo,
+  headphones: HeadsetDuo,
+  award: MedalDuo,
+  star: StarDuo,
+  clock: ClockDuo,
+  leaf: LeafDuo,
+  thumbsup: ThumbsUpDuo,
 };
 
 /** Mặc định khi admin chưa cấu hình — giữ nguyên nội dung hiện tại */
@@ -91,7 +82,7 @@ export default function Footer() {
       <div className="border-b border-white/10">
         <div className="container mx-auto grid grid-cols-2 gap-6 px-4 py-10 md:grid-cols-4">
           {(footer?.trustBadges?.length ? footer.trustBadges : TRUST_DEFAULT).map((t) => {
-            const Icon = TRUST_ICONS[t.icon] ?? ShieldCheck;
+            const Icon = TRUST_ICONS[t.icon] ?? ShieldDuo;
             return (
               <div key={t.label} className="flex items-center gap-3">
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-highlight/15 text-brand-highlight">

@@ -38,7 +38,9 @@ export function HomeMarquees() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_140%_at_50%_-40%,rgba(255,255,255,0.14),transparent_55%)]" />
 
       <ScrollVelocityRow baseVelocity={12} className="py-1">
-        <span className="inline-flex items-center whitespace-nowrap font-heading text-3xl font-black uppercase leading-none tracking-tight md:text-5xl">
+        {/* leading ≥1.3: leading-none làm hộp nền bg-clip-text thấp hơn DẤU tiếng Việt
+            (Ế Ố Á Ị) → phần dấu không được tô gradient = nhìn như bị cắt/lỗi. */}
+        <span className="inline-flex items-center whitespace-nowrap py-1 font-heading text-3xl font-black uppercase leading-[1.3] tracking-tight md:text-5xl">
           <LogoChip logo={logo} />
           <span className="text-white">VHD Corp</span>
           <Separator />
