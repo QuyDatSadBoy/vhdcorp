@@ -90,7 +90,7 @@ jobs:
     name: Deploy lên VPS (push main — đã qua PR test)
     # KHÔNG needs:test nữa — commit vào main chỉ đến từ PR đã test xanh (branch protection).
     # deploy.sh vẫn có smoke test 9 nhóm + tự rollback nếu bản mới lỗi.
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:

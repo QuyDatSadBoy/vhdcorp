@@ -44,6 +44,24 @@ def _chunk_text(chunk) -> str:
     return ""
 
 
+# Câu dẫn ngắn server tự bắn khi model gọi tool mà chưa viết chữ nào —
+# khách thấy phản hồi tức thì và LUÔN thấy chữ trước card UI.
+_TOOL_LEAD_INS = {
+    "show_product_carousel": "Dạ có ngay, mình gửi bạn các mẫu đang sẵn kho nhé:",
+    "show_comparison": "Mình so sánh nhanh giúp bạn nhé:",
+    "show_quote_form": "Dạ, bạn điền nhanh form báo giá này giúp mình nhé:",
+    "show_contact_form": "Dạ, bạn để lại thông tin ở đây, bên mình sẽ liên hệ ngay:",
+    "show_faq": "Mình gửi bạn các câu hỏi thường gặp nhé:",
+    "search_posts": "Mình tìm được mấy bài viết hữu ích cho bạn:",
+    "list_categories": "Dạ, bên mình đang có các nhóm hàng sau:",
+    "get_recommendations": "Bạn tham khảo thêm mấy mẫu tương tự nhé:",
+    "get_company_info": "Dạ, thông tin liên hệ chính thức của VHD đây ạ:",
+    "add_to_cart": "OK mình thêm vào giỏ cho bạn ngay:",
+    "search_products": "Để mình kiểm tra trong kho cho bạn nhé:",
+    "get_product_detail": "Mình lấy thông tin chi tiết cho bạn ngay:",
+}
+
+
 class ChatService:
     def __init__(
         self,
@@ -135,7 +153,15 @@ class ChatService:
                             parts.append(text)
                             yield {"type": "message.delta", "content": text}
                     elif kind == "on_tool_start":
-                        yield {"type": "tool.start", "name": event.get("name", "")}
+                        tool_name = event.get("name", "")
+                        # Khách phải THẤY CHỮ TRƯỚC UI: Gemini thường gọi tool mà không
+                        # viết lời dẫn (dù prompt yêu cầu) → server tự bắn 1 câu dẫn ngắn
+                        # ngay lúc tool bắt đầu (đảm bảo thứ tự chữ → card bằng code).
+                        if not parts:
+                            lead = _TOOL_LEAD_INS.get(tool_name, "Dạ, mình xử lý ngay cho bạn nhé:") + "\n\n"
+                            parts.append(lead)
+                            yield {"type": "message.delta", "content": lead}
+                        yield {"type": "tool.start", "name": tool_name}
                     elif kind == "on_tool_end":
                         yield {"type": "tool.end", "name": event.get("name", "")}
                         # Emit ui event TRƯỚC message.delta của lời dẫn (§9.2)
