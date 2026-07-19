@@ -9,7 +9,9 @@ import { buildMetadata } from "@/lib/seo";
 
 const fontHeading = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600", "700", "800"],
+  // PHẢI có "900": heading dùng font-black (900). Thiếu 900 → trình duyệt
+  // bôi đậm giả (faux-bold) làm DẤU tiếng Việt méo/nhòe trên chữ hoa.
+  weight: ["400", "500", "600", "700", "800", "900"],
   variable: "--font-heading-base",
   display: "swap",
 });

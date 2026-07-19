@@ -8,7 +8,7 @@ import type { ChatProduct } from "@/types/chat";
 
 /** Format giá VND; null → "Liên hệ" */
 export function formatVnd(price: number | null): string {
-  if (price === null || price === undefined) return "Liên hệ báo giá";
+  if (price === null || price === undefined || price <= 0) return "Liên hệ báo giá";
   return `${price.toLocaleString("vi-VN")} ₫`;
 }
 
