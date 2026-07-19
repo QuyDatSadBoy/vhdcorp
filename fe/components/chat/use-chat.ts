@@ -184,9 +184,15 @@ export function useChat() {
                 setActiveTool(null);
                 break;
               case "ui":
+                // Chữ PHẢI hiện trước card: flush ngay phần chữ đang chờ throttle
+                // (nếu không, card render tức thì còn chữ đợi 140ms → thứ tự đảo).
+                if (rafId != null) {
+                  clearTimeout(rafId);
+                  flushContent();
+                }
                 // Gen-UI: gắn block vào bubble assistant đang stream (§9.2)
                 uiBlocks = [...uiBlocks, { id: crypto.randomUUID(), component: event.component, props: event.props }];
-                patchMessage(assistantId, { uiBlocks });
+                patchMessage(assistantId, { uiBlocks, content });
                 break;
               case "done":
                 // Kèm content: sau khi đổi id, patch cuối theo id cũ sẽ không tìm thấy
