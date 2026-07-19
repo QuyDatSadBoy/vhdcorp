@@ -47,7 +47,7 @@ export default function ContactCta({ section }: { section: Section }) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="relative isolate overflow-hidden rounded-3xl p-8 text-white shadow-[0_30px_80px_-30px_color-mix(in_srgb,var(--vhd-color-primary)_70%,transparent)] md:p-14"
+          className="border-beam relative isolate overflow-hidden rounded-3xl p-8 text-white shadow-[0_30px_80px_-30px_color-mix(in_srgb,var(--vhd-color-primary)_70%,transparent)] md:p-14"
         >
           {/* Brand orbs */}
           <div

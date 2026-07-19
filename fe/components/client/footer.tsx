@@ -5,15 +5,15 @@ import Image from "next/image";
 import { useState } from "react";
 import { Facebook, Youtube, Instagram, MessageCircle, Linkedin, Phone, Mail, MapPin, Music2, Send } from "lucide-react";
 import {
-  ShieldDuo,
-  TruckDuo,
-  HeadsetDuo,
-  MedalDuo,
-  StarDuo,
-  ClockDuo,
-  LeafDuo,
-  ThumbsUpDuo,
-} from "@/components/client/duo-icons";
+  IconShield,
+  IconTruck,
+  IconHeadset,
+  IconMedal,
+  IconStar,
+  IconClock,
+  IconLeaf,
+  IconThumbsUp,
+} from "@/components/client/brand-icons";
 import { useSiteConfigStore } from "@/store/site-config.store";
 import { toMapEmbedSrc } from "@/lib/embeds";
 
@@ -32,14 +32,14 @@ const socialIcon: Record<string, React.ComponentType<{ className?: string }>> = 
 
 /** Map tên icon (config) → component — duotone vẽ tay (đẹp hơn outline mảnh) */
 const TRUST_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  shield: ShieldDuo,
-  truck: TruckDuo,
-  headphones: HeadsetDuo,
-  award: MedalDuo,
-  star: StarDuo,
-  clock: ClockDuo,
-  leaf: LeafDuo,
-  thumbsup: ThumbsUpDuo,
+  shield: IconShield,
+  truck: IconTruck,
+  headphones: IconHeadset,
+  award: IconMedal,
+  star: IconStar,
+  clock: IconClock,
+  leaf: IconLeaf,
+  thumbsup: IconThumbsUp,
 };
 
 /** Mặc định khi admin chưa cấu hình — giữ nguyên nội dung hiện tại */
@@ -82,7 +82,7 @@ export default function Footer() {
       <div className="border-b border-white/10">
         <div className="container mx-auto grid grid-cols-2 gap-6 px-4 py-10 md:grid-cols-4">
           {(footer?.trustBadges?.length ? footer.trustBadges : TRUST_DEFAULT).map((t) => {
-            const Icon = TRUST_ICONS[t.icon] ?? ShieldDuo;
+            const Icon = TRUST_ICONS[t.icon] ?? IconShield;
             return (
               <div key={t.label} className="flex items-center gap-3">
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-highlight/15 text-brand-highlight">
