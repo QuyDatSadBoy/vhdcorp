@@ -122,12 +122,24 @@ export default function FeaturedProducts({ section }: { section: Section }) {
                   ) : (
                     <ImageFallback variant="product" />
                   )}
-                  {/* Stock badge */}
-                  {prod.stock && prod.stock > 0 ? (
-                    <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-brand-primary shadow">
-                      Còn hàng
-                    </span>
-                  ) : null}
+                  {/* Badges: Bán chạy / Nổi bật (admin bật) + Còn hàng */}
+                  <div className="absolute left-3 top-3 flex flex-col items-start gap-1">
+                    {prod.isBestSeller ? (
+                      <span className="rounded-full bg-(--vhd-color-danger) px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow">
+                        Bán chạy
+                      </span>
+                    ) : null}
+                    {prod.isFeatured ? (
+                      <span className="rounded-full bg-brand-highlight px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-brand-primary shadow">
+                        Nổi bật
+                      </span>
+                    ) : null}
+                    {prod.stock && prod.stock > 0 ? (
+                      <span className="rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-brand-primary shadow">
+                        Còn hàng
+                      </span>
+                    ) : null}
+                  </div>
                   {/* Hover overlay */}
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 bg-linear-to-t from-brand-primary/90 via-brand-primary/50 to-transparent p-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-brand-primary">

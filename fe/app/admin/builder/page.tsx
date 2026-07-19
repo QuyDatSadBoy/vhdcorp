@@ -241,6 +241,14 @@ const SECTION_TEMPLATES: Record<Section["type"], () => Section> = {
       steps: DEFAULT_STORY_STEPS,
     },
   }),
+  "scroll-journey": () => ({
+    id: `sj-${Date.now()}`,
+    type: "scroll-journey",
+    order: 0,
+    visible: true,
+    // scenes bỏ trống → dùng 4 cảnh mặc định của VHD (ảnh sản phẩm thật)
+    props: { heading: "Hành trình VHD" },
+  }),
   "custom-html": () => ({
     id: `html-${Date.now()}`,
     type: "custom-html",
@@ -305,6 +313,7 @@ const TYPE_LABELS: Record<Section["type"], string> = {
   "faq-accordion": "FAQ Accordion",
   "comparison-table": "Bảng so sánh",
   "sticky-story": "Sticky Story (Quy trình)",
+  "scroll-journey": "Hành trình cuộn (scroll world)",
   "custom-html": "HTML tùy chỉnh",
   "google-map": "Bản đồ Google",
   "video-embed": "Video (YouTube/TikTok)",

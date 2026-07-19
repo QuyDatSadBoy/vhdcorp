@@ -71,6 +71,12 @@ export default function PostsPageClient({ initialData }: PostsPageClientProps) {
                     ) : (
                       <ImageFallback label="Tin tức" />
                     )}
+                    {/* Tag Nổi bật — admin bật trong form bài viết */}
+                    {post.isFeatured && (
+                      <span className="absolute left-3 top-3 rounded-full bg-brand-highlight px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-primary shadow">
+                        Nổi bật
+                      </span>
+                    )}
                   </div>
                   <h2 className="mt-4 line-clamp-2 text-xl font-bold transition-colors group-hover:text-brand-primary">
                     {post.title}

@@ -1,60 +1,42 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import {
-  motion,
-  useMotionValue,
-  useTransform,
-  useScroll,
-  useSpring,
-  useVelocity,
-  useAnimationFrame,
-} from "framer-motion";
+import { useEffect, useRef, type ReactNode } from "react";
 
 /**
- * ScrollVelocityRow — text marquee chạy theo velocity của scroll.
- * Càng cuộn nhanh → text trượt nhanh + đảo chiều theo hướng cuộn.
- * Inspired by Shopify Editions hero ribbons.
+ * ScrollVelocityRow — băng chữ chạy ngang (marquee) THUẦN CSS.
+ *
+ * Trước đây dùng framer useAnimationFrame: vòng lặp JS chạy MỖI FRAME mãi mãi
+ * (kể cả khi băng chữ ngoài màn hình) → tốn main-thread khi cuộn. Giờ là
+ * animation CSS transform trên compositor — 0 JS mỗi frame, tự tôn trọng
+ * prefers-reduced-motion (CSS).
+ *
+ * Loop liền mạch: 2 nửa nội dung giống hệt nhau + translateX(-50%).
  */
 export function ScrollVelocityRow({
   children,
   baseVelocity = 40,
   className,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
+  /** Tốc độ tương đối (giữ API cũ) — số càng lớn chạy càng nhanh. */
   baseVelocity?: number;
   className?: string;
 }) {
-  const baseX = useMotionValue(0);
-  const { scrollY } = useScroll();
-  const scrollVelocity = useVelocity(scrollY);
-  const smoothVelocity = useSpring(scrollVelocity, { damping: 50, stiffness: 400 });
-  const velocityFactor = useTransform(smoothVelocity, [0, 1000], [0, 5], { clamp: false });
-
-  const directionFactor = useRef<number>(1);
-  const wrap = (min: number, max: number, v: number) => {
-    const range = max - min;
-    return ((((v - min) % range) + range) % range) + min;
-  };
-  const x = useTransform(baseX, (v) => `${wrap(-25, -75, v)}%`);
-
-  useAnimationFrame((_, delta) => {
-    let moveBy = directionFactor.current * baseVelocity * (delta / 1000);
-    if (velocityFactor.get() < 0) directionFactor.current = -1;
-    else if (velocityFactor.get() > 0) directionFactor.current = 1;
-    moveBy += directionFactor.current * moveBy * velocityFactor.get();
-    baseX.set(baseX.get() + moveBy);
-  });
+  // Map tốc độ cũ → thời lượng CSS (baseVelocity 12 ≈ 40s / vòng, 40 ≈ 12s)
+  const duration = Math.max(8, Math.round(480 / Math.max(1, baseVelocity)));
 
   return (
     <div className={`relative overflow-x-clip overflow-y-visible whitespace-nowrap ${className ?? ""}`}>
-      <motion.div className="flex flex-nowrap whitespace-nowrap will-change-transform" style={{ x }}>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <span key={i} className="mx-8 inline-block">
+      <div
+        className="css-marquee flex w-max flex-nowrap whitespace-nowrap"
+        style={{ animationDuration: `${duration}s` }}
+      >
+        {Array.from({ length: 2 }).map((_, i) => (
+          <span key={i} aria-hidden={i === 1} className="mx-8 inline-block">
             {children}
           </span>
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 }

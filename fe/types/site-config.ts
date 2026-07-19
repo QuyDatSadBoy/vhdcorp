@@ -20,6 +20,7 @@ export type SectionType =
   | "faq-accordion"
   | "comparison-table"
   | "sticky-story"
+  | "scroll-journey"
   | "custom-html"
   | "google-map"
   | "video-embed"
@@ -328,9 +329,27 @@ export type ImageBannerSection = BaseSection<
   }
 >;
 
+/** Hành trình cuộn kiểu "scroll world" — các cảnh full-màn xếp chồng khi cuộn (thuần CSS, siêu nhẹ) */
+export type ScrollJourneySection = BaseSection<
+  "scroll-journey",
+  {
+    eyebrow?: string;
+    heading?: string;
+    /** Các cảnh — mỗi cảnh 1 ảnh nền + chữ; bỏ trống dùng cảnh mặc định VHD */
+    scenes?: {
+      image?: string;
+      eyebrow?: string;
+      title: string;
+      body?: string;
+      tag?: string;
+    }[];
+  }
+>;
+
 export type Section =
   | HeroSection
   | FeaturedProductsSection
+  | ScrollJourneySection
   | CategoryGridSection
   | BannerSliderSection
   | BlogPreviewSection
