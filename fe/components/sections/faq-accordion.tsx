@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Minus } from "lucide-react";
 import type { FaqAccordionSection } from "@/types/site-config";
 import { cn } from "@/lib/utils";
+import { JsonLd } from "@/components/seo/json-ld";
 
 export const DEFAULT_FAQ_ITEMS: NonNullable<FaqAccordionSection["props"]["items"]> = [
   {
@@ -109,8 +110,20 @@ export default function FaqAccordion({ section }: { section: FaqAccordionSection
   const items = p.items?.length ? p.items : DEFAULT_FAQ_ITEMS;
   const [openIdx, setOpenIdx] = useState<number | null>(0);
 
+  // FAQPage schema — hiện FAQ rich result trên Google + để AI answer engine trích dẫn.
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((it) => ({
+      "@type": "Question",
+      name: it.question,
+      acceptedAnswer: { "@type": "Answer", text: it.answer },
+    })),
+  };
+
   return (
     <section className="relative py-24">
+      <JsonLd id="faq" data={faqLd} />
       <div className="container mx-auto max-w-4xl px-4">
         <motion.div
           suppressHydrationWarning

@@ -24,8 +24,10 @@ export async function buildMetadata(input: BuildMetadataInput = {}): Promise<Met
   const seo = siteConfig.seo;
   const brand = siteConfig.brand;
 
-  const rawTitle = input.title ? seo.titleTemplate.replace("%s", input.title) : `${brand.siteName} — ${brand.tagline}`;
-  const title = rawTitle.length > 60 ? rawTitle.slice(0, 57).trimEnd() + "…" : rawTitle;
+  // Trang con dùng template; trang chủ ưu tiên seo.defaultTitle (giàu từ khoá) rồi mới "Brand — Tagline".
+  const homeTitle = seo.defaultTitle || `${brand.siteName} — ${brand.tagline}`;
+  const rawTitle = input.title ? seo.titleTemplate.replace("%s", input.title) : homeTitle;
+  const title = rawTitle.length > 65 ? rawTitle.slice(0, 62).trimEnd() + "…" : rawTitle;
   const description = (input.description ?? seo.defaultDescription).slice(0, 160);
   // Dùng || (không dùng ??) để chuỗi rỗng "" trong DB cũng rơi xuống ảnh mặc định → OG luôn có ảnh
   const rawImage = input.image || seo.ogImage || brand.ogDefaultImage?.url || "";
@@ -35,13 +37,30 @@ export async function buildMetadata(input: BuildMetadataInput = {}): Promise<Met
       : `${APP_URL}${rawImage.startsWith("/") ? rawImage : `/${rawImage}`}`
     : undefined;
   const canonical = input.canonical ?? "/";
-  const keywords = input.keywords ?? seo.defaultKeywords;
+  // Từ khoá mặc định phủ đủ các sản phẩm chủ đạo (kể cả khi config chưa set).
+  const keywords = input.keywords ??
+    seo.defaultKeywords ?? [
+      "VHD Corp",
+      "vhdcorp",
+      "vật tư điện lạnh",
+      "vật tư cơ điện",
+      "gioăng cao su",
+      "gioăng đai treo",
+      "gioăng bích",
+      "tấm cao su",
+      "ống đồng",
+      "gas lạnh",
+      "khuôn mẫu",
+      "đúc nhựa",
+      "bán sỉ vật tư điện lạnh",
+    ];
 
   return {
     metadataBase: new URL(APP_URL),
     title,
     description,
     keywords,
+    verification: seo.googleSiteVerification ? { google: seo.googleSiteVerification } : undefined,
     authors: [{ name: brand.siteName ?? "VHD Corp" }],
     creator: brand.siteName ?? "VHD Corp",
     publisher: brand.siteName ?? "VHD Corp",

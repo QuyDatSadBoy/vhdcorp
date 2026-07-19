@@ -44,10 +44,16 @@ export default async function PostDetailRoute({ params }: { params: Promise<Para
         image: post.coverImage
           ? [post.coverImage.startsWith("http") ? post.coverImage : `${SITE_URL}${post.coverImage}`]
           : undefined,
-        datePublished: post.publishedAt,
+        datePublished: post.publishedAt ?? post.updatedAt,
         dateModified: post.updatedAt ?? post.publishedAt,
         author: post.author?.name ? { "@type": "Person", name: post.author.name } : undefined,
-        mainEntityOfPage: `${SITE_URL}/posts/${post.slug}`,
+        publisher: {
+          "@type": "Organization",
+          name: "VHD Corp",
+          "@id": `${SITE_URL}/#organization`,
+          logo: { "@type": "ImageObject", url: `${SITE_URL}/images/vhdcorplogo.jpeg` },
+        },
+        mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}/posts/${post.slug}` },
       }
     : null;
 

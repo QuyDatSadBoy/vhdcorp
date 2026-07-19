@@ -462,12 +462,16 @@ export interface ThemeConfig {
 
 export interface SeoConfig {
   titleTemplate: string;
+  /** Tiêu đề trang chủ (giàu từ khoá). Bỏ trống → dùng "SiteName — Tagline". */
+  defaultTitle?: string;
   defaultDescription: string;
   defaultKeywords?: string[];
   ogImage?: string;
   googleAnalyticsId?: string;
   googleTagManagerId?: string;
   facebookPixelId?: string;
+  /** Mã xác minh Google Search Console (thẻ meta google-site-verification). */
+  googleSiteVerification?: string;
 }
 
 /** Chữ hero/tiêu đề của KHỐI CỐ ĐỊNH (form liên hệ, danh sách SP/bài viết) — sửa trong Builder */

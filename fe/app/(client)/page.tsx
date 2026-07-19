@@ -47,16 +47,36 @@ export default async function HomePage() {
     config.footer as { contact?: { hotline?: string; email?: string; address?: string } } | undefined
   )?.contact;
 
+  // Các sản phẩm/lĩnh vực chủ đạo — giúp Google & AI answer engine hiểu VHD bán gì.
+  const KNOWS_ABOUT = [
+    "Vật tư điện lạnh",
+    "Vật tư cơ điện (M&E)",
+    "Gioăng cao su",
+    "Gioăng đai treo",
+    "Gioăng bích",
+    "Tấm cao su",
+    "Ống đồng",
+    "Gas lạnh",
+    "Xốp bảo ôn cách nhiệt",
+    "Khuôn mẫu",
+    "Đúc nhựa",
+    "Bán sỉ vật tư điện lạnh",
+  ];
+
   const orgLd = {
     "@context": "https://schema.org",
-    "@type": "Organization",
+    "@type": ["Organization", "Store"],
     "@id": `${SITE_URL}/#organization`,
     name: config.brand?.siteName ?? "VHD Corp",
-    alternateName: "VHD",
+    alternateName: ["VHD", "VHDCorp", "vhdcorp", "VHD Corp"],
     url: SITE_URL,
     logo: logoUrl,
     image: logoUrl,
-    description: config.brand?.tagline ?? "Kết nối giá trị – Hợp tác vững bền",
+    description:
+      "VHD Corp — kho tổng bán sỉ vật tư điện lạnh & cơ điện (M&E) và sản xuất khuôn mẫu, đúc nhựa. Phục vụ đại lý, nhà thầu, doanh nghiệp trên toàn quốc.",
+    email: contactInfo?.email,
+    knowsAbout: KNOWS_ABOUT,
+    areaServed: { "@type": "Country", name: "Việt Nam" },
     sameAs: socials,
     contactPoint: contactInfo?.hotline
       ? {
@@ -113,6 +133,8 @@ export default async function HomePage() {
     },
     telephone: contactInfo?.hotline,
     email: contactInfo?.email,
+    knowsAbout: KNOWS_ABOUT,
+    areaServed: { "@type": "Country", name: "Việt Nam" },
     sameAs: socials,
   };
 

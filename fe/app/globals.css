@@ -348,6 +348,19 @@
     }
   }
 
+  /* Thanh tiến độ cuộn — CSS scroll-timeline thuần (0 JS, chạy trên compositor) */
+  @supports (animation-timeline: scroll()) {
+    .scroll-progress-bar {
+      animation: sw-scroll-progress linear both;
+      animation-timeline: scroll(root block);
+    }
+    @keyframes sw-scroll-progress {
+      to {
+        transform: scaleX(1);
+      }
+    }
+  }
+
   /* Shimmer loading */
   .shimmer {
     background: linear-gradient(90deg, transparent 0%, oklch(1 0 0 / 8%) 50%, transparent 100%);
