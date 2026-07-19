@@ -96,7 +96,6 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
   const sectionRef = useRef<HTMLElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const bgRef = useRef<HTMLDivElement>(null);
 
   // Scroll-driven parallax for the right-side art
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
@@ -121,10 +120,6 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
     if (overlayRef.current) overlayRef.current.style.opacity = String(p.overlayOpacity ?? 0.55);
   }, [p.overlayOpacity]);
 
-  useEffect(() => {
-    if (bgRef.current && p.bgImage) bgRef.current.style.backgroundImage = `url(${p.bgImage})`;
-  }, [p.bgImage]);
-
   const heading = p.heading ?? "Kho tổng *vật tư điện lạnh*, cơ điện & *khuôn mẫu* đúc nhựa";
   const subheading =
     p.subheading ??
@@ -144,11 +139,25 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
       {/* ====== BASE DARK BACKGROUND — aurora sẽ glow lên trên nền tối này ====== */}
       <div aria-hidden className="absolute inset-0 -z-40 bg-[#050c1a]" />
 
-      {/* User-provided background image (optional) */}
+      {/* Ảnh nền thật (kho hàng/vật tư — hợp ngành). next/image priority → LCP nhanh,
+          Cloudinary tự f_auto/q_auto. Khi có ảnh, các lớp trang trí (hạt, lưới, glow)
+          bên dưới KHÔNG render → hero còn nhẹ hơn. */}
       {p.bgImage && (
         <>
-          <div ref={bgRef} aria-hidden className="absolute inset-0 -z-20 bg-cover bg-center" />
-          <div ref={overlayRef} aria-hidden className="absolute inset-0 -z-10 bg-brand-primary" />
+          <div aria-hidden className="absolute inset-0 -z-20">
+            <Image src={p.bgImage} alt="" fill priority sizes="100vw" className="object-cover" />
+          </div>
+          {/* Overlay gradient navy: đậm bên trái cho chữ nổi, hé ảnh dần về phải.
+              Độ đậm tổng chỉnh bằng overlayOpacity trong Builder. */}
+          <div
+            ref={overlayRef}
+            aria-hidden
+            className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,#050c1a_0%,rgba(5,12,26,0.78)_45%,rgba(5,12,26,0.38)_100%)]"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 bg-linear-to-t from-[#050c1a] to-transparent"
+          />
         </>
       )}
 
