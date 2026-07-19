@@ -70,6 +70,8 @@ const FIELD_LABELS: Record<string, string> = {
   items: "Các mục",
   quotes: "Các đánh giá",
   slides: "Các slide",
+  scenes: "Các cảnh (hành trình cuộn)",
+  tag: "Nhãn tag",
   logos: "Các logo",
   rows: "Các hàng",
   // field con trong mục

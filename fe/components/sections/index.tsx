@@ -20,6 +20,7 @@ import UseCases from "./use-cases";
 import FaqAccordion from "./faq-accordion";
 import ComparisonTable from "./comparison-table";
 import StickyStory from "./sticky-story";
+import ScrollJourney from "./scroll-journey";
 import CustomHtml from "./custom-html";
 import GoogleMap from "./google-map";
 import VideoEmbed from "./video-embed";
@@ -65,6 +66,8 @@ export function SectionRenderer({ section }: { section: Section }) {
       return <ComparisonTable section={section} />;
     case "sticky-story":
       return <StickyStory section={section} />;
+    case "scroll-journey":
+      return <ScrollJourney section={section} />;
     case "custom-html":
       return <CustomHtml section={section} />;
     case "google-map":
@@ -83,6 +86,7 @@ export function SectionRenderer({ section }: { section: Section }) {
 /** Các section tự xử lý paddingTop/Bottom BÊN TRONG (giữ ngữ nghĩa cũ) — wrapper bỏ qua padding cho chúng */
 const INTERNAL_PADDING_TYPES = new Set([
   "hero",
+  "scroll-journey",
   "banner-slider",
   "blog-preview",
   "category-grid",
@@ -134,14 +138,15 @@ function SectionShell({ section, children }: { section: Section; children: React
 
   if (!anim) {
     return (
-      <div id={`sec-${section.type}`} data-section-id={section.id} className={className} style={style}>
+      // id theo section.id (không theo type) — tránh trùng id khi 1 type xuất hiện 2 lần (vd 2 mục sản phẩm)
+      <div id={`sec-${section.id}`} data-section-id={section.id} className={className} style={style}>
         {children}
       </div>
     );
   }
   return (
     <motion.div
-      id={`sec-${section.type}`}
+      id={`sec-${section.id}`}
       data-section-id={section.id}
       suppressHydrationWarning
       className={className}

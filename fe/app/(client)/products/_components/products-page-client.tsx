@@ -158,6 +158,21 @@ function ProductsContent({ initialData }: ProductsPageClientProps) {
                       ) : (
                         <ImageFallback />
                       )}
+                      {/* Tag Nổi bật / Bán chạy — admin bật trong form sản phẩm */}
+                      {(p.isFeatured || p.isBestSeller) && (
+                        <div className="absolute left-2 top-2 flex flex-col gap-1">
+                          {p.isBestSeller && (
+                            <span className="rounded-full bg-(--vhd-color-danger) px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow">
+                              Bán chạy
+                            </span>
+                          )}
+                          {p.isFeatured && (
+                            <span className="rounded-full bg-brand-highlight px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-primary shadow">
+                              Nổi bật
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <CardContent className="p-4">
                       <h3 className="line-clamp-2 text-sm font-semibold">{p.name}</h3>

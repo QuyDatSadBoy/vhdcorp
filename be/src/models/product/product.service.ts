@@ -69,14 +69,20 @@ export class ProductService {
         (where.price as Prisma.DecimalFilter).lte = params.maxPrice;
     }
 
-    const orderBy: Prisma.ProductOrderByWithRelationInput =
+    // Mặc định (newest): sản phẩm NỔI BẬT rồi BÁN CHẠY nổi lên đầu danh sách;
+    // khi khách chọn sort giá/tên thì tôn trọng sort thuần.
+    const orderBy: Prisma.ProductOrderByWithRelationInput[] =
       params.sort === 'price_asc'
-        ? { price: 'asc' }
+        ? [{ price: 'asc' }]
         : params.sort === 'price_desc'
-          ? { price: 'desc' }
+          ? [{ price: 'desc' }]
           : params.sort === 'name'
-            ? { name: 'asc' }
-            : { createdAt: 'desc' };
+            ? [{ name: 'asc' }]
+            : [
+                { isFeatured: 'desc' },
+                { isBestSeller: 'desc' },
+                { createdAt: 'desc' },
+              ];
 
     const [records, totalItems] = await this.prisma.$transaction([
       this.prisma.product.findMany({

@@ -93,9 +93,12 @@ export default function BlogPreview({ section }: { section: Section }) {
                 >
                   <div className="relative aspect-16/10 overflow-hidden bg-muted">
                     <PostCover src={hero.coverImage} alt={hero.title} />
-                    <span className="absolute left-4 top-4 rounded-full bg-brand-highlight px-3 py-1 text-xs font-bold text-brand-primary shadow">
-                      Nổi bật
-                    </span>
+                    {/* Tag thật theo cờ admin bật (không còn gắn theo vị trí) */}
+                    {hero.isFeatured && (
+                      <span className="absolute left-4 top-4 rounded-full bg-brand-highlight px-3 py-1 text-xs font-bold text-brand-primary shadow">
+                        Nổi bật
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-1 flex-col gap-3 p-7">
                     <div className="flex items-center gap-2 text-xs text-foreground/55">
@@ -131,6 +134,11 @@ export default function BlogPreview({ section }: { section: Section }) {
                 >
                   <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">
                     <PostCover src={post.coverImage} alt={post.title} />
+                    {post.isFeatured && (
+                      <span className="absolute left-2 top-2 rounded-full bg-brand-highlight px-2 py-0.5 text-[10px] font-bold text-brand-primary shadow">
+                        Nổi bật
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col justify-center gap-2 pr-4">
                     <div className="flex items-center gap-2 text-xs text-foreground/55">

@@ -29,6 +29,7 @@ const TOC_LABELS: Record<string, string> = {
   "faq-accordion": "FAQ",
   "comparison-table": "So sánh",
   "sticky-story": "Quy trình",
+  "scroll-journey": "Hành trình",
 };
 
 export default async function HomePage() {
@@ -138,10 +139,16 @@ export default async function HomePage() {
     sameAs: socials,
   };
 
+  // id theo s.id (khớp SectionShell) — hết trùng anchor khi 1 type có 2 mục.
+  // Nhãn ưu tiên heading ngắn của section (vd "Bán chạy nhất" ≠ "Sản phẩm nổi bật").
   const tocItems: TocItem[] = sections
     .filter((s) => s.visible && s.type !== "hero")
     .sort((a, b) => a.order - b.order)
-    .map((s) => ({ id: `sec-${s.type}`, label: TOC_LABELS[s.type] ?? s.type }));
+    .map((s) => {
+      const heading = (s.props as { heading?: string }).heading;
+      const label = heading && heading.length <= 18 ? heading : (TOC_LABELS[s.type] ?? s.type);
+      return { id: `sec-${s.id}`, label };
+    });
 
   return (
     <>

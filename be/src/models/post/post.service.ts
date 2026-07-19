@@ -60,7 +60,12 @@ export class PostService {
         where,
         skip,
         take,
-        orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
+        // Bài NỔI BẬT nổi lên đầu danh sách, sau đó mới theo ngày đăng
+        orderBy: [
+          { isFeatured: 'desc' },
+          { publishedAt: 'desc' },
+          { createdAt: 'desc' },
+        ],
         include: { author: { select: { id: true, name: true, avatar: true } } },
       }),
       this.prisma.post.count({ where }),
