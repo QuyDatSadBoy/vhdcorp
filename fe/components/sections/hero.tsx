@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, ChevronDown, Play } from "lucide-react";
-import { ShieldDuo, TruckDuo, SparkDuo } from "@/components/client/duo-icons";
+import { IconShield, IconTruck, IconSpark } from "@/components/client/brand-icons";
 import type { HeroSection as HeroSectionType } from "@/types/site-config";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -130,7 +130,7 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
     "VHD Corp — kho tổng vật tư điện lạnh, cơ điện (M&E) và nhà sản xuất khuôn mẫu, đúc nhựa. Đặt hàng B2B/B2C, giao nhanh toàn quốc.";
 
   // Chip cam kết: admin sửa trong builder (icon xoay vòng theo thứ tự)
-  const TRUST_ICONS = [ShieldDuo, TruckDuo, SparkDuo];
+  const TRUST_ICONS = [IconShield, IconTruck, IconSpark];
   const trustItems = (p.trustItems?.length ? p.trustItems : DEFAULT_HERO_TRUST_ITEMS).map((it, i) => ({
     ...it,
     icon: TRUST_ICONS[i % TRUST_ICONS.length],

@@ -391,6 +391,52 @@
     }
   }
 
+  /* Border beam — vệt sáng chạy quanh viền (kỹ thuật magic-ui, thuần CSS @property).
+     Chỉ dùng cho 1-2 khối signature (CTA) — vành mảnh 1.5px nên chi phí vẽ rất nhỏ. */
+  @property --beam-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
+  .border-beam {
+    position: relative;
+  }
+  .border-beam::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: conic-gradient(
+      from var(--beam-angle),
+      transparent 0deg,
+      transparent 300deg,
+      color-mix(in srgb, var(--vhd-color-accent) 90%, transparent) 330deg,
+      var(--vhd-color-highlight) 348deg,
+      transparent 360deg
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: beam-spin 5s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes beam-spin {
+    to {
+      --beam-angle: 360deg;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .border-beam::before {
+      animation: none;
+    }
+  }
+
   /* Shine sweep — vệt sáng lướt qua khi hover (nút chính, ảnh card) */
   .shine-sweep {
     position: relative;
