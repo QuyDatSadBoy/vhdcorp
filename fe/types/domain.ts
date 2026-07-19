@@ -41,6 +41,10 @@ export interface Product {
   metaDesc: string | null;
   ogImage: string | null;
   status: "DRAFT" | "PUBLISHED";
+  /** Sản phẩm nổi bật — admin bật để hiện lên đầu / slider */
+  isFeatured?: boolean;
+  /** Sản phẩm bán chạy — admin bật để hiện ở mục "Bán chạy nhất" */
+  isBestSeller?: boolean;
   createdAt: string;
   updatedAt: string;
   reviews?: Review[];
@@ -59,6 +63,8 @@ export interface Post {
   metaDesc: string | null;
   ogImage: string | null;
   tags: string[];
+  /** Bài viết nổi bật — admin bật để hiện lên đầu / vào slider */
+  isFeatured?: boolean;
   authorId: number;
   author?: { id: number; name: string; avatar: string | null };
   createdAt: string;

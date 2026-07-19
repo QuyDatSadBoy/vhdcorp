@@ -34,6 +34,8 @@ const FIELD_LABELS: Record<string, string> = {
   autoplay: "Tự chạy",
   interval: "Thời gian chuyển (ms)",
   source: "Nguồn slide",
+  mode: "Nguồn hiển thị",
+  productMode: "Loại sản phẩm (khi nguồn = Sản phẩm)",
   trustItems: "Chip cam kết dưới hero",
   headingSize: "Cỡ chữ tiêu đề (mức)",
   headingSizePx: "Cỡ chữ tiêu đề (px, 0 = tự động)",
@@ -118,6 +120,17 @@ const ENUM_OPTIONS: Record<string, { value: string; label: string }[]> = {
   source: [
     { value: "manual", label: "Tự nhập slide bên dưới" },
     { value: "banners", label: "Lấy từ trang Quản trị → Banner" },
+    { value: "products", label: "Ảnh sản phẩm bán chạy / nổi bật" },
+    { value: "posts", label: "Ảnh bìa bài viết nổi bật" },
+  ],
+  mode: [
+    { value: "newest", label: "Mới nhất" },
+    { value: "featured", label: "Nổi bật (admin bật)" },
+    { value: "best-seller", label: "Bán chạy nhất (admin bật)" },
+  ],
+  productMode: [
+    { value: "best-seller", label: "Bán chạy nhất" },
+    { value: "featured", label: "Nổi bật" },
   ],
   align: [
     { value: "left", label: "Trái" },

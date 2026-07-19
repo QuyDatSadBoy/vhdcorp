@@ -35,6 +35,7 @@ export class PostController {
     @Query('limit') limit?: string,
     @Query('search') search?: string,
     @Query('tag') tag?: string,
+    @Query('featured') featured?: string,
   ) {
     return this.service.list({
       pageNumber,
@@ -43,6 +44,7 @@ export class PostController {
       limit,
       search,
       tag,
+      featured: featured === 'true',
       publishedOnly: true,
     });
   }

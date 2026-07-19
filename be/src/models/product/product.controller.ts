@@ -73,6 +73,8 @@ export class ProductController {
     @Query('minPrice') minPrice?: string,
     @Query('maxPrice') maxPrice?: string,
     @Query('sort') sort?: 'newest' | 'price_asc' | 'price_desc' | 'name',
+    @Query('featured') featured?: string,
+    @Query('bestSeller') bestSeller?: string,
   ) {
     return this.service.list({
       pageNumber,
@@ -84,6 +86,8 @@ export class ProductController {
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       sort,
+      featured: featured === 'true',
+      bestSeller: bestSeller === 'true',
       publishedOnly: true,
     });
   }

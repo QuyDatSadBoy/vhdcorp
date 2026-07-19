@@ -1,6 +1,7 @@
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsOptional,
@@ -56,4 +57,9 @@ export class CreatePostDto {
   @IsString({ each: true })
   @ArrayMaxSize(20)
   tags?: string[];
+
+  /** Bài viết nổi bật — hiện lên đầu / vào slider */
+  @IsOptional()
+  @IsBoolean()
+  isFeatured?: boolean;
 }

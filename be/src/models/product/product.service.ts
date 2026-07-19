@@ -23,6 +23,10 @@ interface ListParams {
   minPrice?: number;
   maxPrice?: number;
   sort?: 'newest' | 'price_asc' | 'price_desc' | 'name';
+  /** Chỉ lấy sản phẩm nổi bật (admin bật). */
+  featured?: boolean;
+  /** Chỉ lấy sản phẩm bán chạy (admin bật). */
+  bestSeller?: boolean;
 }
 
 @Injectable()
@@ -55,6 +59,8 @@ export class ProductService {
     }
     if (params.categoryId) where.categoryId = params.categoryId;
     if (params.categorySlug) where.category = { slug: params.categorySlug };
+    if (params.featured) where.isFeatured = true;
+    if (params.bestSeller) where.isBestSeller = true;
     if (params.minPrice !== undefined || params.maxPrice !== undefined) {
       where.price = {};
       if (params.minPrice !== undefined)
@@ -186,6 +192,8 @@ export class ProductService {
         metaDesc: dto.metaDesc,
         ogImage: dto.ogImage,
         status: dto.status ?? ProductStatus.DRAFT,
+        isFeatured: dto.isFeatured ?? false,
+        isBestSeller: dto.isBestSeller ?? false,
       },
     });
     this.agent.notifyProductsChanged();
@@ -223,6 +231,8 @@ export class ProductService {
         metaDesc: dto.metaDesc,
         ogImage: dto.ogImage,
         status: dto.status,
+        isFeatured: dto.isFeatured,
+        isBestSeller: dto.isBestSeller,
       },
     });
     this.agent.notifyProductsChanged();

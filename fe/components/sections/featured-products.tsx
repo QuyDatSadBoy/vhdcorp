@@ -60,11 +60,15 @@ function SpotlightCard({ children, href }: { children: React.ReactNode; href: st
 
 export default function FeaturedProducts({ section }: { section: Section }) {
   const p = section.props;
+  const mode = p.mode ?? "newest";
   const { data, isLoading } = useProducts({
     pageSize: p.limit ?? 8,
     categoryId: p.categoryId,
     sort: "newest",
+    featured: mode === "featured",
+    bestSeller: mode === "best-seller",
   });
+  const eyebrow = mode === "best-seller" ? "Bán chạy nhất" : mode === "featured" ? "Nổi bật" : "Sản phẩm";
   const products = data?.records ?? [];
   const sectionRef = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -74,11 +78,15 @@ export default function FeaturedProducts({ section }: { section: Section }) {
     el.style.paddingBottom = `${p.paddingBottom ?? 96}px`;
   }, [p.paddingTop, p.paddingBottom]);
 
+  // Ẩn hẳn section nếu không có sản phẩm nào (vd chưa gắn cờ nổi bật/bán chạy) —
+  // tránh hiện tiêu đề trống trên trang chủ.
+  if (!isLoading && products.length === 0) return null;
+
   return (
     <section ref={sectionRef} className="container mx-auto px-4">
       <Reveal className="mb-10 flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="type-eyebrow text-brand-primary">Sản phẩm</p>
+          <p className="type-eyebrow text-brand-primary">{eyebrow}</p>
           <h2 className="mt-3 type-display-md text-foreground">{p.heading ?? "Sản phẩm nổi bật"}</h2>
           <div className="mt-4 h-1 w-12 rounded-full bg-brand-highlight" />
         </div>
