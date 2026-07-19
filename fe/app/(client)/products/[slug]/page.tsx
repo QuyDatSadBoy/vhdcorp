@@ -60,11 +60,13 @@ export default async function ProductDetailRoute({ params }: { params: Promise<P
         image: (product.images ?? []).map((src) => (src.startsWith("http") ? src : `${SITE_URL}${src}`)),
         sku: String(product.id),
         category: product.category?.name,
+        brand: { "@type": "Brand", name: "VHD Corp" },
         offers:
           Number(product.price) > 0
             ? {
                 "@type": "Offer",
                 priceCurrency: "VND",
+                seller: { "@type": "Organization", name: "VHD Corp", "@id": `${SITE_URL}/#organization` },
                 // Giá hiệu lực = giá KM khi còn hạn (đồng bộ hiển thị) — Google đọc đúng giá bán
                 price:
                   product.salePrice && (!product.saleEndsAt || new Date(product.saleEndsAt) > new Date())
