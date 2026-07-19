@@ -44,7 +44,8 @@ export function HomeMarquees() {
           <LogoChip logo={logo} />
           <span className="text-white">VHD Corp</span>
           <Separator />
-          <span className="bg-linear-to-r from-(--vhd-color-accent) to-(--vhd-color-highlight) bg-clip-text text-transparent">
+          {/* py mở rộng hộp sơn bg-clip-text phủ trọn DẤU (Ế Ố Á Ị), -my bù layout */}
+          <span className="-my-[0.24em] bg-linear-to-r from-(--vhd-color-accent) to-(--vhd-color-highlight) bg-clip-text py-[0.24em] text-transparent">
             Kết nối giá trị
           </span>
           <Separator />

@@ -140,6 +140,22 @@ export default function HeroSection({ section }: { section: HeroSectionType }) {
     // -mt-16 md:-mt-20: kéo hero lên sau sticky header trong suốt (h-16/h-20)
     // để dark background lấp đầy phần header trong suốt, không để trắng lộ ra
     <section ref={sectionRef} className="relative isolate overflow-hidden min-h-screen -mt-16 md:-mt-20">
+      {/* MÀN MỞ MÀN thương hiệu — 1 lần khi vào trang, thuần CSS, tự biến sau ~2s */}
+      <div
+        aria-hidden
+        className="hero-curtain pointer-events-none absolute inset-0 z-30 grid place-items-center bg-[linear-gradient(135deg,#0d1f4d_0%,#1B3A8C_55%,#0d1f4d_100%)]"
+      >
+        <div className="hero-curtain-brand text-center">
+          <span className="font-heading text-4xl font-black tracking-tight text-white md:text-6xl">
+            VHD <span className="text-brand-highlight">CORP</span>
+          </span>
+          <span className="hero-curtain-line mt-3 block h-0.5 w-full origin-left scale-x-0 rounded-full bg-brand-highlight" />
+          <span className="mt-3 block text-[11px] font-bold uppercase tracking-[0.3em] text-white/60">
+            Kết nối giá trị · Hợp tác vững bền
+          </span>
+        </div>
+      </div>
+
       {/* ====== BASE DARK BACKGROUND — aurora sẽ glow lên trên nền tối này ====== */}
       <div aria-hidden className="absolute inset-0 -z-40 bg-[#050c1a]" />
 

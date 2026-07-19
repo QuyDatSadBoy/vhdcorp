@@ -372,6 +372,44 @@
     }
   }
 
+  /* MÀN MỞ MÀN thương hiệu — 1 lần khi vào trang (thuần CSS, chạy xong tự biến):
+     wordmark VHD CORP hiện lên → gạch vàng quét ngang → màn NÂNG LÊN lộ hero. */
+  .hero-curtain {
+    animation: curtain-lift 0.75s cubic-bezier(0.76, 0, 0.24, 1) 1.25s both;
+  }
+  @keyframes curtain-lift {
+    to {
+      transform: translateY(-102%);
+      visibility: hidden;
+    }
+  }
+  .hero-curtain-brand {
+    animation: curtain-brand 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+  }
+  @keyframes curtain-brand {
+    from {
+      opacity: 0;
+      transform: translateY(22px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .hero-curtain-line {
+    animation: curtain-line 0.45s ease-out 0.7s both;
+  }
+  @keyframes curtain-line {
+    to {
+      transform: scaleX(1);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-curtain {
+      display: none;
+    }
+  }
+
   /* Entrance 1 lần khi VÀO TRANG: ảnh hero hiện ra từ scale lớn + mờ → nét,
      phối với chữ chạy từng từ = khoảnh khắc "wow" mở màn. Chạy 1 lần rồi thôi. */
   .hero-enter {
@@ -712,7 +750,13 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: shimmer-brand 6s linear infinite;
+  /* FIX "dấu đứt nét": bg-clip-text chỉ sơn trong content-box — DẤU chồng tầng
+     tiếng Việt (Ấ Ậ Ố…) vượt lên trên hộp → phần dấu không được tô. Padding-em
+     mở rộng hộp sơn phủ trọn dấu; margin âm bù lại → layout không đổi. */
+  padding: 0.26em 0.08em;
+  margin: -0.26em -0.08em;
+  /* Bỏ animation shimmer chạy vô hạn: repaint chữ H1 mỗi frame (nặng) và gây
+     rạn nét khi rasterize — gradient tĩnh vẫn giữ chất "vàng cam" thương hiệu. */
 }
 
 @keyframes shimmer-brand {
