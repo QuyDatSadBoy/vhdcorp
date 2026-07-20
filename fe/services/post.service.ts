@@ -44,11 +44,13 @@ export function useAdminPosts(params?: PostListParams) {
   return useQuery({ queryKey: postKeys.adminList(params), queryFn: () => postService.adminList(params) });
 }
 
-export function usePostBySlug(slug?: string) {
+export function usePostBySlug(slug?: string, initialData?: Post) {
   return useQuery({
     queryKey: slug ? postKeys.bySlug(slug) : ["posts", "slug", "none"],
     queryFn: () => postService.bySlug(slug as string),
     enabled: Boolean(slug),
+    initialData,
+    staleTime: initialData ? 60_000 : 0,
   });
 }
 

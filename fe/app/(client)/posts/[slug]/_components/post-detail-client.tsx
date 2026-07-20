@@ -1,6 +1,7 @@
 "use client";
 
 import { use } from "react";
+import type { Post } from "@/types/domain";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -28,9 +29,15 @@ function fmtDate(iso?: string | null) {
   });
 }
 
-export default function PostDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+export default function PostDetailPage({
+  params,
+  initialPost,
+}: {
+  params: Promise<{ slug: string }>;
+  initialPost?: Post;
+}) {
   const { slug } = use(params);
-  const { data: post, isLoading } = usePostBySlug(slug);
+  const { data: post, isLoading } = usePostBySlug(slug, initialPost);
   const { data: relatedData } = usePosts({ pageSize: 6 });
 
   if (isLoading) {

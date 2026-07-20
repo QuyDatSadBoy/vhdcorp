@@ -4,6 +4,7 @@ import type { Review } from "@/types/domain";
 import { JsonLd, SITE_URL } from "@/components/seo/json-ld";
 import { buildMetadata } from "@/lib/seo";
 import { stripHtml } from "@/lib/utils";
+import { notFound } from "next/navigation";
 import ProductDetailClient from "./_components/product-detail-client";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
@@ -51,6 +52,8 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 export default async function ProductDetailRoute({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
   const [product, reviews] = await Promise.all([serverApi.productBySlug(slug), getProductReviews(slug)]);
+  // HTTP 404 thật cho sản phẩm không tồn tại (trước đây 200 + noindex = soft-404)
+  if (!product) notFound();
 
   const productLd = product
     ? {
@@ -122,7 +125,7 @@ export default async function ProductDetailRoute({ params }: { params: Promise<P
     <>
       {productLd && <JsonLd id="product" data={productLd} />}
       {breadcrumbLd && <JsonLd id="breadcrumb" data={breadcrumbLd} />}
-      <ProductDetailClient params={params} />
+      <ProductDetailClient params={params} initialProduct={product} />
     </>
   );
 }
