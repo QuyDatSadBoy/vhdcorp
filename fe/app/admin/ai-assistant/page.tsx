@@ -27,11 +27,13 @@ export default function AiAssistantPage() {
     {
       role: "assistant",
       content:
-        "Chào bạn 👋 Mình là trợ lý AI của VHD. Mình làm được:\n\n" +
-        '• Soạn nháp SẢN PHẨM — gõ "tạo sản phẩm gas lạnh R32" → mình viết tên, mô tả chuẩn SEO, bạn duyệt là thành nháp.\n' +
-        '• Soạn nháp BÀI VIẾT — gõ "viết bài về cách chọn ống đồng" → mình viết cả bài (có tra cứu web).\n' +
-        "• Tư vấn nội dung, từ khoá SEO, ý tưởng bài theo mùa vụ.\n\n" +
-        "Ngoài ra trong form Sản phẩm có nút “AI viết mô tả” (đọc ảnh + web) và form Bài viết có nút “AI soạn bài”. Kiến thức nền của AI chỉnh ở mục Kiến thức AI. Mình chỉ soạn nháp — bạn luôn duyệt trước khi đăng.",
+        "Chào bạn 👋 Mình là trợ lý điều hành của VHD — làm được đủ việc:\n\n" +
+        '• Soạn nháp SẢN PHẨM — "tạo sản phẩm gas lạnh R32" → tên + mô tả chuẩn SEO, bạn duyệt là thành nháp.\n' +
+        '• Soạn nháp BÀI VIẾT — "viết bài về cách chọn ống đồng" → cả bài (có tra cứu web).\n' +
+        '• Hỏi về KHO thật — "kho đang có bao nhiêu sản phẩm?", "có gioăng đai treo không?".\n' +
+        '• Tư vấn SEO & kinh doanh — "gợi ý từ khoá cho tấm cao su", "ý tưởng bài viết tháng này".\n' +
+        "• Hỏi chính sách công ty — giờ mở cửa, giao hàng, đổi trả…\n\n" +
+        "Ngoài ra: form Sản phẩm có nút “AI viết mô tả” (đọc ảnh + web), form Bài viết có nút “AI soạn bài”. Mình chỉ soạn nháp — bạn luôn duyệt trước khi đăng.",
     },
   ]);
   const [input, setInput] = useState("");
