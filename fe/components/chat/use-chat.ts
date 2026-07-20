@@ -9,6 +9,26 @@ const ACTIVE_ID_KEY = "vhd_chat_active_id"; // + hậu tố danh tính
 
 const GENERIC_ERROR = "Không kết nối được trợ lý. Vui lòng thử lại.";
 
+/** Nhãn tiến trình theo tool — khách thấy VHD "đang làm việc" thật */
+const TOOL_STEP_LABELS: Record<string, string> = {
+  search_products: "Đang tìm kiếm trong kho VHD…",
+  get_product_detail: "Đang lấy thông tin chi tiết sản phẩm…",
+  show_product_carousel: "Đang tìm kiếm & chọn lọc sản phẩm…",
+  show_comparison: "Đang lập bảng so sánh…",
+  get_recommendations: "Đang chọn gợi ý phù hợp với bạn…",
+  list_categories: "Đang tổng hợp danh mục hàng…",
+  search_posts: "Đang tìm bài viết liên quan…",
+  get_company_info: "Đang lấy thông tin liên hệ chính thức…",
+  add_to_cart: "Đang thêm sản phẩm vào giỏ…",
+  show_quote_form: "Đang chuẩn bị form báo giá…",
+  create_quote_request: "Đang gửi yêu cầu báo giá…",
+  show_contact_form: "Đang mở form liên hệ…",
+  send_contact_request: "Đang gửi thông tin liên hệ…",
+  show_faq: "Đang tra cứu câu hỏi thường gặp…",
+  search_knowledge: "Đang tra cứu tài liệu công ty…",
+  web_search: "Đang tra cứu thêm trên web…",
+};
+
 /**
  * State machine cho widget chat: danh sách hội thoại, tin nhắn của hội thoại
  * đang mở, streaming SSE, stop/retry, rename/delete.
@@ -21,6 +41,8 @@ export function useChat() {
   const [streaming, setStreaming] = useState(false);
   /** Tên tool đang chạy (tool.start → tool.end) — hiện indicator */
   const [activeTool, setActiveTool] = useState<string | null>(null);
+  /** Log tiến trình sống động ("Đang tìm kiếm trong kho…") — hiện khi chưa có chữ */
+  const [procSteps, setProcSteps] = useState<{ label: string; done: boolean }[]>([]);
 
   const abortRef = useRef<AbortController | null>(null);
   /** Message user cuối cùng — dùng cho nút "Thử lại" */
@@ -123,30 +145,54 @@ export function useChat() {
 
       setStreaming(true);
       setActiveTool(null);
+      // Bước đầu tiên của log tiến trình — hiện ngay khi gửi
+      setProcSteps([{ label: "Đã tiếp nhận, đang phân tích yêu cầu…", done: false }]);
       const controller = new AbortController();
       abortRef.current = controller;
 
-      let content = "";
-      let uiBlocks: UiBlock[] = [];
+      let content = ""; // toàn bộ chữ đã NHẬN từ server (target của typewriter)
+      let shownChars = 0; // số ký tự đã HIỂN THỊ
+      let uiBlocks: UiBlock[] = []; // card/gợi ý — CHỜ text xong mới gắn (tuần tự)
       let streamError: string | null = null;
       let createdConversation = false;
+      let serverDone = false;
+      let finalized = false;
+      let finalMessageId: string | null = null;
+      let ticker: number | null = null;
+      let typewriterResolve: (() => void) | null = null;
 
-      // Stream mượt: SSE bắn hàng chục delta/giây — patch mỗi token là mỗi lần
-      // re-render + re-parse markdown. Gom delta lại, flush tối đa 1 lần/frame.
-      let rafId: number | null = null;
-      let lastFlush = 0;
-      let toolShowing = false;
-      const flushContent = () => {
-        rafId = null;
-        lastFlush = performance.now();
-        patchMessage(assistantId, { content });
+      const finalize = () => {
+        if (finalized) return;
+        finalized = true;
+        if (ticker != null) clearInterval(ticker);
+        // Text xong RỒI mới gắn card — thứ tự tuần tự tuyệt đối
+        patchMessage(assistantId, {
+          ...(finalMessageId ? { id: finalMessageId } : {}),
+          content,
+          uiBlocks: uiBlocks.length ? uiBlocks : undefined,
+          streaming: false,
+          finishedLive: true,
+        });
+        typewriterResolve?.();
       };
-      // Throttle ~140ms/lần: markdown render từ đầu vẫn mượt (parse ~7 lần/s
-      // thay vì mỗi frame), chữ hiện theo nhịp gõ tự nhiên.
-      const scheduleFlush = () => {
-        if (rafId != null) return;
-        const wait = Math.max(0, 140 - (performance.now() - lastFlush));
-        rafId = window.setTimeout(flushContent, wait) as unknown as number;
+
+      // Typewriter ~30fps: hiển thị đuổi theo target với bước thích ứng —
+      // chữ chảy đều mượt bất kể mạng bắn delta theo cụm.
+      const tick = () => {
+        const backlog = content.length - shownChars;
+        if (backlog > 0) {
+          shownChars = Math.min(content.length, shownChars + Math.max(2, Math.ceil(backlog / 12)));
+          patchMessage(assistantId, { content: content.slice(0, shownChars) });
+        } else if (serverDone) {
+          finalize();
+        }
+      };
+      const ensureTicker = () => {
+        if (ticker == null) ticker = window.setInterval(tick, 33) as unknown as number;
+      };
+      /** Đánh dấu bước hiện tại xong + thêm bước mới vào log tiến trình */
+      const pushStep = (label: string) => {
+        setProcSteps((prev) => [...prev.map((st) => ({ ...st, done: true })), { label, done: false }]);
       };
 
       try {
@@ -169,35 +215,27 @@ export function useChat() {
                 break;
               case "message.delta":
                 content += event.content;
-                if (toolShowing) {
-                  toolShowing = false;
-                  setActiveTool(null);
-                }
-                scheduleFlush();
+                setActiveTool(null);
+                ensureTicker(); // typewriter bắt đầu chảy chữ
                 break;
               case "tool.start":
-                toolShowing = true;
                 setActiveTool(event.name);
+                pushStep(TOOL_STEP_LABELS[event.name] ?? "Đang xử lý yêu cầu…");
                 break;
               case "tool.end":
-                toolShowing = false;
                 setActiveTool(null);
+                pushStep("Đang tổng hợp & xác minh thông tin…");
                 break;
               case "ui":
-                // Chữ PHẢI hiện trước card: flush ngay phần chữ đang chờ throttle
-                // (nếu không, card render tức thì còn chữ đợi 140ms → thứ tự đảo).
-                if (rafId != null) {
-                  clearTimeout(rafId);
-                  flushContent();
-                }
-                // Gen-UI: gắn block vào bubble assistant đang stream (§9.2)
+                // Card/gợi ý XẾP HÀNG chờ — chỉ gắn sau khi text stream xong
                 uiBlocks = [...uiBlocks, { id: crypto.randomUUID(), component: event.component, props: event.props }];
-                patchMessage(assistantId, { uiBlocks, content });
                 break;
               case "done":
-                // Kèm content: sau khi đổi id, patch cuối theo id cũ sẽ không tìm thấy
-                // message nữa — không kèm thì có thể mất chunk cuối chưa kịp flush.
-                patchMessage(assistantId, { id: event.message_id, streaming: false, content, finishedLive: true });
+                finalMessageId = event.message_id;
+                serverDone = true;
+                // Không có chữ (vd guardrail) → chốt luôn; có chữ → typewriter chảy nốt rồi tự finalize
+                if (content.length === 0 || shownChars >= content.length) finalize();
+                else ensureTicker();
                 break;
               case "error":
                 streamError = event.message || GENERIC_ERROR;
@@ -205,24 +243,44 @@ export function useChat() {
             }
           },
         });
-        if (rafId != null) clearTimeout(rafId);
         if (streamError) {
+          if (ticker != null) clearInterval(ticker);
+          finalized = true;
           patchMessage(assistantId, { streaming: false, error: streamError });
         } else {
-          // Flush cuối kèm content — không phụ thuộc frame đã schedule
-          patchMessage(assistantId, { streaming: false, content, finishedLive: true });
+          serverDone = true;
+          if (content.length === 0 || shownChars >= content.length) {
+            finalize();
+          } else {
+            // Chờ typewriter chảy nốt (tối đa 6s an toàn) rồi finalize gắn card
+            ensureTicker();
+            await new Promise<void>((resolve) => {
+              typewriterResolve = resolve;
+              window.setTimeout(() => {
+                shownChars = content.length;
+                finalize();
+              }, 6000);
+            });
+          }
         }
       } catch (err) {
-        if (rafId != null) clearTimeout(rafId);
+        if (ticker != null) clearInterval(ticker);
+        finalized = true;
         if (err instanceof DOMException && err.name === "AbortError") {
           // User bấm Stop — giữ phần đã stream, không coi là lỗi
-          patchMessage(assistantId, { streaming: false, content: content || "(đã dừng)" });
+          patchMessage(assistantId, {
+            streaming: false,
+            content: content || "(đã dừng)",
+            uiBlocks: uiBlocks.length ? uiBlocks : undefined,
+          });
         } else {
           patchMessage(assistantId, { streaming: false, error: GENERIC_ERROR });
         }
       } finally {
+        if (ticker != null) clearInterval(ticker);
         setStreaming(false);
         setActiveTool(null);
+        setProcSteps([]);
         abortRef.current = null;
         if (!createdConversation && activeId) {
           // Cập nhật meta hội thoại hiện tại (đưa lên đầu sidebar)
@@ -303,6 +361,7 @@ export function useChat() {
     loadingMessages,
     streaming,
     activeTool,
+    procSteps,
     init,
     send,
     stop,

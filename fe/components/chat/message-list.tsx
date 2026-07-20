@@ -22,6 +22,7 @@ interface MessageListProps {
   messages: UiChatMessage[];
   loading: boolean;
   activeTool: string | null;
+  procSteps?: { label: string; done: boolean }[];
   onRetry: () => void;
   onSelectPrompt: (prompt: string) => void;
   /** Form gen-UI submit → gửi câu lệnh trở lại agent */
@@ -36,6 +37,7 @@ export default function MessageList({
   messages,
   loading,
   activeTool,
+  procSteps,
   onRetry,
   onSelectPrompt,
   onAction,
@@ -81,6 +83,7 @@ export default function MessageList({
               message={message}
               // Chỉ bubble cuối (đang stream) mới nhận tool indicator
               activeTool={i === lastIndex ? activeTool : null}
+              procSteps={i === lastIndex ? procSteps : undefined}
               onRetry={message.error ? onRetry : undefined}
               onAction={onAction}
               isLast={i === lastIndex}
