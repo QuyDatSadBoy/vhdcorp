@@ -30,13 +30,14 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const { slug } = await params;
   const product = await serverApi.productBySlug(slug);
   if (!product) {
-    return { title: "Không tìm thấy sản phẩm" };
+    // noindex: trang không tồn tại không được vào chỉ mục (Google SEO guide — duplicate/soft-404)
+    return { title: "Không tìm thấy sản phẩm", robots: { index: false, follow: false } };
   }
   const description =
     product.metaDesc?.trim() ||
     product.shortDescription?.trim() ||
     stripHtml(product.description ?? "").trim() ||
-    `${product.name} — sản phẩm chính hãng từ VHD Corp, đối tác sản xuất nhựa – cao su – cơ khí công nghiệp uy tín tại Việt Nam.`;
+    `${product.name} — sản phẩm chính hãng từ VHD Corp, kho tổng vật tư điện lạnh, cơ điện (M&E) và khuôn mẫu, đúc nhựa. Giao hàng toàn quốc.`;
   // buildMetadata áp titleTemplate từ SiteConfig + OG/Twitter/robots đầy đủ
   return buildMetadata({
     title: product.metaTitle?.trim() || product.name,

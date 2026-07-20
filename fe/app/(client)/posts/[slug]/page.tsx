@@ -12,7 +12,8 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const { slug } = await params;
   const post = await serverApi.postBySlug(slug);
   if (!post) {
-    return { title: "Không tìm thấy bài viết" };
+    // noindex: trang không tồn tại không được vào chỉ mục (Google SEO guide — duplicate/soft-404)
+    return { title: "Không tìm thấy bài viết", robots: { index: false, follow: false } };
   }
   const description =
     post.metaDesc?.trim() ||

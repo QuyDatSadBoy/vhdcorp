@@ -6,6 +6,18 @@ import type { NextConfig } from "next";
 const feRoot = import.meta.dirname ?? process.cwd();
 
 const nextConfig: NextConfig = {
+  // Gộp tín hiệu SEO về 1 URL duy nhất: www → apex 301 (Google starter guide,
+  // mục "Nội dung trùng lặp" — canonical đã có, 301 là chuẩn đầy đủ).
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.vhdcorp.com" }],
+        destination: "https://vhdcorp.com/:path*",
+        permanent: true,
+      },
+    ];
+  },
   turbopack: {
     root: feRoot,
   },
