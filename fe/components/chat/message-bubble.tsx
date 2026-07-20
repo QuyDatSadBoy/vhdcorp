@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { AlertCircle, RotateCcw } from "lucide-react";
 import { useVoiceChatStore } from "@/store/voice-chat.store";
+import { useSiteConfigStore } from "@/store/site-config.store";
 import type { UiChatMessage } from "@/types/chat";
 import GenUiBlock from "./gen-ui/gen-ui-block";
 import MarkdownContent from "./markdown-content";
@@ -199,14 +200,16 @@ function MessageBubble({ message, activeTool, procSteps, onRetry, onAction, isLa
 // memo: đang stream chỉ bubble cuối đổi props — các bubble cũ không re-render
 export default memo(MessageBubble);
 
-/** Avatar logo VHD cho assistant */
+/** Avatar = LOGO THẬT của công ty (config brand) — fallback chữ VHD */
 function AssistantAvatar() {
+  const logo = useSiteConfigStore((s) => s.config?.brand?.logo?.url) || "/images/vhdcorplogo.jpeg";
   return (
     <span
-      className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-linear-to-br from-brand-primary to-brand-accent text-[8px] font-bold text-white shadow-sm"
+      className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-foreground/10"
       aria-hidden
     >
-      VHD
+      {/* eslint-disable-next-line @next/next/no-img-element -- logo brand nhỏ từ config */}
+      <img src={logo} alt="" className="h-full w-full object-contain p-0.5" />
     </span>
   );
 }
