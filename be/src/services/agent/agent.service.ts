@@ -78,6 +78,19 @@ export class AgentService {
     return (await res.json()) as Record<string, unknown>;
   }
 
+  /** Thống kê sử dụng AI + ước tính chi phí. */
+  async getUsage(days = 30): Promise<Record<string, unknown>> {
+    const res = await fetch(`${this.baseUrl}/api/admin/usage?days=${days}`, {
+      headers: { 'X-Admin-Secret': this.adminSecret },
+    });
+    if (!res.ok) {
+      throw new BadGatewayException(
+        'Agent AI không phản hồi — kiểm tra service cổng 8001 đang chạy.',
+      );
+    }
+    return (await res.json()) as Record<string, unknown>;
+  }
+
   /** Chống spam chat: lưu cấu hình giới hạn (hiệu lực ngay). */
   async saveChatLimits(
     body: Record<string, unknown>,
