@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { serverApi } from "@/lib/server-api";
 import { JsonLd, SITE_URL } from "@/components/seo/json-ld";
 import { buildMetadata } from "@/lib/seo";
+import { notFound } from "next/navigation";
 import PostDetailClient from "./_components/post-detail-client";
 
 interface Params {
@@ -36,6 +37,8 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 export default async function PostDetailRoute({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
   const post = await serverApi.postBySlug(slug);
+  // HTTP 404 thật cho bài viết không tồn tại
+  if (!post) notFound();
 
   const articleLd = post
     ? {
@@ -74,7 +77,7 @@ export default async function PostDetailRoute({ params }: { params: Promise<Para
     <>
       {articleLd && <JsonLd id="article" data={articleLd} />}
       {breadcrumbLd && <JsonLd id="breadcrumb" data={breadcrumbLd} />}
-      <PostDetailClient params={params} />
+      <PostDetailClient params={params} initialPost={post} />
     </>
   );
 }

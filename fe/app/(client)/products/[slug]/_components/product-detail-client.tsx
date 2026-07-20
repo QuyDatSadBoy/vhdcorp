@@ -1,6 +1,7 @@
 "use client";
 
 import { AddToCartButton } from "@/components/client/add-to-cart-button";
+import type { Product } from "@/types/domain";
 import { PriceTag } from "@/components/client/price-tag";
 import { useEffect, useState } from "react";
 import { use } from "react";
@@ -21,9 +22,15 @@ import { ImageFallback } from "@/components/client/image-fallback";
 import TrackProductView from "@/components/client/track-product-view";
 import { RecentlyViewed, pushRecentProduct } from "@/components/client/recently-viewed";
 
-export default function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+export default function ProductDetailPage({
+  params,
+  initialProduct,
+}: {
+  params: Promise<{ slug: string }>;
+  initialProduct?: Product;
+}) {
   const { slug } = use(params);
-  const { data: product, isLoading } = useProductBySlug(slug);
+  const { data: product, isLoading } = useProductBySlug(slug, initialProduct);
   const { data: reviews } = useProductReviews(slug);
   const { data: related } = useRelatedProducts(product?.id);
   const user = useAuthStore((s) => s.user);

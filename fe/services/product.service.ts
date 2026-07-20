@@ -62,11 +62,15 @@ export function useAdminProducts(params?: ProductListParams) {
   });
 }
 
-export function useProductBySlug(slug: string | undefined) {
+export function useProductBySlug(slug: string | undefined, initialData?: Product) {
   return useQuery({
     queryKey: slug ? productKeys.bySlug(slug) : ["products", "slug", "none"],
     queryFn: () => productService.bySlug(slug as string),
     enabled: Boolean(slug),
+    // SSR: server đã fetch → HTML đầu có đủ nội dung (Googlebot lần 1 + bot AI
+    // không chạy JS vẫn đọc được trang — javascript-seo-basics khuyến nghị).
+    initialData,
+    staleTime: initialData ? 60_000 : 0,
   });
 }
 
