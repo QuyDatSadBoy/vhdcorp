@@ -41,7 +41,7 @@ VHD Corp là kho tổng cung cấp sỉ vật tư ngành điện lạnh và cơ 
 - Giao toàn quốc. Nội thành Hà Nội thường trong ngày; tỉnh xa 2–4 ngày làm việc tùy khu vực và số lượng (xác nhận cụ thể khi chốt đơn).
 - Hàng cồng kềnh/số lượng lớn: hỗ trợ gửi xe khách/chành xe theo thỏa thuận.
 
-## Đổi trả & bảo hành
+## Chính sách đổi trả & bảo hành
 
 - Hàng sai mẫu, sai quy cách hoặc lỗi do vận chuyển: báo trong 3 ngày kể từ khi nhận, VHD đổi trả miễn phí.
 - Sản phẩm gia công theo yêu cầu (khuôn mẫu, cắt tấm cao su theo bản vẽ): kiểm tra kỹ theo bản vẽ trước khi sản xuất; không đổi trả trừ lỗi sản xuất.
