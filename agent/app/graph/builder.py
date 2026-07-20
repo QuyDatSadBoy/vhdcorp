@@ -22,6 +22,7 @@ from app.tools.site import (
     get_recommendations,
     list_categories,
     search_posts,
+    get_current_time,
 )
 from app.tools.ui import (
     show_comparison,
@@ -49,6 +50,7 @@ class ChatGraphBuilder(BaseGraphBuilder):
         self.settings = settings
         self.tools = [
             # Tra cứu / hành động
+            get_current_time,
             search_products,
             get_product_detail,
             search_knowledge,

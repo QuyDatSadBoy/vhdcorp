@@ -6,6 +6,8 @@ product-carousel) rồi trả note ngắn cho model viết lời dẫn — cùng
 """
 
 import uuid
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from langchain_core.tools import tool
 
@@ -128,4 +130,20 @@ async def add_to_cart(product_name: str, qty: int = 1) -> str:
     return (
         f"Đã thêm {qty} x '{p['name']}' vào giỏ hàng của khách (thẻ xác nhận đã hiển thị). "
         "Viết 1 câu xác nhận + mời khách bấm 'Xem giỏ hàng' để đặt đơn."
+    )
+
+
+_VN_WEEKDAYS = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ nhật"]
+
+
+@tool
+@catch_tool_errors
+async def get_current_time() -> str:
+    """Lấy NGÀY GIỜ THẬT hiện tại theo giờ Việt Nam. BẮT BUỘC dùng khi khách hỏi
+    mấy giờ / hôm nay thứ mấy, ngày mấy / còn mở cửa không — tuyệt đối không tự đoán."""
+    now = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
+    wd = _VN_WEEKDAYS[now.weekday()]
+    return (
+        f"Bây giờ là {now.strftime('%H:%M')}, {wd} ngày {now.strftime('%d/%m/%Y')} (giờ Việt Nam). "
+        "Đối chiếu với mục 'Giờ mở cửa' trong THÔNG TIN CÔNG TY để trả lời còn mở cửa hay không."
     )
