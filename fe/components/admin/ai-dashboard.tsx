@@ -146,7 +146,9 @@ function BarChart({
           const barH = d.value > 0 ? Math.max(3, (d.value / max) * (H - padTop)) : 0;
           const x = padX + i * bw;
           const isHi = i === highlightIndex;
-          const showLabel = i === 0 || i === n - 1 || i % step === 0;
+          // Luôn nhãn cột đầu + cột cuối (HÔM NAY); nhãn theo bước nhưng bỏ nhãn
+          // quá sát cột cuối để không đè chữ lên nhau.
+          const showLabel = i === 0 || i === n - 1 || (i % step === 0 && i <= n - 1 - Math.ceil(step / 2));
           return (
             <g key={d.key + i}>
               <rect
