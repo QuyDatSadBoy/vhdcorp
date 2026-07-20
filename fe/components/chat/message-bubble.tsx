@@ -18,6 +18,32 @@ function formatTime(iso: string): string {
   }
 }
 
+/** Log tiến trình sống động: từng bước hiện dần, bước xong có tick xanh */
+function ProcessLog({ steps }: { steps: { label: string; done: boolean }[] }) {
+  return (
+    <div className="space-y-1.5 py-0.5" aria-live="polite">
+      {steps.map((s, i) => (
+        <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+          {s.done ? (
+            <svg
+              viewBox="0 0 16 16"
+              className="h-3.5 w-3.5 shrink-0 text-emerald-500"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M3 8.5l3 3 7-7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          ) : (
+            <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-[1.5px] border-brand-accent border-t-transparent" />
+          )}
+          <span className={s.done ? "opacity-60" : "font-medium text-foreground/80"}>{s.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** 3 chấm nhún khi chờ token đầu tiên */
 function TypingDots() {
   return (
@@ -37,6 +63,8 @@ interface MessageBubbleProps {
   message: UiChatMessage;
   /** Tool đang chạy — chỉ truyền cho bubble assistant cuối cùng đang stream */
   activeTool?: string | null;
+  /** Log tiến trình ("Đang tìm kiếm…") — hiện khi chưa có chữ */
+  procSteps?: { label: string; done: boolean }[];
   onRetry?: () => void;
   /** Form gen-UI submit → gửi câu lệnh trở lại agent */
   onAction?: (message: string) => void;
@@ -45,7 +73,7 @@ interface MessageBubbleProps {
 }
 
 /** Một dòng tin nhắn: user phải (nền brand), assistant trái (avatar VHD + markdown) */
-function MessageBubble({ message, activeTool, onRetry, onAction, isLast = false }: MessageBubbleProps) {
+function MessageBubble({ message, activeTool, procSteps, onRetry, onAction, isLast = false }: MessageBubbleProps) {
   const isUser = message.role === "user";
   // Voice mode: câu trả lời mới nhất tự đọc to (voice-to-voice)
   const voiceOn = useVoiceChatStore((s) => s.enabled);
@@ -109,7 +137,9 @@ function MessageBubble({ message, activeTool, onRetry, onAction, isLast = false 
           {(message.content || waitingFirstToken) && (
             <div className="min-w-0 max-w-[92%] rounded-2xl rounded-tl-md border border-border/60 bg-muted/50 px-3.5 py-2.5 text-sm text-foreground">
               {waitingFirstToken ? (
-                activeTool ? (
+                procSteps?.length ? (
+                  <ProcessLog steps={procSteps} />
+                ) : activeTool ? (
                   <ToolIndicator name={activeTool} />
                 ) : (
                   <TypingDots />

@@ -279,6 +279,7 @@ export default function ChatWidget() {
                   messages={chat.messages}
                   loading={chat.loadingMessages}
                   activeTool={chat.activeTool}
+                  procSteps={chat.procSteps}
                   onRetry={chat.retry}
                   onSelectPrompt={handleSend}
                   onAction={handleAction}
