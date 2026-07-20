@@ -119,3 +119,4 @@ be/storage/
 /*.png
 .playwright-mcp/
 agent/data/knowledge.local.md
+agent/data/chat_limits.local.json

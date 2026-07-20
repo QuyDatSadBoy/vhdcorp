@@ -22,6 +22,27 @@ export class AgentController {
     return this.agent.getKnowledge();
   }
 
+  /** Chống spam chat AI — xem cấu hình giới hạn (bảo vệ chi phí API). */
+  @Get('chat-limits')
+  getChatLimits() {
+    return this.agent.getChatLimits();
+  }
+
+  /** Chống spam chat AI — lưu cấu hình giới hạn (hiệu lực ngay). */
+  @Put('chat-limits')
+  saveChatLimits(
+    @Body()
+    body: {
+      enabled?: boolean;
+      per_ip_per_min?: number;
+      per_ip_per_hour?: number;
+      per_ip_per_day?: number;
+      global_per_day?: number;
+    },
+  ) {
+    return this.agent.saveChatLimits(body);
+  }
+
   @Put('knowledge')
   saveKnowledge(@Body() dto: UpdateKnowledgeDto) {
     return this.agent.saveKnowledge(dto.markdown);
