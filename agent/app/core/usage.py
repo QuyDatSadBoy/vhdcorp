@@ -99,14 +99,24 @@ def record_blocked() -> None:
     _flush()
 
 
-# ── Bảng giá mặc định (USD / 1 triệu token) — admin chỉnh theo bảng giá Google ──
+# ── Bảng giá mặc định (USD / 1 triệu token) — giá GỐC từ Google (ai.google.dev/pricing).
+# Chỉ 2 model đang dùng (chính + dự phòng). Admin có thể ghi đè qua UI.
 DEFAULT_MODEL_PRICES = {
-    "gemini-3-flash-preview": {"in": 0.10, "out": 0.40},
-    "gemini-3-flash": {"in": 0.10, "out": 0.40},
-    "gemini-flash-lite-latest": {"in": 0.04, "out": 0.15},
-    "gemini-2.0-flash": {"in": 0.10, "out": 0.40},
+    "gemini-3-flash-preview": {"in": 0.50, "out": 3.00},
+    "gemini-3.1-flash-lite": {"in": 0.25, "out": 1.50},
 }
-_FALLBACK_PRICE = {"in": 0.10, "out": 0.40}
+_FALLBACK_PRICE = {"in": 0.50, "out": 3.00}
+
+
+def active_models() -> list[str]:
+    """Danh sách model đang dùng (chính trước, rồi dự phòng) — dedupe, giữ thứ tự."""
+    s = get_settings()
+    out: list[str] = []
+    for m in (s.agent_model, getattr(s, "fallback_model", "")):
+        m = (m or "").strip()
+        if m and m not in out:
+            out.append(m)
+    return out
 
 
 def _price_for(model: str, cfg_prices: dict) -> dict:

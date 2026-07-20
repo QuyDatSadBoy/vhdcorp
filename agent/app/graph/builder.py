@@ -70,15 +70,26 @@ class ChatGraphBuilder(BaseGraphBuilder):
             show_comparison,
             show_faq,
         ]
-        self.llm = ChatGoogleGenerativeAI(
-            model=settings.agent_model,
-            google_api_key=settings.google_api_key,
-            temperature=0.3,
-            # Chat khách cần REAL-TIME: tắt thinking → TTFT ~1.2s thay vì ~2.4s
-            # (đo thật trên VPS với gemini-3-flash-preview).
-            thinking_budget=0,
-        )
+        def _mk(model: str) -> ChatGoogleGenerativeAI:
+            return ChatGoogleGenerativeAI(
+                model=model,
+                google_api_key=settings.google_api_key,
+                temperature=0.3,
+                # Chat khách cần REAL-TIME: tắt thinking → TTFT ~1.2s thay vì ~2.4s
+                # (đo thật trên VPS với gemini-3-flash-preview).
+                thinking_budget=0,
+            )
+
+        self.llm = _mk(settings.agent_model)
+        # Dự phòng: model chính lỗi (quá tải/5xx/timeout) → tự chuyển model kia,
+        # khách không bao giờ thấy "AI die". Token/chi phí vẫn ghi đúng theo model
+        # thực chạy (đọc model_name từ response_metadata).
+        _fallback = _mk(settings.fallback_model) if settings.fallback_model else None
         self.llm_with_tools = self.llm.bind_tools(self.tools)
+        if _fallback is not None:
+            self.llm_with_tools = self.llm_with_tools.with_fallbacks(
+                [_fallback.bind_tools(self.tools)]
+            )
 
     def build(self) -> StateGraph:
         short_term = ShortTermMemory(limit=self.settings.short_term_limit)
