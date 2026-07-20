@@ -65,6 +65,39 @@ export class AgentService {
     return this.config.get<string>('AGENT_ADMIN_SECRET') ?? '';
   }
 
+  /** Chống spam chat: đọc cấu hình giới hạn (bảo vệ chi phí API AI). */
+  async getChatLimits(): Promise<Record<string, unknown>> {
+    const res = await fetch(`${this.baseUrl}/api/admin/chat-limits`, {
+      headers: { 'X-Admin-Secret': this.adminSecret },
+    });
+    if (!res.ok) {
+      throw new BadGatewayException(
+        'Agent AI không phản hồi — kiểm tra service cổng 8001 đang chạy.',
+      );
+    }
+    return (await res.json()) as Record<string, unknown>;
+  }
+
+  /** Chống spam chat: lưu cấu hình giới hạn (hiệu lực ngay). */
+  async saveChatLimits(
+    body: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const res = await fetch(`${this.baseUrl}/api/admin/chat-limits`, {
+      method: 'PUT',
+      headers: {
+        'X-Admin-Secret': this.adminSecret,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      throw new BadGatewayException(
+        'Agent AI không phản hồi — kiểm tra service cổng 8001 đang chạy.',
+      );
+    }
+    return (await res.json()) as Record<string, unknown>;
+  }
+
   /** AI viết mô tả sản phẩm từ ảnh + prompt (proxy sang agent, secret ẩn ở BE). */
   async aiProductDescription(body: {
     images?: string[];

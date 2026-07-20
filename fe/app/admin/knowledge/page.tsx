@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Bot, Code2, Loader2, Save, Sparkles } from "lucide-react";
 import { useAgentKnowledge, useSaveAgentKnowledge } from "@/services/agent-admin.service";
 import { RichEditor } from "@/components/admin/rich-editor";
+import { ChatLimitsCard } from "@/components/admin/chat-limits-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -127,6 +128,7 @@ export default function AdminKnowledgePage() {
           </p>
         </CardContent>
       </Card>
+      <ChatLimitsCard />
     </div>
   );
 }

@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
 from app.services.gmail_reader import GmailReaderError, list_recent_emails
+from app.core import rate_limit
 from app.services.knowledge import load_knowledge
 from app.services.product_sync import sync_products
 from app.tools.products import load_catalog
@@ -88,3 +89,30 @@ async def get_emails(
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     return {"count": len(emails), "emails": emails}
+
+
+class ChatLimitsPayload(BaseModel):
+    enabled: bool | None = None
+    per_ip_per_min: int | None = Field(default=None, ge=0, le=1000)
+    per_ip_per_hour: int | None = Field(default=None, ge=0, le=10000)
+    per_ip_per_day: int | None = Field(default=None, ge=0, le=100000)
+    global_per_day: int | None = Field(default=None, ge=0, le=1000000)
+
+
+@router.get("/chat-limits")
+async def get_chat_limits(x_admin_secret: str = Header(None, alias="X-Admin-Secret")):
+    """Xem cấu hình chống spam chat (admin)."""
+    if x_admin_secret != get_settings().admin_secret:
+        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
+    return rate_limit.load_limits()
+
+
+@router.put("/chat-limits")
+async def put_chat_limits(
+    body: ChatLimitsPayload,
+    x_admin_secret: str = Header(None, alias="X-Admin-Secret"),
+):
+    """Chỉnh cấu hình chống spam chat — hiệu lực NGAY, không cần deploy."""
+    if x_admin_secret != get_settings().admin_secret:
+        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
+    return rate_limit.save_limits(body.model_dump(exclude_none=True))
