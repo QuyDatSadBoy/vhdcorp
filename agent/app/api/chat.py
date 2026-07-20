@@ -6,7 +6,7 @@ from fastapi import APIRouter, Header, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.core import rate_limit
+from app.core import rate_limit, usage
 
 router = APIRouter()
 
@@ -41,6 +41,8 @@ async def chat(
     ip = rate_limit.client_ip(request)
     allowed, reason = rate_limit.check(ip)
     if not allowed:
+        usage.record_blocked()
+
         async def blocked_stream():
             yield _sse({"type": "error", "message": reason})
 

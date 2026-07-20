@@ -120,3 +120,4 @@ be/storage/
 .playwright-mcp/
 agent/data/knowledge.local.md
 agent/data/chat_limits.local.json
+agent/data/usage_stats.local.json

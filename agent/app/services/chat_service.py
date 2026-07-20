@@ -14,6 +14,7 @@ from app.db.repository import ConversationRepo, MemoryRepo, MessageRepo
 from app.services import vision
 from app.services.memory_service import MemoryService
 from app.tools.products import find_products
+from app.core import usage
 from app.tools.ui import product_to_props, reset_ui_queue, set_ui_queue
 
 logger = logging.getLogger(__name__)
@@ -126,6 +127,8 @@ class ChatService:
             ui_commands: list[dict] = []
             token = set_ui_queue(ui_commands)
             parts: list[str] = []
+            in_tokens = 0
+            out_tokens = 0
             try:
                 async for event in self.graph.astream_events(state_in, config=config, version="v2"):
                     kind = event["event"]
@@ -134,6 +137,13 @@ class ChatService:
                         if text:
                             parts.append(text)
                             yield {"type": "message.delta", "content": text}
+                    elif kind == "on_chat_model_end":
+                        # Token THẬT từ Gemini để tính chi phí (có thể nhiều lần do tool loop)
+                        msg = event.get("data", {}).get("output")
+                        um = getattr(msg, "usage_metadata", None)
+                        if um:
+                            in_tokens += int(um.get("input_tokens", 0) or 0)
+                            out_tokens += int(um.get("output_tokens", 0) or 0)
                     elif kind == "on_tool_start":
                         # (Không bắn lead-in nữa: FE hiện LOG TIẾN TRÌNH trong lúc tool
                         # chạy, và tự giữ thứ tự chữ → card bằng cách hoãn gắn card
@@ -173,6 +183,7 @@ class ChatService:
                 conversation_id, "assistant", final_text, ui_blocks=emitted_ui
             )
             await self.conversation_repo.touch(conversation_id)
+            usage.record_request(in_tokens, out_tokens)  # thống kê chi phí (token thật)
             yield {"type": "done", "message_id": message_id}
 
             self._spawn_background(

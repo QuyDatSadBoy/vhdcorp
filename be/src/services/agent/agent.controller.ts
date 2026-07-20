@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@guard/jwt-auth.guard';
@@ -20,6 +28,12 @@ export class AgentController {
   @Get('knowledge')
   getKnowledge() {
     return this.agent.getKnowledge();
+  }
+
+  /** Thống kê sử dụng AI + ước tính chi phí. */
+  @Get('usage')
+  getUsage(@Query('days') days?: string) {
+    return this.agent.getUsage(days ? Number(days) : 30);
   }
 
   /** Chống spam chat AI — xem cấu hình giới hạn (bảo vệ chi phí API). */

@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
 from app.services.gmail_reader import GmailReaderError, list_recent_emails
-from app.core import rate_limit
+from app.core import rate_limit, usage
 from app.services.knowledge import load_knowledge
 from app.services.product_sync import sync_products
 from app.tools.products import load_catalog
@@ -97,6 +97,9 @@ class ChatLimitsPayload(BaseModel):
     per_ip_per_hour: int | None = Field(default=None, ge=0, le=10000)
     per_ip_per_day: int | None = Field(default=None, ge=0, le=100000)
     global_per_day: int | None = Field(default=None, ge=0, le=1000000)
+    blocked_ips: list[str] | None = None
+    price_per_1m_input_vnd: float | None = Field(default=None, ge=0)
+    price_per_1m_output_vnd: float | None = Field(default=None, ge=0)
 
 
 @router.get("/chat-limits")
@@ -116,3 +119,14 @@ async def put_chat_limits(
     if x_admin_secret != get_settings().admin_secret:
         raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
     return rate_limit.save_limits(body.model_dump(exclude_none=True))
+
+
+@router.get("/usage")
+async def get_usage(
+    days: int = Query(30, ge=1, le=60),
+    x_admin_secret: str = Header(None, alias="X-Admin-Secret"),
+):
+    """Thống kê sử dụng AI + ước tính chi phí (admin)."""
+    if x_admin_secret != get_settings().admin_secret:
+        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
+    return usage.stats(days)
