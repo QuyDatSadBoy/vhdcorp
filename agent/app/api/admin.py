@@ -98,8 +98,11 @@ class ChatLimitsPayload(BaseModel):
     per_ip_per_day: int | None = Field(default=None, ge=0, le=100000)
     global_per_day: int | None = Field(default=None, ge=0, le=1000000)
     blocked_ips: list[str] | None = None
-    price_per_1m_input_vnd: float | None = Field(default=None, ge=0)
-    price_per_1m_output_vnd: float | None = Field(default=None, ge=0)
+    usd_to_vnd: float | None = Field(default=None, ge=0)
+    model_prices: dict | None = None
+    daily_budget_usd: float | None = Field(default=None, ge=0)
+    monthly_budget_usd: float | None = Field(default=None, ge=0)
+    currency: str | None = None
 
 
 @router.get("/chat-limits")
@@ -130,3 +133,14 @@ async def get_usage(
     if x_admin_secret != get_settings().admin_secret:
         raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
     return usage.stats(days)
+
+
+@router.get("/top-ips")
+async def get_top_ips(
+    limit: int = Query(15, ge=1, le=50),
+    x_admin_secret: str = Header(None, alias="X-Admin-Secret"),
+):
+    """Top IP hoạt động 24h — phát hiện IP nghi vấn để chặn 1 chạm (admin)."""
+    if x_admin_secret != get_settings().admin_secret:
+        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
+    return {"ips": rate_limit.top_ips(limit)}

@@ -91,6 +91,22 @@ export class AgentService {
     return (await res.json()) as Record<string, unknown>;
   }
 
+  /** Top IP hoạt động 24h — phát hiện IP nghi vấn để chặn 1 chạm. */
+  async getTopIps(limit = 15): Promise<Record<string, unknown>> {
+    const res = await fetch(
+      `${this.baseUrl}/api/admin/top-ips?limit=${limit}`,
+      {
+        headers: { 'X-Admin-Secret': this.adminSecret },
+      },
+    );
+    if (!res.ok) {
+      throw new BadGatewayException(
+        'Agent AI không phản hồi — kiểm tra service cổng 8001 đang chạy.',
+      );
+    }
+    return (await res.json()) as Record<string, unknown>;
+  }
+
   /** Chống spam chat: lưu cấu hình giới hạn (hiệu lực ngay). */
   async saveChatLimits(
     body: Record<string, unknown>,
