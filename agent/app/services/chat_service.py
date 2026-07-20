@@ -129,6 +129,7 @@ class ChatService:
             parts: list[str] = []
             in_tokens = 0
             out_tokens = 0
+            used_model = ""
             try:
                 async for event in self.graph.astream_events(state_in, config=config, version="v2"):
                     kind = event["event"]
@@ -138,12 +139,14 @@ class ChatService:
                             parts.append(text)
                             yield {"type": "message.delta", "content": text}
                     elif kind == "on_chat_model_end":
-                        # Token THẬT từ Gemini để tính chi phí (có thể nhiều lần do tool loop)
+                        # Token THẬT + MODEL từ Gemini để tính chi phí (nhiều lần nếu tool loop)
                         msg = event.get("data", {}).get("output")
                         um = getattr(msg, "usage_metadata", None)
                         if um:
                             in_tokens += int(um.get("input_tokens", 0) or 0)
                             out_tokens += int(um.get("output_tokens", 0) or 0)
+                        meta = getattr(msg, "response_metadata", None) or {}
+                        used_model = meta.get("model_name") or used_model
                     elif kind == "on_tool_start":
                         # (Không bắn lead-in nữa: FE hiện LOG TIẾN TRÌNH trong lúc tool
                         # chạy, và tự giữ thứ tự chữ → card bằng cách hoãn gắn card
@@ -183,7 +186,7 @@ class ChatService:
                 conversation_id, "assistant", final_text, ui_blocks=emitted_ui
             )
             await self.conversation_repo.touch(conversation_id)
-            usage.record_request(in_tokens, out_tokens)  # thống kê chi phí (token thật)
+            usage.record_request(used_model, in_tokens, out_tokens)  # thống kê chi phí theo model (token thật)
             yield {"type": "done", "message_id": message_id}
 
             self._spawn_background(

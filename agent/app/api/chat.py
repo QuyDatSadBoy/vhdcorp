@@ -42,6 +42,7 @@ async def chat(
     allowed, reason = rate_limit.check(ip)
     if not allowed:
         usage.record_blocked()
+        rate_limit.note_blocked(ip)
 
         async def blocked_stream():
             yield _sse({"type": "error", "message": reason})

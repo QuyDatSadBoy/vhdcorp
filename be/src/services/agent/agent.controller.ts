@@ -36,6 +36,12 @@ export class AgentController {
     return this.agent.getUsage(days ? Number(days) : 30);
   }
 
+  /** Top IP hoạt động 24h — phát hiện IP nghi vấn để chặn. */
+  @Get('top-ips')
+  getTopIps(@Query('limit') limit?: string) {
+    return this.agent.getTopIps(limit ? Number(limit) : 15);
+  }
+
   /** Chống spam chat AI — xem cấu hình giới hạn (bảo vệ chi phí API). */
   @Get('chat-limits')
   getChatLimits() {
@@ -52,6 +58,12 @@ export class AgentController {
       per_ip_per_hour?: number;
       per_ip_per_day?: number;
       global_per_day?: number;
+      blocked_ips?: string[];
+      usd_to_vnd?: number;
+      model_prices?: Record<string, { in: number; out: number }>;
+      daily_budget_usd?: number;
+      monthly_budget_usd?: number;
+      currency?: string;
     },
   ) {
     return this.agent.saveChatLimits(body);

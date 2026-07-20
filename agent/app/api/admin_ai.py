@@ -14,6 +14,7 @@ from app.core.config import get_settings
 from app.tools.web_search import _tavily_search
 from app.tools.products import load_catalog_live
 from app.services.knowledge import get_context_text
+from app.core import usage
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin/ai")
@@ -53,6 +54,19 @@ def _parse_json(text: str) -> dict:
         return json.loads(m.group(0)) if m else {}
     except Exception:  # noqa: BLE001
         return {}
+
+
+
+
+def _record_usage(resp) -> None:
+    """Ghi token thật (nếu có) từ 1 response admin-AI để tính chi phí tổng."""
+    try:
+        um = getattr(resp, "usage_metadata", None) or {}
+        meta = getattr(resp, "response_metadata", None) or {}
+        model = meta.get("model_name") or get_settings().agent_model
+        usage.record_request(model, int(um.get("input_tokens", 0) or 0), int(um.get("output_tokens", 0) or 0))
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _img_blocks(images: list[str], limit: int = 4) -> list[dict]:
@@ -140,6 +154,7 @@ async def product_description(
     )
     try:
         r = await llm.ainvoke([HumanMessage(content=[{"type": "text", "text": instr}, *_img_blocks(body.images, 3)])])
+        _record_usage(r)
         data = _parse_json(_text(r))
     except Exception:  # noqa: BLE001
         logger.exception("gen(product) lỗi")
@@ -194,6 +209,7 @@ async def post_draft(
     )
     try:
         r = await llm.ainvoke([HumanMessage(content=[{"type": "text", "text": instr}])])
+        _record_usage(r)
         data = _parse_json(_text(r))
     except Exception:  # noqa: BLE001
         logger.exception("gen(post) lỗi")
@@ -257,6 +273,7 @@ async def assistant(
     )
     try:
         r = await llm.ainvoke([HumanMessage(content=[{"type": "text", "text": instr}])])
+        _record_usage(r)
         data = _parse_json(_text(r))
     except Exception:  # noqa: BLE001
         logger.exception("assistant lỗi")
