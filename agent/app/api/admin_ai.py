@@ -12,6 +12,8 @@ from pydantic import BaseModel
 
 from app.core.config import get_settings
 from app.tools.web_search import _tavily_search
+from app.tools.products import load_catalog_live
+from app.services.knowledge import get_context_text
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin/ai")
@@ -55,6 +57,36 @@ def _parse_json(text: str) -> dict:
 
 def _img_blocks(images: list[str], limit: int = 4) -> list[dict]:
     return [{"type": "image_url", "image_url": {"url": u}} for u in images[:limit] if u]
+
+
+
+
+async def _business_context(categories: list[str]) -> str:
+    """Ngữ cảnh KHO THẬT + kiến thức công ty để trợ lý admin trả lời chính xác (như client)."""
+    parts: list[str] = []
+    try:
+        cat = await load_catalog_live()
+        pub = [p for p in cat if str(p.get("status", "PUBLISHED")).upper() == "PUBLISHED"]
+        by_cat: dict[str, int] = {}
+        for p in pub:
+            cn = (p.get("category") or {}).get("name") or "Khác"
+            by_cat[cn] = by_cat.get(cn, 0) + 1
+        top = sorted(by_cat.items(), key=lambda x: -x[1])[:12]
+        parts.append(
+            f"KHO HIỆN CÓ: {len(pub)} sản phẩm đang bán. Theo danh mục: "
+            + ", ".join(f"{k} ({v})" for k, v in top) + "."
+        )
+        names = ", ".join(p.get("name", "") for p in pub[:40])
+        if names:
+            parts.append("Một số sản phẩm: " + names)
+    except Exception:  # noqa: BLE001
+        logger.exception("business_context: load catalog lỗi")
+    kn = get_context_text()
+    if kn:
+        parts.append("THÔNG TIN CÔNG TY:\n" + kn[:2500])
+    if categories:
+        parts.append("Danh mục để gán sản phẩm: " + ", ".join(categories))
+    return "\n\n".join(parts)
 
 
 # ─────────────── Sản phẩm ───────────────
@@ -196,6 +228,7 @@ async def assistant(
 
     convo = "\n".join(f"{m.role}: {m.content}" for m in body.messages[-8:])
     last = body.messages[-1].content if body.messages else ""
+    ctx = await _business_context(body.categories)
     web = ""
     if len(last) > 3:
         try:
@@ -204,17 +237,23 @@ async def assistant(
             pass
 
     instr = (
-        f"{BRAND}\n\nBạn là TRỢ LÝ ADMIN của website VHD Corp. Giúp admin bằng cách CHAT: "
-        "trả lời câu hỏi, và khi admin muốn TẠO sản phẩm hoặc bài viết thì soạn sẵn nội dung.\n"
-        f"Danh mục hiện có: {', '.join(body.categories) or '(chưa rõ)'}\n"
+        f"{BRAND}\n\nBạn là TRỢ LÝ ĐIỀU HÀNH cho ADMIN website VHD Corp — làm được ĐỦ VIỆC:\n"
+        "1) Soạn NHÁP sản phẩm mới (name, description chuẩn SEO, metaTitle/metaDesc, gợi ý danh mục).\n"
+        "2) Soạn NHÁP bài viết/tin tức (Markdown ~400-600 từ, chuẩn SEO).\n"
+        "3) Trả lời về KHO THẬT: có bao nhiêu sản phẩm, thuộc danh mục nào, tìm 1 sản phẩm cụ thể.\n"
+        "4) Tư vấn KINH DOANH & SEO: gợi ý từ khóa, ý tưởng bài theo mùa vụ, cải thiện mô tả, chiến lược nội dung.\n"
+        "5) Trả lời về chính sách/thông tin công ty (dựa THÔNG TIN CÔNG TY bên dưới).\n\n"
+        f"{ctx}\n\n"
         f"Hội thoại gần đây:\n{convo}\n\n"
         f"Tham khảo web (có thể rỗng):\n{web[:1200]}\n\n"
+        "QUY TẮC: KHÔNG bịa số liệu/sản phẩm — chỉ dựa dữ liệu trên; thiếu thì nói thẳng chưa có. "
+        "Nếu admin hỏi 'bạn làm được gì' → liệt kê 5 việc trên kèm ví dụ câu lệnh.\n\n"
         "Trả về DUY NHẤT một JSON tiếng Việt:\n"
-        '{"reply":"câu trả lời thân thiện cho admin",'
+        '{"reply":"câu trả lời hữu ích, cụ thể cho admin",'
         '"action":null hoặc {"type":"product","data":{"name","description","categoryHint","metaTitle","metaDesc"}}'
         ' hoặc {"type":"post","data":{"title","excerpt","content","metaTitle","metaDesc"}}}\n'
         "Chỉ đặt action khi admin RÕ RÀNG muốn tạo sản phẩm/bài viết. content bài viết là Markdown ~400 từ. "
-        "categoryHint là tên danh mục phù hợp nhất trong danh sách. Nếu chỉ hỏi/đáp thì action=null."
+        "categoryHint là tên danh mục phù hợp nhất. Nếu chỉ hỏi/đáp/tư vấn thì action=null."
     )
     try:
         r = await llm.ainvoke([HumanMessage(content=[{"type": "text", "text": instr}])])
