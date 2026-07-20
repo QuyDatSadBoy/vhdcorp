@@ -123,8 +123,9 @@ function BarChart({
   const bw = (W - padX * 2) / n;
   const step = Math.max(1, Math.round(n / 7));
   return (
-    <div className="overflow-x-auto">
-      <svg viewBox={`0 0 ${W} ${H + 24}`} className="w-full min-w-[520px]" role="img" aria-label={label}>
+    <div>
+      {/* SVG co giãn theo viewBox → KHÔNG ép min-width (từng cắt mất cột hôm nay ở mép phải). */}
+      <svg viewBox={`0 0 ${W} ${H + 24}`} className="w-full" role="img" aria-label={label}>
         {[0, 0.25, 0.5, 0.75, 1].map((g) => (
           <line
             key={g}
