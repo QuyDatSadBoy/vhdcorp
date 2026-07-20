@@ -17,7 +17,9 @@ class Settings(BaseSettings):
     )
 
     google_api_key: str = ""
+    # 2 model: chính + dự phòng (fallback cho nhau — model chính lỗi thì tự chuyển).
     agent_model: str = "gemini-3-flash-preview"
+    fallback_model: str = "gemini-3.1-flash-lite"
     tavily_api_keys: str = ""  # danh sách key, phân tách bằng dấu phẩy
     be_api_url: str = "http://localhost:8080/api"
     port: int = 8001

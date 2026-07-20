@@ -22,6 +22,10 @@ export interface ChatLimits {
   daily_budget_usd: number;
   monthly_budget_usd: number;
   currency: "vnd" | "usd";
+  /** Model đang dùng (chính + dự phòng) — server trả về để UI chỉ hiện đúng model này. */
+  models?: string[];
+  /** Giá gốc mặc định theo bảng giá Google — UI điền sẵn để admin không phải gõ tay. */
+  default_model_prices?: Record<string, ModelPrice>;
 }
 
 export interface UsageDay {

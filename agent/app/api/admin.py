@@ -107,10 +107,18 @@ class ChatLimitsPayload(BaseModel):
 
 @router.get("/chat-limits")
 async def get_chat_limits(x_admin_secret: str = Header(None, alias="X-Admin-Secret")):
-    """Xem cấu hình chống spam chat (admin)."""
+    """Xem cấu hình chống spam chat (admin).
+
+    Kèm `models` (chính + dự phòng) và `default_model_prices` (giá gốc Google)
+    để UI tự điền sẵn đơn giá, không bắt admin gõ tay từ đầu.
+    """
     if x_admin_secret != get_settings().admin_secret:
         raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
-    return rate_limit.load_limits()
+    return {
+        **rate_limit.load_limits(),
+        "models": usage.active_models(),
+        "default_model_prices": usage.DEFAULT_MODEL_PRICES,
+    }
 
 
 @router.put("/chat-limits")
