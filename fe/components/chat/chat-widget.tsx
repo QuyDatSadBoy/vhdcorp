@@ -26,6 +26,7 @@ export default function ChatWidget() {
   const [mascotOk, setMascotOk] = useState(true);
   // Tên trợ lý theo brand trong Cài đặt site — đổi tên site là widget đổi theo
   const siteName = useSiteConfigStore((st) => st.config?.brand?.siteName) || "VHD";
+  const brandLogo = useSiteConfigStore((s) => s.config?.brand?.logo?.url) || "/images/vhdcorplogo.jpeg";
   // Icon mascot admin cấu hình (Cài đặt site → Brand) — fallback file mặc định
   const assistantIcon = useSiteConfigStore((st) => st.config?.brand?.assistantIcon?.url) || "/images/ai-agent.png";
   const panelRef = useRef<HTMLDivElement>(null);
@@ -221,10 +222,11 @@ export default function ChatWidget() {
                 )}
               </button>
               <span
-                className="grid h-9 w-9 place-items-center rounded-xl bg-white/15 text-[10px] font-bold ring-1 ring-white/25"
+                className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-white ring-1 ring-white/40"
                 aria-hidden
               >
-                VHD
+                {/* eslint-disable-next-line @next/next/no-img-element -- logo brand từ config */}
+                <img src={brandLogo} alt="" className="h-full w-full object-contain p-0.5" />
               </span>
               <div className="min-w-0 flex-1 leading-tight">
                 <p className="truncate font-heading text-sm font-bold">Trợ lý {siteName}</p>
