@@ -110,6 +110,10 @@ jobs:
             # rollback để lại deploy.sh CŨ và bản cũ đó chính là script được thực thi
             # (sửa deploy.sh sẽ không bao giờ có hiệu lực).
             git fetch origin main
+            # Bỏ mọi thay đổi local trước khi checkout (file runtime từng làm
+            # cây bẩn → checkout abort → deploy fail; runtime giờ ghi *.local
+            # đã gitignore, reset này là lưới an toàn).
+            git reset --hard HEAD
             git checkout -B main origin/main
             git reset --hard origin/main
             DEPLOY_BRANCH=main bash scripts/deploy.sh

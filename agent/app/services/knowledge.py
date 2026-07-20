@@ -20,12 +20,20 @@ _knowledge: str | None = None
 _COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 
 
+def _local_path() -> Path:
+    """Bản RUNTIME admin sửa qua API — file .local (gitignore) để không làm bẩn
+    cây git trên server (từng làm deploy fail vì checkout bị chặn)."""
+    p = Path(get_settings().knowledge_md_path)
+    return p.with_name("knowledge.local.md")
+
+
 def load_knowledge(force: bool = False) -> str:
-    """Đọc knowledge.md (cache). force=True để nạp lại sau khi khách sửa file."""
+    """Đọc knowledge (cache): ưu tiên bản .local (admin sửa), fallback bản seed repo."""
     global _knowledge
     if _knowledge is not None and not force:
         return _knowledge
-    path = Path(get_settings().knowledge_md_path)
+    local = _local_path()
+    path = local if local.exists() else Path(get_settings().knowledge_md_path)
     _knowledge = path.read_text(encoding="utf-8") if path.exists() else ""
     return _knowledge
 

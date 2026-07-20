@@ -61,7 +61,8 @@ async def put_knowledge(
     if x_admin_secret != settings.admin_secret:
         raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
 
-    path = Path(settings.knowledge_md_path)
+    # Ghi vào bản .local (gitignore) — không làm bẩn cây git khi deploy
+    path = Path(settings.knowledge_md_path).with_name("knowledge.local.md")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(body.content, encoding="utf-8")
     load_knowledge(force=True)  # agent dùng nội dung mới ngay, không cần restart
