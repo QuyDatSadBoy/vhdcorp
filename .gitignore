@@ -118,3 +118,4 @@ agent/.pytest_cache/
 be/storage/
 /*.png
 .playwright-mcp/
+agent/data/knowledge.local.md
