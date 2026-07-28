@@ -6,13 +6,10 @@ import { speakText } from "@/services/chat-agent.service";
 import { useVoiceChatStore } from "@/store/voice-chat.store";
 import { cn } from "@/lib/utils";
 
-/** Audio đang phát toàn cục — phát cái mới thì dừng cái cũ */
-let currentAudio: HTMLAudioElement | null = null;
-
-/** Cache blob audio theo text (module-level, sống suốt session) — bấm lại phát NGAY không chờ mạng */
+/* ── Cache + dedupe audio theo TỪNG ĐOẠN text ──────────────────── */
 const blobCache = new Map<string, Blob>();
-const BLOB_CACHE_MAX = 24;
-/** Request TTS đang bay — prefetch & bấm loa DÙNG CHUNG 1 promise, không gọi trùng, bấm là phát ngay khi xong */
+const BLOB_CACHE_MAX = 64;
+/** Request TTS đang bay — prefetch & bấm loa DÙNG CHUNG 1 promise (không gọi trùng). */
 const inflight = new Map<string, Promise<Blob>>();
 
 function cacheBlob(text: string, blob: Blob) {
@@ -24,7 +21,7 @@ function cacheBlob(text: string, blob: Blob) {
   }
 }
 
-/** Lấy audio: cache → promise đang bay → gọi mới. Dedupe để prefetch + click không gọi 2 lần. */
+/** Lấy audio 1 đoạn: cache → promise đang bay → gọi mới. */
 function getAudio(text: string): Promise<Blob> {
   const cached = blobCache.get(text);
   if (cached) return Promise.resolve(cached);
@@ -44,11 +41,52 @@ function getAudio(text: string): Promise<Blob> {
   return p;
 }
 
+/**
+ * Cắt câu trả lời thành các ĐOẠN ngắn theo ranh giới câu (~140 ký tự) để tổng
+ * hợp SONG SONG: đoạn đầu ngắn → ra tiếng gần như tức thì, các đoạn sau tổng
+ * hợp nền trong lúc đoạn đầu đang đọc (không phải chờ cả đoạn dài).
+ */
+const CHUNK_MAX = 140;
+export function chunkText(text: string): string[] {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= CHUNK_MAX) return clean ? [clean] : [];
+  const sentences = clean.split(/(?<=[.!?…])\s+/);
+  const chunks: string[] = [];
+  let buf = "";
+  for (const s of sentences) {
+    if (buf && (buf + " " + s).length > CHUNK_MAX) {
+      chunks.push(buf);
+      buf = s;
+    } else {
+      buf = buf ? `${buf} ${s}` : s;
+    }
+  }
+  if (buf) chunks.push(buf);
+  return chunks;
+}
+
+/* ── Điều khiển phát TOÀN CỤC: chỉ 1 luồng phát cùng lúc ────────── */
+let playToken = 0; // tăng để HỦY mọi vòng phát đang chạy
+let currentAudioEl: HTMLAudioElement | null = null;
+let activeReset: (() => void) | null = null; // reset UI của player đang chạy
+
+function preempt() {
+  playToken += 1;
+  if (currentAudioEl) {
+    currentAudioEl.pause();
+    currentAudioEl = null;
+  }
+  if (activeReset) {
+    activeReset();
+    activeReset = null;
+  }
+}
+
 type Status = "idle" | "loading" | "playing";
 
 /**
- * Nút loa "đọc to" câu trả lời (§9.3 voice reply): gọi BE proxy TTS →
- * phát audio. Đang phát → bấm để dừng. Cả widget chỉ 1 audio phát cùng lúc.
+ * Nút loa "đọc to" câu trả lời (§9.3 voice reply): cắt câu → tổng hợp SONG SONG →
+ * phát tuần tự. Prefetch sẵn ở tin mới nhất/hover nên bấm là có tiếng ngay.
  */
 export default function TtsButton({
   text,
@@ -61,73 +99,80 @@ export default function TtsButton({
   autoPlay?: boolean;
 }) {
   const [status, setStatus] = useState<Status>("idle");
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const urlRef = useRef<string | null>(null);
+  const myTokenRef = useRef(0);
   const autoPlayedRef = useRef(false);
 
-  // Dọn audio + object URL khi unmount
+  // Unmount: nếu mình đang phát thì dừng hẳn
   useEffect(() => {
     return () => {
-      audioRef.current?.pause();
-      if (currentAudio === audioRef.current) currentAudio = null;
-      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+      if (playToken === myTokenRef.current) preempt();
     };
   }, []);
 
-  const stop = () => {
-    audioRef.current?.pause();
-    audioRef.current = null;
-    if (urlRef.current) {
-      URL.revokeObjectURL(urlRef.current);
-      urlRef.current = null;
-    }
-    setStatus("idle");
+  /** Prefetch song song mọi đoạn — bấm loa là phát ngay */
+  const prefetch = () => {
+    for (const c of chunkText(text)) void getAudio(c).catch(() => undefined);
   };
 
   const play = async () => {
-    if (status === "playing") {
-      stop();
+    // Đang phát/đang tải mà bấm lại → dừng
+    if (status === "playing" || status === "loading") {
+      if (playToken === myTokenRef.current) preempt();
+      else setStatus("idle");
       return;
     }
-    // Dừng audio khác đang phát trong widget
-    if (currentAudio) currentAudio.pause();
+    preempt(); // dừng player khác đang chạy
+    const my = playToken; // preempt vừa tăng token → đây là phiên mới nhất
+    myTokenRef.current = my;
+    activeReset = () => setStatus("idle");
+
+    const chunks = chunkText(text);
+    if (chunks.length === 0) return;
+    chunks.forEach((c) => void getAudio(c).catch(() => undefined)); // tổng hợp SONG SONG
 
     setStatus("loading");
     try {
-      const blob = await getAudio(text); // cache/prefetch dùng chung → phát ngay khi sẵn sàng
-      const url = URL.createObjectURL(blob);
-      urlRef.current = url;
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      currentAudio = audio;
-      audio.onended = () => {
-        if (currentAudio === audio) currentAudio = null;
-        if (urlRef.current) {
-          URL.revokeObjectURL(urlRef.current);
-          urlRef.current = null;
-        }
+      for (let i = 0; i < chunks.length; i++) {
+        const blob = await getAudio(chunks[i]);
+        if (my !== playToken) return; // đã bị dừng/thay
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        currentAudioEl = audio;
+        await new Promise<void>((resolve) => {
+          audio.onended = () => resolve();
+          audio.onerror = () => resolve();
+          audio.onpause = () => resolve(); // bị preempt → thoát chờ
+          audio
+            .play()
+            .then(() => {
+              if (my === playToken) setStatus("playing");
+            })
+            .catch(() => resolve());
+        });
+        URL.revokeObjectURL(url);
+        if (my !== playToken) return; // dừng giữa chừng
+      }
+      // Đọc xong toàn bộ
+      if (my === playToken) {
+        currentAudioEl = null;
+        activeReset = null;
         setStatus("idle");
-        // Voice mode: đọc xong câu trả lời → báo ChatInput tự bật mic nghe câu tiếp theo
+        // Voice mode: đọc xong → báo ChatInput tự bật mic nghe câu tiếp theo
         const voice = useVoiceChatStore.getState();
         if (voice.enabled) voice.requestListen();
-      };
-      await audio.play();
-      setStatus("playing");
+      }
     } catch {
-      // Lỗi TTS / autoplay bị chặn → về idle im lặng
-      stop();
+      if (my === playToken) {
+        currentAudioEl = null;
+        activeReset = null;
+        setStatus("idle");
+      }
     }
   };
 
   const label = status === "playing" ? "Dừng đọc" : "Đọc to câu trả lời";
 
-  /** Hover/focus = có ý định nghe → tải audio trước ở nền, bấm là phát tức thì */
-  const prefetch = () => {
-    if (blobCache.has(text)) return;
-    void getAudio(text).catch(() => undefined);
-  };
-
-  // Tin nhắn MỚI NHẤT vừa trả lời xong → tải audio trước luôn (mobile không có hover)
+  // Tin nhắn MỚI NHẤT vừa trả lời xong → prefetch luôn (mobile không có hover)
   useEffect(() => {
     if (eager) prefetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy khi mount/đổi text
