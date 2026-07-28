@@ -36,7 +36,9 @@ class Settings(BaseSettings):
     langsmith_project: str = "vhdcorp-agent"
     langsmith_endpoint: str = "https://api.smith.langchain.com"
 
-    # MiniMax TTS
+    # TTS chính: PTIT holobox (WAV, nội bộ, không tốn tiền). Rỗng = bỏ qua, chỉ dùng MiniMax.
+    ptit_tts_url: str = "https://aitools.ptit.edu.vn/holobox/synthesize"
+    # MiniMax TTS — DỰ PHÒNG khi PTIT lỗi (MP3, tốn phí)
     minimax_api_key: str = ""
     minimax_group_id: str = ""
 
