@@ -1,10 +1,11 @@
 """POST /api/tts — Text-to-Speech cho voice reply (§9.3), ẩn key khỏi FE.
 
-- CHÍNH: PTIT holobox — POST {"text": ...} → WAV (nội bộ, không tốn tiền).
-- DỰ PHÒNG: MiniMax t2a_v2 → JSON có data.audio là chuỗi HEX → MP3 (tốn phí),
-  chỉ gọi khi PTIT lỗi/không với tới.
+- CHÍNH: MiniMax t2a_v2 → JSON có data.audio là chuỗi HEX → MP3 (giọng ổn định).
+- DỰ PHÒNG: PTIT holobox (WAV) — chỉ gọi khi MiniMax lỗi/không với tới.
 Tối ưu latency: client HTTP dùng lại (bỏ TLS handshake mỗi lần) + LRU cache theo
 hash(text) — cùng một câu chỉ tổng hợp đúng 1 lần (cache cả định dạng audio).
+FE cắt câu trả lời thành từng câu rồi gọi endpoint này SONG SONG → câu đầu ra
+tiếng gần như tức thì, các câu sau tổng hợp nền trong lúc đang đọc.
 """
 
 import hashlib
@@ -137,14 +138,14 @@ async def tts(body: TTSRequest):
         media_type, audio = cached
         return Response(content=audio, media_type=media_type, headers={"X-TTS-Cache": "hit"})
 
-    # PTIT (chính) → MiniMax (dự phòng)
-    source = "ptit"
-    result = await _synthesize_ptit(text)
+    # MiniMax (chính) → PTIT (dự phòng)
+    source = "minimax"
+    result = await _synthesize_minimax(text)
     if result is None:
-        source = "minimax"
-        result = await _synthesize_minimax(text)
+        source = "ptit"
+        result = await _synthesize_ptit(text)
     if result is None:
-        raise HTTPException(status_code=502, detail="Không tạo được audio (PTIT và MiniMax đều lỗi).")
+        raise HTTPException(status_code=502, detail="Không tạo được audio (MiniMax và PTIT đều lỗi).")
 
     media_type, audio = result
     _cache_put(cache_key, media_type, audio)
