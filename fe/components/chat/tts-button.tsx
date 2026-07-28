@@ -266,6 +266,7 @@ export default function TtsButton({
   const myTokenRef = useRef(0);
   const statusRef = useRef<Status>("idle");
   const autoPlayedRef = useRef(false);
+  const prefetchedRef = useRef(false);
 
   useEffect(() => {
     statusRef.current = status;
@@ -292,9 +293,14 @@ export default function TtsButton({
 
   const label = status === "playing" ? "Dừng đọc" : "Đọc to câu trả lời";
 
-  // Tin nhắn MỚI NHẤT vừa trả lời xong → prefetch vài đoạn đầu (mobile không có hover)
+  // Tin nhắn MỚI NHẤT vừa trả lời xong → prefetch ĐOẠN ĐẦU (1 lần, tránh tổng
+  // hợp lãng phí khi nội dung còn chỉnh sau stream). Bấm loa sẽ tổng hợp nốt
+  // các đoạn sau SONG SONG nên vẫn liền mạch.
   useEffect(() => {
-    if (eager) prefetchChunks(text, 2);
+    if (eager && !prefetchedRef.current) {
+      prefetchedRef.current = true;
+      prefetchChunks(text, 1);
+    }
   }, [eager, text]);
 
   // Voice mode: câu trả lời mới nhất vừa xong → tự đọc to (1 lần duy nhất)
