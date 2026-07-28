@@ -55,20 +55,27 @@ def _cache_put(key: str, media_type: str, audio: bytes) -> None:
 
 
 async def _synthesize_ptit(text: str) -> tuple[str, bytes] | None:
-    """TTS chính: PTIT holobox → (media_type, bytes WAV). None nếu lỗi (để fallback)."""
+    """TTS chính: PTIT holobox → (media_type, bytes WAV). None nếu lỗi (để fallback).
+
+    Thử tối đa 2 lần: kết nối keep-alive tới PTIT đôi khi bị đóng phía server/LB
+    (nhất là khi nhiều request đồng thời) → lần đầu ConnectError/RemoteProtocolError,
+    thử lại mở kết nối mới là được. Nhờ vậy KHÔNG rơi xuống MiniMax (tiếng cũ) oan.
+    """
     url = get_settings().ptit_tts_url
     if not url:
         return None
-    try:
-        resp = await _get_client().post(url, json={"text": text}, timeout=12.0)
-    except httpx.HTTPError as exc:
-        logger.warning("PTIT TTS không với tới được: %s", exc)
-        return None
-    if resp.status_code >= 300 or not resp.content:
-        logger.warning("PTIT TTS lỗi HTTP %s: %s", resp.status_code, resp.text[:200])
-        return None
-    media_type = (resp.headers.get("content-type") or "audio/wav").split(";")[0].strip() or "audio/wav"
-    return media_type, resp.content
+    for attempt in (1, 2):
+        try:
+            resp = await _get_client().post(url, json={"text": text}, timeout=12.0)
+        except httpx.HTTPError as exc:
+            logger.warning("PTIT TTS lỗi kết nối (lần %s/2): %r", attempt, exc)
+            continue  # thử lại với kết nối mới
+        if resp.status_code >= 300 or not resp.content:
+            logger.warning("PTIT TTS lỗi HTTP %s: %s", resp.status_code, resp.text[:200])
+            return None  # lỗi HTTP thực sự → fallback luôn, không retry
+        media_type = (resp.headers.get("content-type") or "audio/wav").split(";")[0].strip() or "audio/wav"
+        return media_type, resp.content
+    return None
 
 
 async def _synthesize_minimax(text: str) -> tuple[str, bytes] | None:
