@@ -9,9 +9,11 @@ import { cn } from "@/lib/utils";
 /** Audio đang phát toàn cục — phát cái mới thì dừng cái cũ */
 let currentAudio: HTMLAudioElement | null = null;
 
-/** Cache blob MP3 theo text (module-level, sống suốt session) — bấm lại phát NGAY không chờ mạng */
+/** Cache blob audio theo text (module-level, sống suốt session) — bấm lại phát NGAY không chờ mạng */
 const blobCache = new Map<string, Blob>();
 const BLOB_CACHE_MAX = 24;
+/** Request TTS đang bay — prefetch & bấm loa DÙNG CHUNG 1 promise, không gọi trùng, bấm là phát ngay khi xong */
+const inflight = new Map<string, Promise<Blob>>();
 
 function cacheBlob(text: string, blob: Blob) {
   blobCache.delete(text);
@@ -20,6 +22,26 @@ function cacheBlob(text: string, blob: Blob) {
     const oldest = blobCache.keys().next().value;
     if (oldest !== undefined) blobCache.delete(oldest);
   }
+}
+
+/** Lấy audio: cache → promise đang bay → gọi mới. Dedupe để prefetch + click không gọi 2 lần. */
+function getAudio(text: string): Promise<Blob> {
+  const cached = blobCache.get(text);
+  if (cached) return Promise.resolve(cached);
+  const existing = inflight.get(text);
+  if (existing) return existing;
+  const p = speakText(text)
+    .then((blob) => {
+      cacheBlob(text, blob);
+      inflight.delete(text);
+      return blob;
+    })
+    .catch((err) => {
+      inflight.delete(text);
+      throw err;
+    });
+  inflight.set(text, p);
+  return p;
 }
 
 type Status = "idle" | "loading" | "playing";
@@ -72,11 +94,7 @@ export default function TtsButton({
 
     setStatus("loading");
     try {
-      let blob = blobCache.get(text);
-      if (!blob) {
-        blob = await speakText(text);
-        cacheBlob(text, blob);
-      }
+      const blob = await getAudio(text); // cache/prefetch dùng chung → phát ngay khi sẵn sàng
       const url = URL.createObjectURL(blob);
       urlRef.current = url;
       const audio = new Audio(url);
@@ -106,9 +124,7 @@ export default function TtsButton({
   /** Hover/focus = có ý định nghe → tải audio trước ở nền, bấm là phát tức thì */
   const prefetch = () => {
     if (blobCache.has(text)) return;
-    void speakText(text)
-      .then((b) => cacheBlob(text, b))
-      .catch(() => undefined);
+    void getAudio(text).catch(() => undefined);
   };
 
   // Tin nhắn MỚI NHẤT vừa trả lời xong → tải audio trước luôn (mobile không có hover)
