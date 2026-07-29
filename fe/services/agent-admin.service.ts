@@ -22,9 +22,6 @@ export interface ChatLimits {
   daily_budget_usd: number;
   monthly_budget_usd: number;
   currency: "vnd" | "usd";
-  /** Cache ngữ nghĩa: bật/tắt + ngưỡng tương đồng (0.5–0.999). */
-  cache_enabled?: boolean;
-  cache_similarity?: number;
   /** Model đang dùng (chính + dự phòng) — server trả về để UI chỉ hiện đúng model này. */
   models?: string[];
   /** Giá gốc mặc định theo bảng giá Google — UI điền sẵn để admin không phải gõ tay. */
@@ -57,15 +54,6 @@ export interface HourUsage {
   cost_usd: number;
   cost_vnd: number;
 }
-export interface CacheStats {
-  enabled: boolean;
-  similarity: number;
-  entries: number;
-  hits: number;
-  misses: number;
-  hit_rate: number;
-  saved_tokens: number;
-}
 export interface UsageStats {
   series: UsageDay[];
   today: UsageDay;
@@ -79,7 +67,6 @@ export interface UsageStats {
   daily_budget_usd: number;
   monthly_budget_usd: number;
   currency: "vnd" | "usd";
-  cache?: CacheStats;
 }
 export interface TopIp {
   ip: string;
@@ -98,7 +85,6 @@ export const agentAdminService = {
   getUsage: (days = 30) => axios.get<{ data: UsageStats }>("/agent/usage", { params: { days } }).then(unwrap),
   getTopIps: (limit = 15) =>
     axios.get<{ data: { ips: TopIp[] } }>("/agent/top-ips", { params: { limit } }).then(unwrap),
-  clearCache: () => axios.post<{ data: { ok: boolean } }>("/agent/cache/clear").then(unwrap),
 };
 
 export const agentKnowledgeKey = ["agent", "knowledge"] as const;
@@ -124,14 +110,6 @@ export function useTopIps(limit = 15) {
 
 export function useChatLimits() {
   return useQuery({ queryKey: agentChatLimitsKey, queryFn: agentAdminService.getChatLimits });
-}
-
-export function useClearCache() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: agentAdminService.clearCache,
-    onSuccess: () => void qc.invalidateQueries({ queryKey: agentUsageKey }),
-  });
 }
 
 export function useSaveChatLimits() {

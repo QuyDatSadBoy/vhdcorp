@@ -244,15 +244,4 @@ def stats(days: int = 30) -> dict:
         "daily_budget_usd": float(cfg.get("daily_budget_usd", 0) or 0),
         "monthly_budget_usd": float(cfg.get("monthly_budget_usd", 0) or 0),
         "currency": cfg.get("currency", "vnd"),
-        "cache": _cache_stats(),
     }
-
-
-def _cache_stats() -> dict:
-    """Thống kê cache ngữ nghĩa (lỗi thì trả rỗng — không làm hỏng dashboard)."""
-    try:
-        from app.core import semantic_cache
-
-        return semantic_cache.stats()
-    except Exception:
-        return {"enabled": False, "entries": 0, "hits": 0, "misses": 0, "hit_rate": 0.0, "saved_tokens": 0}
