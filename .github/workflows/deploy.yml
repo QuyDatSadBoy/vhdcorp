@@ -55,15 +55,17 @@ jobs:
       - name: prisma generate
         working-directory: be
         run: yarn prisma:generate
-      - name: typecheck
+      - name: tsc + test + build (SONG SONG)
         working-directory: be
-        run: yarn tsc --noEmit
-      - name: unit tests (voucher, giá KM…)
-        working-directory: be
-        run: yarn test
-      - name: build
-        working-directory: be
-        run: yarn build
+        run: |
+          yarn tsc --noEmit & A=$!
+          yarn test & B=$!
+          yarn build & C=$!
+          ok=0
+          wait $A || ok=1
+          wait $B || ok=1
+          wait $C || ok=1
+          exit $ok
 
   # ---------- Frontend (song song) ----------
   fe:
@@ -98,15 +100,17 @@ jobs:
         if: steps.nmfe.outputs.cache-hit != 'true'
         working-directory: fe
         run: yarn install --frozen-lockfile --prefer-offline
-      - name: lint
+      - name: lint + tsc + build (SONG SONG)
         working-directory: fe
-        run: yarn lint
-      - name: typecheck
-        working-directory: fe
-        run: yarn tsc --noEmit
-      - name: build
-        working-directory: fe
-        run: yarn build
+        run: |
+          yarn lint & L=$!
+          yarn tsc --noEmit & T=$!
+          yarn build & B=$!
+          ok=0
+          wait $L || ok=1
+          wait $T || ok=1
+          wait $B || ok=1
+          exit $ok
 
   # ---------- Agent (song song) ----------
   agent:
@@ -118,20 +122,28 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Python + uv (+cache)
+      # KHÔNG enable-cache của setup-uv: cache tải của uv >1GB → restore còn CHẬM
+      # hơn cài mới (đo được 215s). Thay vào đó cache thẳng .venv (nhỏ hơn nhiều).
+      - name: Setup Python + uv
         uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.13"
-          enable-cache: true
-          cache-dependency-glob: agent/uv.lock
-      - name: sync + pytest (tất định, bỏ test LLM live)
+      - name: Cache .venv
+        id: venv
+        uses: actions/cache@v4
+        with:
+          path: agent/.venv
+          key: venv-${{ hashFiles('agent/uv.lock') }}-py313
+      - name: uv sync (chỉ khi cache MISS)
+        if: steps.venv.outputs.cache-hit != 'true'
+        working-directory: agent
+        run: uv sync --frozen
+      - name: pytest (tất định, bỏ test LLM live)
         working-directory: agent
         env:
           GOOGLE_API_KEY: ci-dummy-key
           TAVILY_API_KEYS: ci-dummy
-        run: |
-          uv sync --frozen
-          uv run pytest -q -m "not live"
+        run: uv run --no-sync pytest -q -m "not live"
 
   # ---------- Gate tổng: GIỮ NGUYÊN TÊN cho branch protection ----------
   test:
