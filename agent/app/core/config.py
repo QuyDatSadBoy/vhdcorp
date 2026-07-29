@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     )
 
     google_api_key: str = ""
+    # Nhiều key Gemini (phân tách bằng dấu phẩy) — fallback cho nhau: key hết quota/
+    # bị thu hồi thì tự chuyển key khác. Rỗng thì dùng google_api_key.
+    google_api_keys: str = ""
     # 2 model: chính + dự phòng (fallback cho nhau — model chính lỗi thì tự chuyển).
     agent_model: str = "gemini-3-flash-preview"
     fallback_model: str = "gemini-3.1-flash-lite"
@@ -57,6 +60,15 @@ class Settings(BaseSettings):
     # Đọc TRỰC TIẾP PostgreSQL của BE (real-time tuyệt đối) — rỗng thì fallback products.json
     catalog_database_url: str = ""
     knowledge_md_path: str = str(AGENT_DIR / "data" / "knowledge.md")
+
+    @property
+    def google_key_list(self) -> list[str]:
+        """Danh sách key Gemini (thứ tự ưu tiên). Ưu tiên google_api_keys, fallback google_api_key."""
+        keys = [k.strip() for k in self.google_api_keys.split(",") if k.strip()]
+        if not keys and self.google_api_key.strip():
+            keys = [self.google_api_key.strip()]
+        # bỏ trùng, giữ thứ tự
+        return list(dict.fromkeys(keys))
 
     @property
     def tavily_keys(self) -> list[str]:
