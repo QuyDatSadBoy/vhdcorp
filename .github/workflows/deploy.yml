@@ -40,9 +40,14 @@ jobs:
           node-version: 22
           cache: yarn
           cache-dependency-path: be/yarn.lock
+      - name: Cache node_modules (BE)
+        uses: actions/cache@v4
+        with:
+          path: be/node_modules
+          key: nm-be-${{ hashFiles('be/yarn.lock') }}
       - name: install
         working-directory: be
-        run: yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile --prefer-offline
       - name: prisma generate
         working-directory: be
         run: yarn prisma:generate
@@ -70,6 +75,11 @@ jobs:
           node-version: 22
           cache: yarn
           cache-dependency-path: fe/yarn.lock
+      - name: Cache node_modules (FE)
+        uses: actions/cache@v4
+        with:
+          path: fe/node_modules
+          key: nm-fe-${{ hashFiles('fe/yarn.lock') }}
       - name: Cache Next.js build
         uses: actions/cache@v4
         with:
@@ -79,7 +89,7 @@ jobs:
             next-${{ hashFiles('fe/yarn.lock') }}-
       - name: install
         working-directory: fe
-        run: yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile --prefer-offline
       - name: lint
         working-directory: fe
         run: yarn lint
