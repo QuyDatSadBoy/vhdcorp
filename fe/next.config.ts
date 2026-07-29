@@ -6,6 +6,11 @@ import type { NextConfig } from "next";
 const feRoot = import.meta.dirname ?? process.cwd();
 
 const nextConfig: NextConfig = {
+  // TỐC ĐỘ BUILD: `next build` bỏ bước type-check (Next 16 đã bỏ ESLint lúc build).
+  // CI vẫn chạy `yarn tsc --noEmit` + `yarn lint` riêng làm cổng chặn, và chỉ code
+  // đã qua CI mới vào main → deploy. Nhờ vậy build nhanh hơn ở CI lẫn khi deploy VPS
+  // ("có bản mới" nhanh hơn). KHÔNG giảm an toàn: lỗi type/lint vẫn bị CI chặn.
+  typescript: { ignoreBuildErrors: true },
   // Gộp tín hiệu SEO về 1 URL duy nhất: www → apex 301 (Google starter guide,
   // mục "Nội dung trùng lặp" — canonical đã có, 301 là chuẩn đầy đủ).
   async redirects() {

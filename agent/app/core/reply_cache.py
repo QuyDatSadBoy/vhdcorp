@@ -19,6 +19,7 @@ import os
 import re
 import tempfile
 import time
+import unicodedata
 from pathlib import Path
 
 from app.core.config import get_settings
@@ -86,7 +87,10 @@ def kb_version() -> str:
 
 
 def _norm(q: str) -> str:
-    return re.sub(r"\s+", " ", (q or "").strip().lower()).strip(" ?!.…,;:")
+    """Chuẩn hoá khoá cache CHUẨN CHỈNH: NFC (gộp dấu tiếng Việt về 1 dạng) + hạ
+    hoa/thường + gộp khoảng trắng + bỏ dấu câu cuối → câu gõ khác nguồn vẫn khớp."""
+    q = unicodedata.normalize("NFC", q or "")
+    return re.sub(r"\s+", " ", q.strip().lower()).strip(" ?!.…,;:")
 
 
 def lookup(question: str) -> str | None:
