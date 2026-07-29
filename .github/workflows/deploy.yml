@@ -65,11 +65,9 @@ jobs:
           wait $C || ok=1
           exit $ok
 
-  # ---------- Frontend (song song) ----------
-  fe:
-    name: FE · lint + tsc + build
-    # Chạy cả trên push main để LƯU cache scope=main → mọi PR sau restore được
-    # (cache tạo trong PR chỉ PR đó thấy; phải lưu ở main mới dùng chung).
+  # ---------- Frontend BUILD (job riêng, runner riêng → song song thật với FE check) ----------
+  fe_build:
+    name: FE · build
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -92,20 +90,44 @@ jobs:
           key: next-${{ hashFiles('fe/yarn.lock') }}-${{ github.sha }}
           restore-keys: |
             next-${{ hashFiles('fe/yarn.lock') }}-
-      - name: install (chỉ khi cache MISS — hit thì dùng luôn, khỏi cài lại)
+      - name: install (chỉ khi cache MISS)
         if: steps.nmfe.outputs.cache-hit != 'true'
         working-directory: fe
         run: yarn install --frozen-lockfile --prefer-offline
-      - name: lint + tsc + build (SONG SONG)
+      - name: build (compile-only)
+        working-directory: fe
+        run: yarn build
+
+  # ---------- Frontend CHECK (lint + tsc, song song với build) ----------
+  fe_check:
+    name: FE · lint + tsc
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cache node_modules (FE)
+        id: nmfe
+        uses: actions/cache@v4
+        with:
+          path: fe/node_modules
+          key: nm-fe-${{ hashFiles('fe/yarn.lock') }}
+      - name: install (chỉ khi cache MISS)
+        if: steps.nmfe.outputs.cache-hit != 'true'
+        working-directory: fe
+        run: yarn install --frozen-lockfile --prefer-offline
+      - name: lint + tsc (SONG SONG)
         working-directory: fe
         run: |
           yarn lint & L=$!
           yarn tsc --noEmit & T=$!
-          yarn build & B=$!
           ok=0
           wait $L || ok=1
           wait $T || ok=1
-          wait $B || ok=1
           exit $ok
 
   # ---------- Agent (song song) ----------
@@ -144,16 +166,17 @@ jobs:
   # ---------- Gate tổng: GIỮ NGUYÊN TÊN cho branch protection ----------
   test:
     name: Test toàn diện (BE + FE + Agent)
-    needs: [be, fe, agent]
+    needs: [be, fe_build, fe_check, agent]
     if: always() && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - name: Kết luận (đỏ nếu 1 phần bất kỳ fail)
         run: |
-          echo "BE=${{ needs.be.result }} | FE=${{ needs.fe.result }} | Agent=${{ needs.agent.result }}"
+          echo "BE=${{ needs.be.result }} | FE build=${{ needs.fe_build.result }} | FE check=${{ needs.fe_check.result }} | Agent=${{ needs.agent.result }}"
           [ "${{ needs.be.result }}" = "success" ] \
-            && [ "${{ needs.fe.result }}" = "success" ] \
+            && [ "${{ needs.fe_build.result }}" = "success" ] \
+            && [ "${{ needs.fe_check.result }}" = "success" ] \
             && [ "${{ needs.agent.result }}" = "success" ]
 
   deploy:
