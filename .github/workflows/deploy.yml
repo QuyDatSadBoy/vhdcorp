@@ -1,17 +1,18 @@
 # ============================================================
 # CI/CD — test TOÀN DIỆN trước, PASS hết mới deploy.
-#   - PR vào main / push main / bấm tay → chạy job `test`.
-#   - CHỈ khi `test` xanh + là push vào main → job `deploy` SSH vào VPS.
-#   - test đỏ → deploy KHÔNG chạy → server giữ nguyên bản cũ.
-# Secrets cần (Settings → Secrets → Actions): VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_PORT
+#   - PR vào main/develop hoặc chạy tay → 3 job BE/FE/Agent chạy SONG SONG,
+#     job tổng "Test toàn diện (BE + FE + Agent)" gom kết quả (giữ tên để
+#     branch protection không đổi).
+#   - CHỈ khi push vào main → job `deploy` SSH vào VPS (deploy.sh có smoke test
+#     + tự rollback nếu bản mới lỗi).
+# Tối ưu tốc độ: 3 job song song (thay vì nối tiếp) + cache yarn/uv/next.
+# Secrets cần: VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_PORT
 # ============================================================
 name: CI/CD
 
 on:
   push:
     branches: [main]
-  # PR vào main HOẶC develop đều chạy test (chặn code hỏng từ nhánh feature);
-  # push THẲNG lên develop thì không test — commit hằng ngày không bị chậm.
   pull_request:
     branches: [main, develop]
   workflow_dispatch: {}
@@ -20,76 +21,117 @@ concurrency:
   group: cicd-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Prisma 7 cần DATABASE_URL để load config lúc generate/build (KHÔNG kết nối thật).
+  DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci?schema=public"
+
 jobs:
-  test:
-    name: Test toàn diện (BE + FE + Agent)
-    # Chỉ chạy test khi MỞ/CẬP NHẬT Pull Request (gate bắt buộc để merge) hoặc chạy tay.
-    # Push vào main KHÔNG test lại — commit đã qua PR test + branch protection bảo đảm.
+  # ---------- Backend (song song) ----------
+  be:
+    name: BE · tsc + test + build
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    env:
-      # Prisma 7 cần DATABASE_URL để load config lúc generate/build (KHÔNG kết nối thật;
-      # migrate/seed chỉ chạy trên server thật). Giá trị giả cho generate/tsc/jest/build.
-      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci?schema=public"
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node 22
+      - name: Setup Node 22 (+cache yarn)
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: yarn
+          cache-dependency-path: be/yarn.lock
+      - name: install
+        working-directory: be
+        run: yarn install --frozen-lockfile
+      - name: prisma generate
+        working-directory: be
+        run: yarn prisma:generate
+      - name: typecheck
+        working-directory: be
+        run: yarn tsc --noEmit
+      - name: unit tests (voucher, giá KM…)
+        working-directory: be
+        run: yarn test
+      - name: build
+        working-directory: be
+        run: yarn build
 
-      - name: Setup Python + uv
+  # ---------- Frontend (song song) ----------
+  fe:
+    name: FE · lint + tsc + build
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node 22 (+cache yarn)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: fe/yarn.lock
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: fe/.next/cache
+          key: next-${{ hashFiles('fe/yarn.lock') }}-${{ github.sha }}
+          restore-keys: |
+            next-${{ hashFiles('fe/yarn.lock') }}-
+      - name: install
+        working-directory: fe
+        run: yarn install --frozen-lockfile
+      - name: lint
+        working-directory: fe
+        run: yarn lint
+      - name: typecheck
+        working-directory: fe
+        run: yarn tsc --noEmit
+      - name: build
+        working-directory: fe
+        run: yarn build
+
+  # ---------- Agent (song song) ----------
+  agent:
+    name: Agent · pytest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python + uv (+cache)
         uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.13"
-
-      # ---------- Backend ----------
-      - name: BE · install
-        working-directory: be
-        run: yarn install --frozen-lockfile
-      - name: BE · prisma generate
-        working-directory: be
-        run: yarn prisma:generate
-      - name: BE · typecheck
-        working-directory: be
-        run: yarn tsc --noEmit
-      - name: BE · unit tests (voucher, giá KM…)
-        working-directory: be
-        run: yarn test
-      - name: BE · build
-        working-directory: be
-        run: yarn build
-
-      # ---------- Frontend ----------
-      - name: FE · install
-        working-directory: fe
-        run: yarn install --frozen-lockfile
-      - name: FE · lint
-        working-directory: fe
-        run: yarn lint
-      - name: FE · typecheck
-        working-directory: fe
-        run: yarn tsc --noEmit
-      - name: FE · build
-        working-directory: fe
-        run: yarn build
-
-      # ---------- Agent ----------
-      - name: Agent · sync + pytest (tất định, bỏ test LLM live)
+          enable-cache: true
+          cache-dependency-glob: agent/uv.lock
+      - name: sync + pytest (tất định, bỏ test LLM live)
         working-directory: agent
         env:
-          GOOGLE_API_KEY: ci-dummy-key          # test tất định không gọi Gemini thật
+          GOOGLE_API_KEY: ci-dummy-key
           TAVILY_API_KEYS: ci-dummy
         run: |
           uv sync --frozen
           uv run pytest -q -m "not live"
 
+  # ---------- Gate tổng: GIỮ NGUYÊN TÊN cho branch protection ----------
+  test:
+    name: Test toàn diện (BE + FE + Agent)
+    needs: [be, fe, agent]
+    if: always() && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Kết luận (đỏ nếu 1 phần bất kỳ fail)
+        run: |
+          echo "BE=${{ needs.be.result }} | FE=${{ needs.fe.result }} | Agent=${{ needs.agent.result }}"
+          [ "${{ needs.be.result }}" = "success" ] \
+            && [ "${{ needs.fe.result }}" = "success" ] \
+            && [ "${{ needs.agent.result }}" = "success" ]
+
   deploy:
     name: Deploy lên VPS (push main — đã qua PR test)
-    # KHÔNG needs:test nữa — commit vào main chỉ đến từ PR đã test xanh (branch protection).
-    # deploy.sh vẫn có smoke test 9 nhóm + tự rollback nếu bản mới lỗi.
+    # KHÔNG needs:test — commit vào main chỉ đến từ PR đã test xanh (branch protection).
+    # deploy.sh vẫn có smoke test + tự rollback nếu bản mới lỗi.
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -107,12 +149,9 @@ jobs:
             export PATH="$HOME/.local/bin:/usr/bin:/usr/local/bin:$PATH"
             cd $HOME/vhdcorp
             # Cập nhật checkout TRƯỚC khi chạy deploy.sh — nếu không, lần deploy trước
-            # rollback để lại deploy.sh CŨ và bản cũ đó chính là script được thực thi
-            # (sửa deploy.sh sẽ không bao giờ có hiệu lực).
+            # rollback để lại deploy.sh CŨ và bản cũ đó chính là script được thực thi.
             git fetch origin main
-            # Bỏ mọi thay đổi local trước khi checkout (file runtime từng làm
-            # cây bẩn → checkout abort → deploy fail; runtime giờ ghi *.local
-            # đã gitignore, reset này là lưới an toàn).
+            # Bỏ mọi thay đổi local trước khi checkout (file runtime *.local đã gitignore).
             git reset --hard HEAD
             git checkout -B main origin/main
             git reset --hard origin/main
