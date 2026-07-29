@@ -35,6 +35,8 @@ DEFAULTS = {
     "daily_budget_usd": 0,
     "monthly_budget_usd": 0,
     "currency": "vnd",        # đơn vị hiển thị/nhập ở admin: "vnd" | "usd"
+    # Cache câu hỏi lặp Y HỆT (exact-match, miễn phí) — bật để đỡ tốn quota LLM.
+    "cache_enabled": True,
 }
 
 
@@ -67,6 +69,8 @@ def save_limits(new: dict) -> dict:
     merged = dict(cur)
     if "enabled" in new:
         merged["enabled"] = bool(new["enabled"])
+    if "cache_enabled" in new:
+        merged["cache_enabled"] = bool(new["cache_enabled"])
     for k in ("per_ip_per_min", "per_ip_per_hour", "per_ip_per_day", "global_per_day"):
         if k in new and new[k] is not None:
             merged[k] = max(0, int(new[k]))
