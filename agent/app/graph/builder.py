@@ -70,26 +70,29 @@ class ChatGraphBuilder(BaseGraphBuilder):
             show_comparison,
             show_faq,
         ]
-        def _mk(model: str) -> ChatGoogleGenerativeAI:
+        def _mk(model: str, key: str) -> ChatGoogleGenerativeAI:
             return ChatGoogleGenerativeAI(
                 model=model,
-                google_api_key=settings.google_api_key,
+                google_api_key=key,
                 temperature=0.3,
                 # Chat khách cần REAL-TIME: tắt thinking → TTFT ~1.2s thay vì ~2.4s
                 # (đo thật trên VPS với gemini-3-flash-preview).
                 thinking_budget=0,
             )
 
-        self.llm = _mk(settings.agent_model)
-        # Dự phòng: model chính lỗi (quá tải/5xx/timeout) → tự chuyển model kia,
-        # khách không bao giờ thấy "AI die". Token/chi phí vẫn ghi đúng theo model
-        # thực chạy (đọc model_name từ response_metadata).
-        _fallback = _mk(settings.fallback_model) if settings.fallback_model else None
-        self.llm_with_tools = self.llm.bind_tools(self.tools)
-        if _fallback is not None:
-            self.llm_with_tools = self.llm_with_tools.with_fallbacks(
-                [_fallback.bind_tools(self.tools)]
-            )
+        # Chuỗi dự phòng 2 CHIỀU: nhiều KEY × nhiều MODEL.
+        # Thứ tự: model tốt trên MỌI key trước (xử lý key hết quota/bị thu hồi),
+        # rồi mới hạ xuống model dự phòng trên mọi key (xử lý model quá tải).
+        # → key1+flash → key2+flash → key1+lite → key2+lite. Khách không bao giờ
+        # thấy "AI die"; token/chi phí vẫn ghi đúng model thực chạy (response_metadata).
+        keys = settings.google_key_list or [settings.google_api_key]
+        models = [settings.agent_model] + ([settings.fallback_model] if settings.fallback_model else [])
+        combos = [(m, k) for m in models for k in keys]
+
+        self.llm = _mk(*combos[0])  # (chính) — dùng cho vision mô tả ảnh
+        primary_tools = self.llm.bind_tools(self.tools)
+        rest = [_mk(m, k).bind_tools(self.tools) for (m, k) in combos[1:]]
+        self.llm_with_tools = primary_tools.with_fallbacks(rest) if rest else primary_tools
 
     def build(self) -> StateGraph:
         short_term = ShortTermMemory(limit=self.settings.short_term_limit)
