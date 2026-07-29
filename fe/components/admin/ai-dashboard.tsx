@@ -14,12 +14,15 @@ import {
   X,
   ShieldBan,
   TriangleAlert,
+  DatabaseZap,
+  Trash2,
 } from "lucide-react";
 import {
   useChatLimits,
   useSaveChatLimits,
   useAgentUsage,
   useTopIps,
+  useClearCache,
   type ChatLimits,
   type ModelPrice,
 } from "@/services/agent-admin.service";
@@ -226,6 +229,7 @@ export function AiDashboard() {
   const { data: usage } = useAgentUsage(30);
   const { data: topIps } = useTopIps(15);
   const save = useSaveChatLimits();
+  const clearCache = useClearCache();
   const [form, setForm] = useState<ChatLimits | null>(null);
   const [cur, setCur] = useState<Cur>("vnd");
   const [newIp, setNewIp] = useState("");
@@ -388,6 +392,36 @@ export function AiDashboard() {
               />
               <StatCard icon={Ban} label="Bị chặn 30 ngày" value={num(usage.total.blocked)} accent="danger" />
             </div>
+
+            {/* ── CACHE NGỮ NGHĨA (tiết kiệm token) ── */}
+            {usage.cache && (
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500/15">
+                    <DatabaseZap className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-bold">Cache thông minh — câu hỏi lặp trả lời tức thì, khỏi tốn token</p>
+                    <p className="text-xs text-muted-foreground">
+                      {usage.cache.enabled ? "Đang bật" : "Đang tắt"} · ngưỡng giống nhau{" "}
+                      {Math.round(usage.cache.similarity * 100)}% · {num(usage.cache.entries)} câu đã lưu
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                  <span>
+                    Trả lời từ cache: <b className="tabular-nums">{num(usage.cache.hits)}</b> lần
+                  </span>
+                  <span>
+                    Tỷ lệ trúng: <b className="tabular-nums">{Math.round(usage.cache.hit_rate * 100)}%</b>
+                  </span>
+                  <span className="text-emerald-700 dark:text-emerald-400">
+                    Tiết kiệm ~<b className="tabular-nums">{num(usage.cache.saved_tokens)}</b> token (≈{" "}
+                    {fmtMoney((usage.cache.saved_tokens / 1_000_000) * 0.5, cur, rate)})
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* ── BIỂU ĐỒ ── */}
             <div className="grid gap-4 lg:grid-cols-2">
@@ -602,6 +636,57 @@ export function AiDashboard() {
                 ))}
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">Để trống = bỏ giới hạn đó.</p>
+            </div>
+
+            {/* Cache ngữ nghĩa */}
+            <div>
+              <p className="mb-2 text-sm font-semibold">Cache thông minh (tiết kiệm token)</p>
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
+                <input
+                  type="checkbox"
+                  checked={form.cache_enabled ?? true}
+                  onChange={(e) => setForm({ ...form, cache_enabled: e.target.checked })}
+                  className="h-4 w-4 accent-emerald-600"
+                />
+                <span className="text-sm">
+                  <span className="font-semibold">Bật cache câu hỏi lặp/gần giống</span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    Câu hỏi FAQ giống nhau → trả lời ngay, không gọi AI (chỉ cache câu KHÔNG tra giá/tồn kho).
+                  </span>
+                </span>
+              </label>
+              <div className="mt-3 flex flex-wrap items-end gap-4">
+                <div className="space-y-1.5">
+                  <Label>Ngưỡng giống nhau (0.5–0.99)</Label>
+                  <NumberInput
+                    className="w-32"
+                    step="0.01"
+                    placeholder="0.93"
+                    value={form.cache_similarity ?? 0.93}
+                    onChange={(n) => setForm({ ...form, cache_similarity: Math.min(0.999, Math.max(0.5, n)) })}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await clearCache.mutateAsync();
+                      toast.success("Đã xoá cache — AI sẽ trả lời mới hoàn toàn.");
+                    } catch {
+                      toast.error("Xoá cache thất bại, thử lại.");
+                    }
+                  }}
+                  disabled={clearCache.isPending}
+                  className="gap-1.5"
+                >
+                  {clearCache.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  Xoá cache
+                </Button>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Ngưỡng cao = an toàn hơn (chỉ khớp câu gần y hệt). Cache tự làm mới khi bạn sửa Kiến thức AI.
+              </p>
             </div>
 
             {/* Đơn giá model (USD gốc) — chỉ 2 model, tự điền sẵn giá Google */}
