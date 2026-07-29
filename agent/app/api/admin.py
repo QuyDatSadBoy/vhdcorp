@@ -103,6 +103,7 @@ class ChatLimitsPayload(BaseModel):
     daily_budget_usd: float | None = Field(default=None, ge=0)
     monthly_budget_usd: float | None = Field(default=None, ge=0)
     currency: str | None = None
+    cache_enabled: bool | None = None
 
 
 @router.get("/chat-limits")
@@ -141,6 +142,17 @@ async def get_usage(
     if x_admin_secret != get_settings().admin_secret:
         raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
     return usage.stats(days)
+
+
+@router.post("/cache/clear")
+async def clear_cache(x_admin_secret: str = Header(None, alias="X-Admin-Secret")):
+    """Xoá sạch cache câu hỏi lặp (admin) — ép AI trả lời mới hoàn toàn."""
+    if x_admin_secret != get_settings().admin_secret:
+        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
+    from app.core import reply_cache
+
+    reply_cache.clear()
+    return {"ok": True}
 
 
 @router.get("/top-ips")

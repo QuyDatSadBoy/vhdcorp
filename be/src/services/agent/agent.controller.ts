@@ -42,6 +42,12 @@ export class AgentController {
     return this.agent.getTopIps(limit ? Number(limit) : 15);
   }
 
+  /** Xoá sạch cache câu hỏi lặp của trợ lý AI. */
+  @Post('cache/clear')
+  clearCache() {
+    return this.agent.clearCache();
+  }
+
   /** Chống spam chat AI — xem cấu hình giới hạn (bảo vệ chi phí API). */
   @Get('chat-limits')
   getChatLimits() {
@@ -64,6 +70,7 @@ export class AgentController {
       daily_budget_usd?: number;
       monthly_budget_usd?: number;
       currency?: string;
+      cache_enabled?: boolean;
     },
   ) {
     return this.agent.saveChatLimits(body);

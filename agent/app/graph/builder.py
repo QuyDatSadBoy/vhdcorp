@@ -78,6 +78,9 @@ class ChatGraphBuilder(BaseGraphBuilder):
                 # Chat khách cần REAL-TIME: tắt thinking → TTFT ~1.2s thay vì ~2.4s
                 # (đo thật trên VPS với gemini-3-flash-preview).
                 thinking_budget=0,
+                # KHÔNG retry: gặp 429/5xx là CHUYỂN NGAY sang key/model kế tiếp trong
+                # chuỗi fallback (nếu retry, langchain chờ ~25s/lần × 6 → trả lời rất lâu).
+                max_retries=0,
             )
 
         # Chuỗi dự phòng 2 CHIỀU: nhiều KEY × nhiều MODEL.

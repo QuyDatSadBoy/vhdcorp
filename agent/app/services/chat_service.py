@@ -14,7 +14,7 @@ from app.db.repository import ConversationRepo, MemoryRepo, MessageRepo
 from app.services import vision
 from app.services.memory_service import MemoryService
 from app.tools.products import find_products
-from app.core import usage
+from app.core import usage, reply_cache
 from app.tools.ui import product_to_props, reset_ui_queue, set_ui_queue
 
 logger = logging.getLogger(__name__)
@@ -26,6 +26,14 @@ def _provisional_title(message: str, max_words: int = 6) -> str:
     if len(words) > max_words:
         title += "…"
     return title or "Cuộc trò chuyện mới"
+
+
+def _sentence_pieces(text: str) -> list[str]:
+    """Cắt câu trả lời cache thành từng câu để stream (giữ UX typewriter như thật)."""
+    import re
+
+    parts = re.split(r"(?<=[.!?…\n])\s+", text.strip())
+    return [p for p in parts if p] or [text]
 
 
 def _chunk_text(chunk) -> str:
@@ -95,6 +103,25 @@ class ChatService:
             # Gom mọi ui event đã emit để persist kèm assistant message (reload không mất gen-UI)
             emitted_ui: list[dict] = []
 
+            # ── Cache câu hỏi lặp Y HỆT (miễn phí, exact-match): CHỈ lượt đầu, không
+            # ảnh, không page_context. Hit → trả luôn, KHÔNG gọi LLM (đỡ tốn quota).
+            cache_eligible = first_turn and not image and not (page or "")
+            if cache_eligible:
+                cached_answer = None
+                try:
+                    cached_answer = reply_cache.lookup(message)
+                except Exception:  # noqa: BLE001 — cache lỗi thì bỏ qua, chat vẫn chạy
+                    cached_answer = None
+                if cached_answer:
+                    for piece in _sentence_pieces(cached_answer):
+                        yield {"type": "message.delta", "content": piece}
+                    message_id = await self.message_repo.add(
+                        conversation_id, "assistant", cached_answer, ui_blocks=[]
+                    )
+                    await self.conversation_repo.touch(conversation_id)
+                    yield {"type": "done", "message_id": message_id, "cached": True}
+                    return
+
             # ── Image search (§9.4): mô tả ảnh → tìm SP → emit ui image-search-result ──
             graph_message = message
             if image:
@@ -130,6 +157,7 @@ class ChatService:
             in_tokens = 0
             out_tokens = 0
             used_model = ""
+            tools_used: set[str] = set()  # để quyết định có được cache câu trả lời không
             try:
                 async for event in self.graph.astream_events(state_in, config=config, version="v2"):
                     kind = event["event"]
@@ -151,6 +179,7 @@ class ChatService:
                         # (Không bắn lead-in nữa: FE hiện LOG TIẾN TRÌNH trong lúc tool
                         # chạy, và tự giữ thứ tự chữ → card bằng cách hoãn gắn card
                         # đến khi text stream xong.)
+                        tools_used.add(event.get("name", ""))
                         yield {"type": "tool.start", "name": event.get("name", "")}
                     elif kind == "on_tool_end":
                         yield {"type": "tool.end", "name": event.get("name", "")}
@@ -187,6 +216,12 @@ class ChatService:
             )
             await self.conversation_repo.touch(conversation_id)
             usage.record_request(used_model, in_tokens, out_tokens)  # thống kê chi phí theo model (token thật)
+            # Lưu cache NẾU an toàn (lượt đầu, không tool động, không UI) → lần sau khỏi gọi LLM
+            if cache_eligible and final_text and not emitted_ui:
+                try:
+                    reply_cache.store(message, final_text, tools_used=tools_used, had_ui=bool(emitted_ui))
+                except Exception:  # noqa: BLE001 — lỗi cache không được ảnh hưởng trả lời
+                    pass
             yield {"type": "done", "message_id": message_id}
 
             self._spawn_background(

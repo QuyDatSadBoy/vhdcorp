@@ -91,6 +91,20 @@ export class AgentService {
     return (await res.json()) as Record<string, unknown>;
   }
 
+  /** Xoá sạch cache câu hỏi lặp (ép AI trả lời mới hoàn toàn). */
+  async clearCache(): Promise<Record<string, unknown>> {
+    const res = await fetch(`${this.baseUrl}/api/admin/cache/clear`, {
+      method: 'POST',
+      headers: { 'X-Admin-Secret': this.adminSecret },
+    });
+    if (!res.ok) {
+      throw new BadGatewayException(
+        'Agent AI không phản hồi — kiểm tra service cổng 8001 đang chạy.',
+      );
+    }
+    return (await res.json()) as Record<string, unknown>;
+  }
+
   /** Top IP hoạt động 24h — phát hiện IP nghi vấn để chặn 1 chạm. */
   async getTopIps(limit = 15): Promise<Record<string, unknown>> {
     const res = await fetch(
