@@ -29,7 +29,9 @@ jobs:
   # ---------- Backend (song song) ----------
   be:
     name: BE · tsc + test + build
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    # Chạy cả trên push main để LƯU cache scope=main → mọi PR sau restore được
+    # (cache tạo trong PR chỉ PR đó thấy; phải lưu ở main mới dùng chung).
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -66,7 +68,9 @@ jobs:
   # ---------- Frontend (song song) ----------
   fe:
     name: FE · lint + tsc + build
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    # Chạy cả trên push main để LƯU cache scope=main → mọi PR sau restore được
+    # (cache tạo trong PR chỉ PR đó thấy; phải lưu ở main mới dùng chung).
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -107,7 +111,9 @@ jobs:
   # ---------- Agent (song song) ----------
   agent:
     name: Agent · pytest
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    # Chạy cả trên push main để LƯU cache scope=main → mọi PR sau restore được
+    # (cache tạo trong PR chỉ PR đó thấy; phải lưu ở main mới dùng chung).
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
