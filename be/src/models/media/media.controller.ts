@@ -62,7 +62,8 @@ export class MediaController {
         validators: [
           new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }),
           new FileTypeValidator({
-            fileType: /^image\/(jpeg|png|webp|gif|svg\+xml)$/,
+            // Bỏ SVG: SVG có thể nhúng <script> → stored-XSS nếu mở trực tiếp.
+            fileType: /^image\/(jpeg|png|webp|gif)$/,
           }),
         ],
       }),

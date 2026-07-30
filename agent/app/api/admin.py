@@ -13,6 +13,7 @@ from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
+from app.core.security import require_admin, require_resync
 from app.services.gmail_reader import GmailReaderError, list_recent_emails
 from app.core import rate_limit, usage
 from app.services.knowledge import load_knowledge
@@ -27,8 +28,7 @@ router = APIRouter(prefix="/api/admin")
 @router.post("/resync-products")
 async def resync_products(x_resync_secret: str = Header(None, alias="X-Resync-Secret")):
     settings = get_settings()
-    if x_resync_secret != settings.resync_secret:
-        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Resync-Secret.")
+    require_resync(x_resync_secret)
 
     try:
         count = await sync_products(settings.be_api_url, settings.products_json_path)
@@ -47,9 +47,7 @@ class KnowledgePayload(BaseModel):
 
 @router.get("/knowledge")
 async def get_knowledge(x_admin_secret: str = Header(None, alias="X-Admin-Secret")):
-    settings = get_settings()
-    if x_admin_secret != settings.admin_secret:
-        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
+    require_admin(x_admin_secret)
     return {"content": load_knowledge(force=True)}
 
 
@@ -59,8 +57,7 @@ async def put_knowledge(
     x_admin_secret: str = Header(None, alias="X-Admin-Secret"),
 ):
     settings = get_settings()
-    if x_admin_secret != settings.admin_secret:
-        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
+    require_admin(x_admin_secret)
 
     # Ghi vào bản .local (gitignore) — không làm bẩn cây git khi deploy
     path = Path(settings.knowledge_md_path).with_name("knowledge.local.md")
@@ -76,9 +73,7 @@ async def get_emails(
     limit: int = Query(10, ge=1, le=50),
     unread_only: bool = Query(False),
 ):
-    settings = get_settings()
-    if x_admin_secret != settings.admin_secret:
-        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
+    require_admin(x_admin_secret)
 
     try:
         emails = await run_in_threadpool(
@@ -113,8 +108,7 @@ async def get_chat_limits(x_admin_secret: str = Header(None, alias="X-Admin-Secr
     Kèm `models` (chính + dự phòng) và `default_model_prices` (giá gốc Google)
     để UI tự điền sẵn đơn giá, không bắt admin gõ tay từ đầu.
     """
-    if x_admin_secret != get_settings().admin_secret:
-        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
+    require_admin(x_admin_secret)
     return {
         **rate_limit.load_limits(),
         "models": usage.active_models(),
@@ -128,8 +122,7 @@ async def put_chat_limits(
     x_admin_secret: str = Header(None, alias="X-Admin-Secret"),
 ):
     """Chỉnh cấu hình chống spam chat — hiệu lực NGAY, không cần deploy."""
-    if x_admin_secret != get_settings().admin_secret:
-        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
+    require_admin(x_admin_secret)
     return rate_limit.save_limits(body.model_dump(exclude_none=True))
 
 
@@ -139,16 +132,14 @@ async def get_usage(
     x_admin_secret: str = Header(None, alias="X-Admin-Secret"),
 ):
     """Thống kê sử dụng AI + ước tính chi phí (admin)."""
-    if x_admin_secret != get_settings().admin_secret:
-        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
+    require_admin(x_admin_secret)
     return usage.stats(days)
 
 
 @router.post("/cache/clear")
 async def clear_cache(x_admin_secret: str = Header(None, alias="X-Admin-Secret")):
     """Xoá sạch cache câu hỏi lặp (admin) — ép AI trả lời mới hoàn toàn."""
-    if x_admin_secret != get_settings().admin_secret:
-        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
+    require_admin(x_admin_secret)
     from app.core import reply_cache
 
     reply_cache.clear()
@@ -161,6 +152,5 @@ async def get_top_ips(
     x_admin_secret: str = Header(None, alias="X-Admin-Secret"),
 ):
     """Top IP hoạt động 24h — phát hiện IP nghi vấn để chặn 1 chạm (admin)."""
-    if x_admin_secret != get_settings().admin_secret:
-        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
+    require_admin(x_admin_secret)
     return {"ips": rate_limit.top_ips(limit)}

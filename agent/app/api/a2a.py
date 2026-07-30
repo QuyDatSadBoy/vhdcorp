@@ -10,6 +10,7 @@ import uuid
 from fastapi import APIRouter, Request
 
 from app.core.config import get_settings
+from app.core import rate_limit
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +92,14 @@ async def a2a(request: Request):
     ).strip()
     if not text:
         return _jsonrpc_error(req_id, -32602, "Invalid params: thiếu message.parts[].text")
+
+    # Chống lạm dụng LLM (tốn tiền): A2A cũng gọi Gemini → áp CÙNG rate limit +
+    # trần toàn cục như /api/chat (trước đây bỏ ngỏ → nguy cơ đốt quota/DoS).
+    ip = rate_limit.client_ip(request)
+    allowed, reason = rate_limit.check(ip)
+    if not allowed:
+        return _jsonrpc_error(req_id, -32000, reason or "Quá giới hạn, thử lại sau.")
+    rate_limit.record(ip)
 
     chat_service = request.app.state.chat_service
     answer = await chat_service.run_once(text)

@@ -11,6 +11,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel
 
 from app.core.config import get_settings
+from app.core.security import require_admin
 from app.tools.web_search import _tavily_search
 from app.tools.products import load_catalog_live
 from app.services.knowledge import get_context_text
@@ -27,8 +28,7 @@ BRAND = (
 
 
 def _check(secret: str | None) -> None:
-    if secret != get_settings().admin_secret:
-        raise HTTPException(status_code=403, detail="Sai hoặc thiếu X-Admin-Secret.")
+    require_admin(secret)  # hằng thời gian + fail-closed (xem app/core/security.py)
 
 
 def _llm(temperature: float = 0.6) -> ChatGoogleGenerativeAI:
