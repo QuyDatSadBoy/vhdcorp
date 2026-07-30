@@ -367,6 +367,7 @@ model Order {
 
   @@index([status])
   @@index([email])
+  @@index([userId]) // đơn của 1 khách (/orders/mine) — tránh quét toàn bảng khi data lớn
   @@map("orders")
 }
 

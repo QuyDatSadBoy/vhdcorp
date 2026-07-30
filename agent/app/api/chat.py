@@ -4,7 +4,7 @@ import json
 
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.core import rate_limit, usage
 
@@ -23,6 +23,15 @@ class ChatRequest(BaseModel):
     image: str | None = None  # data URL base64 (tùy chọn) — tìm sản phẩm bằng ảnh (§9.4)
     # Đường dẫn trang khách đang mở (vd /products/ong-nhua-pvc-d21) — agent hiểu "sản phẩm này"
     page: str | None = None
+
+    @field_validator("image")
+    @classmethod
+    def _only_data_url(cls, v: str | None) -> str | None:
+        # CHỈ nhận ảnh dạng data: URL (base64). Bỏ qua http(s)/URL khác → KHÔNG
+        # chuyển tiếp URL tùy ý cho Gemini (tránh bị lợi dụng để fetch URL lạ).
+        if v and not v.startswith("data:image/"):
+            return None
+        return v
 
 
 def _sse(event: dict) -> str:

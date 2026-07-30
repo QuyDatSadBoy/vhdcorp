@@ -45,9 +45,11 @@ class Settings(BaseSettings):
     minimax_api_key: str = ""
     minimax_group_id: str = ""
 
-    # Bí mật bảo vệ các endpoint admin (resync sản phẩm / đọc email)
-    resync_secret: str = "vhdcorp-resync"
-    admin_secret: str = "vhdcorp-admin"
+    # Bí mật bảo vệ endpoint admin (resync sản phẩm / đọc email / quản lý AI).
+    # MẶC ĐỊNH RỖNG = fail-closed: chưa đặt trong .env thì mọi request admin bị từ
+    # chối (KHÔNG dùng giá trị mặc định đoán được như trước → tránh lộ toàn bộ admin).
+    resync_secret: str = ""
+    admin_secret: str = ""
 
     # Gmail IMAP (đọc hộp thư admin — chỉ dùng qua endpoint admin, KHÔNG expose cho chat)
     gmail_imap_user: str = ""
