@@ -97,20 +97,28 @@ class ChatGraphBuilder(BaseGraphBuilder):
         primary_tools = self.llm.bind_tools(self.tools)
         rest = [_mk(m, k).bind_tools(self.tools) for (m, k) in combos[1:]]
 
-        # DỰ PHÒNG CHÉO NHÀ CUNG CẤP: cả 5 key Gemini hết quota → chuyển MiniMax
-        # (khác provider, không dính quota Gemini). Endpoint OpenAI-compatible.
-        if settings.minimax_api_key and settings.minimax_llm_model:
+        # DỰ PHÒNG CHÉO NHÀ CUNG CẤP (OpenAI-compatible): cả Gemini hết quota → chuyển sang
+        # provider khác (không dính quota Gemini). Thứ tự theo tốc độ + độ tin cậy đo thật:
+        #   Groq gpt-oss-120b (~0.5s, FREE) → MiniMax-Text-01 (trả phí) → OpenRouter (FREE, ~2–5s, chốt chặn cuối).
+        cross_providers = [
+            (settings.groq_api_key, settings.groq_model, settings.groq_base_url, 25),
+            (settings.minimax_api_key, settings.minimax_llm_model, settings.minimax_base_url, 25),
+            (settings.openrouter_api_key, settings.openrouter_model, settings.openrouter_base_url, 30),
+        ]
+        if any(key for key, *_ in cross_providers):
             from langchain_openai import ChatOpenAI
 
-            minimax = ChatOpenAI(
-                model=settings.minimax_llm_model,
-                api_key=settings.minimax_api_key,
-                base_url=settings.minimax_base_url,
-                temperature=0.3,
-                max_retries=0,  # lỗi là chuyển tiếp ngay, không chờ retry
-                timeout=25,
-            )
-            rest.append(minimax.bind_tools(self.tools))
+            for key, model, base_url, timeout in cross_providers:
+                if key and model:
+                    llm = ChatOpenAI(
+                        model=model,
+                        api_key=key,
+                        base_url=base_url,
+                        temperature=0.3,
+                        max_retries=0,  # lỗi là chuyển tiếp ngay, không chờ retry
+                        timeout=timeout,
+                    )
+                    rest.append(llm.bind_tools(self.tools))
 
         self.llm_with_tools = primary_tools.with_fallbacks(rest) if rest else primary_tools
 

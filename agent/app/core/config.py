@@ -54,6 +54,18 @@ class Settings(BaseSettings):
     minimax_llm_model: str = "MiniMax-Text-01"
     minimax_base_url: str = "https://api.minimax.io/v1"
 
+    # Groq LLM — DỰ PHÒNG CHÉO MIỄN PHÍ & NHANH NHẤT (đo thật ~0.49s, nhanh hơn cả Gemini):
+    # openai/gpt-oss-120b có tool-calling, KHÔNG kèm <think>, tiếng Việt ổn. Free ~1000 req/ngày.
+    # Xếp NGAY sau Gemini trong chuỗi fallback. Endpoint OpenAI-compatible (ChatOpenAI + base_url).
+    groq_api_key: str = ""
+    groq_model: str = "openai/gpt-oss-120b"
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    # OpenRouter LLM — DỰ PHÒNG CHÉO MIỄN PHÍ, CHỐT CHẶN CUỐI: ling-3.0-flash:free
+    # (~2–5s, tool-calling, tiếng Việt rất tốt). Chậm hơn Groq nên xếp SAU. OpenAI-compatible.
+    openrouter_api_key: str = ""
+    openrouter_model: str = "inclusionai/ling-3.0-flash:free"
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+
     # Bí mật bảo vệ endpoint admin (resync sản phẩm / đọc email / quản lý AI).
     # MẶC ĐỊNH RỖNG = fail-closed: chưa đặt trong .env thì mọi request admin bị từ
     # chối (KHÔNG dùng giá trị mặc định đoán được như trước → tránh lộ toàn bộ admin).
