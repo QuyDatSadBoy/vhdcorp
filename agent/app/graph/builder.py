@@ -96,6 +96,22 @@ class ChatGraphBuilder(BaseGraphBuilder):
         self.llm = _mk(*combos[0])  # (chính) — dùng cho vision mô tả ảnh
         primary_tools = self.llm.bind_tools(self.tools)
         rest = [_mk(m, k).bind_tools(self.tools) for (m, k) in combos[1:]]
+
+        # DỰ PHÒNG CHÉO NHÀ CUNG CẤP: cả 5 key Gemini hết quota → chuyển MiniMax
+        # (khác provider, không dính quota Gemini). Endpoint OpenAI-compatible.
+        if settings.minimax_api_key and settings.minimax_llm_model:
+            from langchain_openai import ChatOpenAI
+
+            minimax = ChatOpenAI(
+                model=settings.minimax_llm_model,
+                api_key=settings.minimax_api_key,
+                base_url=settings.minimax_base_url,
+                temperature=0.3,
+                max_retries=0,  # lỗi là chuyển tiếp ngay, không chờ retry
+                timeout=25,
+            )
+            rest.append(minimax.bind_tools(self.tools))
+
         self.llm_with_tools = primary_tools.with_fallbacks(rest) if rest else primary_tools
 
     def build(self) -> StateGraph:

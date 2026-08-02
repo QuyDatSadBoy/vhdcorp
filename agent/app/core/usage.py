@@ -103,14 +103,15 @@ def record_blocked() -> None:
 # Admin có thể ghi đè qua UI.
 DEFAULT_MODEL_PRICES = {
     "gemini-3.1-flash-lite": {"in": 0.25, "out": 1.50},  # CHÍNH
-    "gemini-3.6-flash": {"in": 1.50, "out": 7.50},        # dự phòng (mới)
+    "gemini-3.6-flash": {"in": 1.50, "out": 7.50},        # dự phòng Gemini (mới)
+    "MiniMax-Text-01": {"in": 0.20, "out": 1.10},         # dự phòng CHÉO (ước tính, admin chỉnh được)
     "gemini-3-flash-preview": {"in": 0.50, "out": 3.00},  # (cũ, giữ để tính lịch sử)
 }
 _FALLBACK_PRICE = {"in": 0.50, "out": 3.00}
 
 
 def active_models() -> list[str]:
-    """Danh sách model đang dùng (chính trước, rồi dự phòng) — dedupe, giữ thứ tự."""
+    """Danh sách model đang dùng (chính → dự phòng Gemini → dự phòng chéo) — dedupe."""
     s = get_settings()
     fallbacks = [m.strip() for m in (getattr(s, "fallback_model", "") or "").split(",")]
     out: list[str] = []
@@ -118,6 +119,9 @@ def active_models() -> list[str]:
         m = (m or "").strip()
         if m and m not in out:
             out.append(m)
+    mm = (getattr(s, "minimax_llm_model", "") or "").strip()
+    if s.minimax_api_key and mm and mm not in out:  # dự phòng chéo MiniMax
+        out.append(mm)
     return out
 
 
