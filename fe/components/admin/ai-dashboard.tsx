@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/button";
 type Cur = "vnd" | "usd";
 
 /** 2 model đang dùng (chính + dự phòng) — khớp server, dùng làm mặc định nếu API chưa trả. */
-const DEFAULT_MODELS = ["gemini-3-flash-preview", "gemini-3.1-flash-lite"];
+const DEFAULT_MODELS = ["gemini-3.1-flash-lite", "gemini-3-flash-preview"];
 const DEFAULT_PRICES: Record<string, ModelPrice> = {
   "gemini-3-flash-preview": { in: 0.5, out: 3 },
   "gemini-3.1-flash-lite": { in: 0.25, out: 1.5 },
