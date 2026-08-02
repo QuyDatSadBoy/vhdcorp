@@ -89,7 +89,8 @@ class ChatGraphBuilder(BaseGraphBuilder):
         # → key1+flash → key2+flash → key1+lite → key2+lite. Khách không bao giờ
         # thấy "AI die"; token/chi phí vẫn ghi đúng model thực chạy (response_metadata).
         keys = settings.google_key_list or [settings.google_api_key]
-        models = [settings.agent_model] + ([settings.fallback_model] if settings.fallback_model else [])
+        fallbacks = [m.strip() for m in (settings.fallback_model or "").split(",") if m.strip()]
+        models = list(dict.fromkeys([settings.agent_model, *fallbacks]))  # dedupe, giữ thứ tự
         combos = [(m, k) for m in models for k in keys]
 
         self.llm = _mk(*combos[0])  # (chính) — dùng cho vision mô tả ảnh
