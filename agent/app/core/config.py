@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     # MiniMax TTS — DỰ PHÒNG khi PTIT lỗi (MP3, tốn phí)
     minimax_api_key: str = ""
     minimax_group_id: str = ""
+    # MiniMax LLM — DỰ PHÒNG CHÉO NHÀ CUNG CẤP: khi cả 5 key Gemini hết quota thì
+    # chuyển sang MiniMax (khác provider → không dính quota Gemini). Dùng chung key
+    # với TTS. MiniMax-Text-01: có tool-calling, không kèm <think>, ~1.6s, tiếng Việt tốt.
+    # Rỗng = tắt. Endpoint OpenAI-compatible (langchain ChatOpenAI + base_url).
+    minimax_llm_model: str = "MiniMax-Text-01"
+    minimax_base_url: str = "https://api.minimax.io/v1"
 
     # Bí mật bảo vệ endpoint admin (resync sản phẩm / đọc email / quản lý AI).
     # MẶC ĐỊNH RỖNG = fail-closed: chưa đặt trong .env thì mọi request admin bị từ
