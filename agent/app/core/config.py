@@ -21,10 +21,11 @@ class Settings(BaseSettings):
     # bị thu hồi thì tự chuyển key khác. Rỗng thì dùng google_api_key.
     google_api_keys: str = ""
     # 2 model: chính + dự phòng (fallback cho nhau — model chính lỗi thì tự chuyển).
-    # CHÍNH = flash-lite (đo thật: TTFT ~0.75s) vì flash-preview chậm ~14s/lần gọi
-    # (preview + bị throttle free-tier) → chat rất chậm. flash-preview làm dự phòng.
+    # CHÍNH = flash-lite (đo thật: TTFT ~0.7s) vì flash-preview chậm ~14s/lần gọi
+    # (preview + bị throttle free-tier). Dự phòng = 3.6-flash (~1.3s, mới) — thay
+    # flash-preview 14s. fallback_model có thể là DANH SÁCH ngăn cách bằng phẩy.
     agent_model: str = "gemini-3.1-flash-lite"
-    fallback_model: str = "gemini-3-flash-preview"
+    fallback_model: str = "gemini-3.6-flash"
     tavily_api_keys: str = ""  # danh sách key, phân tách bằng dấu phẩy
     be_api_url: str = "http://localhost:8080/api"
     port: int = 8001
