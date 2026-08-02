@@ -103,10 +103,12 @@ class ChatService:
             # Gom mọi ui event đã emit để persist kèm assistant message (reload không mất gen-UI)
             emitted_ui: list[dict] = []
 
-            # ── Cache câu hỏi lặp Y HỆT (miễn phí, exact-match): CHỈ lượt đầu, không
-            # ảnh, không page_context. Hit → trả luôn, KHÔNG gọi LLM (đỡ tốn quota).
-            cache_eligible = first_turn and not image and not (page or "")
-            if cache_eligible:
+            # ── Cache câu hỏi lặp Y HỆT (miễn phí, exact-match) ──
+            # TRA cache ở MỌI lượt: câu hỏi giống HỆT (đã chuẩn hoá) → trả luôn, kể cả
+            # giữa hội thoại (đỡ tốn quota). Chỉ loại ảnh / page_context (làm câu trả lời
+            # phụ thuộc ngữ cảnh). Còn LƯU thì chỉ ở lượt đầu (bên dưới) để an toàn.
+            no_ctx = not image and not (page or "")
+            if no_ctx:
                 cached_answer = None
                 try:
                     cached_answer = reply_cache.lookup(message)
@@ -216,8 +218,9 @@ class ChatService:
             )
             await self.conversation_repo.touch(conversation_id)
             usage.record_request(used_model, in_tokens, out_tokens)  # thống kê chi phí theo model (token thật)
-            # Lưu cache NẾU an toàn (lượt đầu, không tool động, không UI) → lần sau khỏi gọi LLM
-            if cache_eligible and final_text and not emitted_ui:
+            # LƯU cache NẾU an toàn: chỉ lượt ĐẦU (câu trả lời chưa dính ngữ cảnh chat),
+            # không ảnh/page, không tool động, không UI → lần sau khỏi gọi LLM.
+            if first_turn and no_ctx and final_text and not emitted_ui:
                 try:
                     reply_cache.store(message, final_text, tools_used=tools_used, had_ui=bool(emitted_ui))
                 except Exception:  # noqa: BLE001 — lỗi cache không được ảnh hưởng trả lời
