@@ -105,6 +105,8 @@ DEFAULT_MODEL_PRICES = {
     "gemini-3.1-flash-lite": {"in": 0.25, "out": 1.50},  # CHÍNH
     "gemini-3.6-flash": {"in": 1.50, "out": 7.50},        # dự phòng Gemini (mới)
     "MiniMax-Text-01": {"in": 0.20, "out": 1.10},         # dự phòng CHÉO (ước tính, admin chỉnh được)
+    "openai/gpt-oss-120b": {"in": 0.0, "out": 0.0},       # dự phòng CHÉO Groq — MIỄN PHÍ
+    "inclusionai/ling-3.0-flash:free": {"in": 0.0, "out": 0.0},  # dự phòng CHÉO OpenRouter — MIỄN PHÍ
     "gemini-3-flash-preview": {"in": 0.50, "out": 3.00},  # (cũ, giữ để tính lịch sử)
 }
 _FALLBACK_PRICE = {"in": 0.50, "out": 3.00}
@@ -119,9 +121,16 @@ def active_models() -> list[str]:
         m = (m or "").strip()
         if m and m not in out:
             out.append(m)
-    mm = (getattr(s, "minimax_llm_model", "") or "").strip()
-    if s.minimax_api_key and mm and mm not in out:  # dự phòng chéo MiniMax
-        out.append(mm)
+    # dự phòng chéo nhà cung cấp (chỉ tính khi CÓ key) — cùng thứ tự chuỗi fallback
+    for key_attr, model_attr in (
+        ("groq_api_key", "groq_model"),
+        ("minimax_api_key", "minimax_llm_model"),
+        ("openrouter_api_key", "openrouter_model"),
+    ):
+        if getattr(s, key_attr, ""):
+            mdl = (getattr(s, model_attr, "") or "").strip()
+            if mdl and mdl not in out:
+                out.append(mdl)
     return out
 
 

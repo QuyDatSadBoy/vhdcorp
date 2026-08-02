@@ -34,11 +34,19 @@ import { Button } from "@/components/ui/button";
 type Cur = "vnd" | "usd";
 
 /** 2 model đang dùng (chính + dự phòng) — khớp server, dùng làm mặc định nếu API chưa trả. */
-const DEFAULT_MODELS = ["gemini-3.1-flash-lite", "gemini-3.6-flash", "MiniMax-Text-01"];
+const DEFAULT_MODELS = [
+  "gemini-3.1-flash-lite",
+  "gemini-3.6-flash",
+  "openai/gpt-oss-120b",
+  "MiniMax-Text-01",
+  "inclusionai/ling-3.0-flash:free",
+];
 const DEFAULT_PRICES: Record<string, ModelPrice> = {
   "gemini-3.1-flash-lite": { in: 0.25, out: 1.5 },
   "gemini-3.6-flash": { in: 1.5, out: 7.5 },
+  "openai/gpt-oss-120b": { in: 0, out: 0 },
   "MiniMax-Text-01": { in: 0.2, out: 1.1 },
+  "inclusionai/ling-3.0-flash:free": { in: 0, out: 0 },
 };
 
 const num = (n: number) => Math.round(n).toLocaleString("vi-VN");
