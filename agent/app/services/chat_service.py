@@ -29,11 +29,20 @@ def _provisional_title(message: str, max_words: int = 6) -> str:
 
 
 def _sentence_pieces(text: str) -> list[str]:
-    """Cắt câu trả lời cache thành từng câu để stream (giữ UX typewriter như thật)."""
+    """Cắt câu trả lời cache thành từng câu để stream (giữ UX typewriter như thật).
+
+    GIỮ NGUYÊN khoảng trắng/xuống dòng ngăn cách: nếu bỏ, FE ghép các mảnh delta lại
+    sẽ bị dính chữ ('bạn!Mình') + mất \\n\\n của markdown → hỏng định dạng."""
     import re
 
-    parts = re.split(r"(?<=[.!?…\n])\s+", text.strip())
-    return [p for p in parts if p] or [text]
+    tokens = re.split(r"((?<=[.!?…\n])\s+)", text.strip())  # giữ separator (nhóm bắt)
+    pieces: list[str] = []
+    for i in range(0, len(tokens), 2):
+        sent = tokens[i]
+        sep = tokens[i + 1] if i + 1 < len(tokens) else ""
+        if sent:
+            pieces.append(sent + sep)
+    return pieces or [text]
 
 
 def _chunk_text(chunk) -> str:
@@ -104,14 +113,14 @@ class ChatService:
             emitted_ui: list[dict] = []
 
             # ── Cache câu hỏi lặp Y HỆT (miễn phí, exact-match) ──
-            # TRA cache ở MỌI lượt: câu hỏi giống HỆT (đã chuẩn hoá) → trả luôn, kể cả
-            # giữa hội thoại (đỡ tốn quota). Chỉ loại ảnh / page_context (làm câu trả lời
-            # phụ thuộc ngữ cảnh). Còn LƯU thì chỉ ở lượt đầu (bên dưới) để an toàn.
-            no_ctx = not image and not (page or "")
-            if no_ctx:
+            # TRA cache ở MỌI lượt: câu hỏi giống HỆT (đã chuẩn hoá) TRÊN CÙNG TRANG →
+            # trả luôn (đỡ tốn quota). page nằm trong KHOÁ cache (không loại bỏ nữa) nên
+            # câu phụ thuộc trang vẫn an toàn. Chỉ loại ảnh (mỗi ảnh là duy nhất).
+            cacheable = not image
+            if cacheable:
                 cached_answer = None
                 try:
-                    cached_answer = reply_cache.lookup(message)
+                    cached_answer = reply_cache.lookup(message, page=page)
                 except Exception:  # noqa: BLE001 — cache lỗi thì bỏ qua, chat vẫn chạy
                     cached_answer = None
                 if cached_answer:
@@ -220,9 +229,9 @@ class ChatService:
             usage.record_request(used_model, in_tokens, out_tokens)  # thống kê chi phí theo model (token thật)
             # LƯU cache NẾU an toàn: chỉ lượt ĐẦU (câu trả lời chưa dính ngữ cảnh chat),
             # không ảnh/page, không tool động, không UI → lần sau khỏi gọi LLM.
-            if first_turn and no_ctx and final_text and not emitted_ui:
+            if first_turn and cacheable and final_text and not emitted_ui:
                 try:
-                    reply_cache.store(message, final_text, tools_used=tools_used, had_ui=bool(emitted_ui))
+                    reply_cache.store(message, final_text, tools_used=tools_used, had_ui=bool(emitted_ui), page=page)
                 except Exception:  # noqa: BLE001 — lỗi cache không được ảnh hưởng trả lời
                     pass
             yield {"type": "done", "message_id": message_id}

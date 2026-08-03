@@ -93,12 +93,33 @@ def _norm(q: str) -> str:
     return re.sub(r"\s+", " ", q.strip().lower()).strip(" ?!.…,;:")
 
 
-def lookup(question: str) -> str | None:
-    """Khớp câu hỏi giống hệt (đã chuẩn hoá) → câu trả lời cache. None nếu không có."""
-    if not _enabled():
-        return None
+def _page_section(page: str | None) -> str:
+    """Rút gọn đường dẫn về SECTION = segment đầu ('/products/ong-nhua-d21' → '/products').
+
+    Chỉ câu KHÔNG dùng tool động mới được cache → câu trả lời không thể phụ thuộc TỪNG
+    sản phẩm cụ thể (muốn biết chi tiết phải gọi tool → không cache). Vì vậy gộp mọi
+    '/products/*' về chung '/products' là AN TOÀN và giúp 'hi' trên mọi trang sản phẩm
+    dùng chung 1 cache → tăng tỉ lệ hit mạnh, vẫn phân biệt theo khu vực (chủ đề)."""
+    p = re.sub(r"\s+", "", (page or "").strip().lower()).strip("/")
+    return "/" + p.split("/")[0] if p else "/"
+
+
+def _key(question: str, page: str | None) -> str | None:
+    """Khoá cache = (câu hỏi chuẩn hoá) + (SECTION trang). Câu chung ('hi') gõ lại trong
+    cùng khu vực vẫn hit; câu phụ thuộc khu vực KHÔNG bị phục vụ nhầm sang khu vực khác.
+    Trả None nếu độ dài câu hỏi bất thường."""
     qn = _norm(question)
     if not (_MIN_Q <= len(qn) <= _MAX_Q):
+        return None
+    return f"{qn}\x1f{_page_section(page)}"
+
+
+def lookup(question: str, page: str | None = None) -> str | None:
+    """Khớp câu hỏi giống hệt (đã chuẩn hoá) TRÊN CÙNG TRANG → câu trả lời cache."""
+    if not _enabled():
+        return None
+    qn = _key(question, page)
+    if qn is None:
         return None
     data = _load()
     e = data["entries"].get(qn)
@@ -118,13 +139,13 @@ def lookup(question: str) -> str | None:
     return e.get("ans")
 
 
-def store(question: str, answer: str, tools_used: set[str] | None = None, had_ui: bool = False) -> None:
+def store(question: str, answer: str, tools_used: set[str] | None = None, had_ui: bool = False, page: str | None = None) -> None:
     """Lưu Q→A nếu AN TOÀN để cache (xem điều kiện ở docstring)."""
     if not _enabled() or had_ui:
         return
     ans = (answer or "").strip()
-    qn = _norm(question)
-    if len(ans) < 2 or not (_MIN_Q <= len(qn) <= _MAX_Q):
+    qn = _key(question, page)
+    if len(ans) < 2 or qn is None:
         return
     if tools_used and not set(tools_used) <= _SAFE_TOOLS:
         return  # đã dùng tool động (giá/tồn/gợi ý/thời gian…) → KHÔNG cache
