@@ -53,9 +53,42 @@ def test_version_invalidation(monkeypatch):
 def test_ttl_expiry():
     rc.store("hi", "chào")
     data = rc._load()
-    data["entries"][rc._norm("hi")]["ts"] = int(time.time()) - rc._TTL_SECONDS - 10
+    data["entries"][rc._key("hi", None)]["ts"] = int(time.time()) - rc._TTL_SECONDS - 10
     rc._flush(data)
     assert rc.lookup("hi") is None
+
+
+def test_page_scoped_key():
+    """Cùng câu, KHÁC trang → cache tách riêng (không phục vụ nhầm câu phụ thuộc trang)."""
+    rc.store("hi", "Chào từ trang chủ", page="/")
+    rc.store("hi", "Chào từ trang sản phẩm", page="/products")
+    assert rc.lookup("hi", page="/") == "Chào từ trang chủ"
+    assert rc.lookup("hi", page="/products") == "Chào từ trang sản phẩm"
+    # trang chưa từng lưu → miss
+    assert rc.lookup("hi", page="/posts") is None
+
+
+def test_page_normalized_trailing_slash():
+    """'/products/' và '/products' coi là CÙNG trang → vẫn hit."""
+    rc.store("hi", "chào", page="/products/")
+    assert rc.lookup("hi", page="/products") == "chào"
+
+
+def test_page_section_collapse():
+    """Mọi trang chi tiết trong CÙNG khu vực dùng chung cache (tăng hit) — vì câu
+    không-tool không thể phụ thuộc từng sản phẩm cụ thể."""
+    rc.store("hi", "chào", page="/products/ong-nhua-pvc-d21")
+    assert rc.lookup("hi", page="/products/gioang-cao-su-o12") == "chào"  # khác slug, cùng section
+    assert rc.lookup("hi", page="/products") == "chào"
+    assert rc.lookup("hi", page="/") is None  # khác section → tách riêng
+
+
+def test_page_section_helper():
+    assert rc._page_section("/products/ong-nhua-d21") == "/products"
+    assert rc._page_section("/") == "/"
+    assert rc._page_section("") == "/"
+    assert rc._page_section(None) == "/"
+    assert rc._page_section("/posts/abc/xyz") == "/posts"
 
 
 def test_disabled(monkeypatch):
