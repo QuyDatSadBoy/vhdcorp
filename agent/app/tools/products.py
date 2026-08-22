@@ -106,7 +106,7 @@ _STOPWORDS = frozenset(
 _MIN_MATCH_RATIO = 0.5
 
 
-def find_products(query: str, limit: int = 5) -> list[dict]:
+def find_products(query: str, limit: int = 5, min_ratio: float | None = None) -> list[dict]:
     """Tìm và xếp hạng sản phẩm khớp query → trả list dict (dùng cho tool + gen-UI)."""
     catalog = load_catalog()
     q = normalize_vi(query)
@@ -127,7 +127,7 @@ def find_products(query: str, limit: int = 5) -> list[dict]:
         if name_hits == 0:
             continue
         score = name_hits / len(keywords)
-        if score < _MIN_MATCH_RATIO and q not in name_blob:
+        if score < (_MIN_MATCH_RATIO if min_ratio is None else min_ratio) and q not in name_blob:
             continue  # khớp quá lẻ tẻ (1 từ trong nhiều từ) → không phải cái khách hỏi
         if q in name_blob:
             score += 2.0  # khớp nguyên cụm trong tên → ưu tiên cao nhất

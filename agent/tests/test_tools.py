@@ -107,6 +107,16 @@ def test_bo_tu_noi_trong_cau_khach_go():
     assert "Tấm cao su các loại" in names
 
 
+def test_nguong_thap_cho_tim_bang_anh():
+    """Mô tả ảnh là câu tự do dài nên tỉ lệ từ khớp luôn thấp — luồng ảnh hạ ngưỡng
+    để vẫn gợi ý được hàng gần giống, trong khi ô tìm kiếm giữ ngưỡng chặt."""
+    desc = "gioăng cao su dạng vòng đệm màu đen hình tròn dùng làm kín"
+    assert find_products(desc) == []  # ngưỡng chặt của ô tìm kiếm
+    loose = find_products(desc, min_ratio=0.15)
+    assert loose, "luồng ảnh phải gợi ý được hàng gần giống"
+    assert any("Gioăng" in p["name"] for p in loose)
+
+
 async def test_get_product_detail_by_slug():
     result = await get_product_detail.ainvoke({"slug_or_name": "ong-nhua-pvc-d21"})
     assert "Ống nhựa PVC D21" in result

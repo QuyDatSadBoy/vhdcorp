@@ -189,7 +189,10 @@ class ChatService:
                 desc = ""
                 if self.llm is not None:
                     desc = await vision.describe_image(self.llm, image)
-                matches = find_products(desc, limit=8) if desc else []
+                # Mô tả ảnh là câu tự do dài ("gioăng cao su dạng vòng đệm màu đen…") nên
+                # tỉ lệ từ khớp luôn thấp — hạ ngưỡng cho riêng luồng ảnh, nếu giữ ngưỡng
+                # của ô tìm kiếm thì hầu như không bao giờ ra kết quả nào.
+                matches = find_products(desc, limit=8, min_ratio=0.15) if desc else []
                 image_props = {"query": desc, "products": [product_to_props(p) for p in matches]}
                 emitted_ui.append({"component": "image-search-result", "props": image_props})
                 yield {"type": "ui", "component": "image-search-result", "props": image_props}
