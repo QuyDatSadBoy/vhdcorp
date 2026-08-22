@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # cấu hình, tool MCP). False = vòng lặp agent⇄tools tự viết như trước (đường lùi an
     # toàn nếu DeepAgents có sự cố). Guardrail/cache/memory/gen-UI không phụ thuộc cờ này.
     use_deep_agent: bool = True
-    # Số deep agent dựng cho chuỗi dự phòng (mỗi agent = 1 graph biên dịch riêng)
+    # Số model đưa vào deep agent (model đầu là chính, còn lại làm dự phòng per-call)
     deep_agent_max_fallbacks: int = 6
 
     google_api_key: str = ""

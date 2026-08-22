@@ -1,4 +1,9 @@
-import { BadGatewayException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 /**
@@ -63,6 +68,78 @@ export class AgentService {
 
   private get adminSecret(): string {
     return this.config.get<string>('AGENT_ADMIN_SECRET') ?? '';
+  }
+
+  /**
+   * Gọi endpoint admin của agent (cấu hình SKILL / MCP cho lõi DeepAgents).
+   * Lỗi 4xx của agent (vd URL MCP không hợp lệ) được chuyển nguyên văn cho admin
+   * thấy lý do, thay vì gộp hết thành "agent không phản hồi".
+   */
+  private async callDeep(
+    path: string,
+    method: 'GET' | 'POST' | 'DELETE' = 'GET',
+    body?: unknown,
+  ): Promise<Record<string, unknown>> {
+    const res = await fetch(`${this.baseUrl}/api/admin/deep/${path}`, {
+      method,
+      headers: {
+        'X-Admin-Secret': this.adminSecret,
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    }).catch(() => null);
+
+    if (!res) {
+      throw new BadGatewayException(
+        'Agent AI không phản hồi — kiểm tra service cổng 8001 đang chạy.',
+      );
+    }
+    const data = (await res.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
+    if (!res.ok) {
+      const detail =
+        typeof data.detail === 'string'
+          ? data.detail
+          : 'Agent AI từ chối yêu cầu.';
+      throw new BadRequestException(detail);
+    }
+    return data;
+  }
+
+  getSkills() {
+    return this.callDeep('skills');
+  }
+
+  saveSkill(body: {
+    name: string;
+    description?: string;
+    content?: string;
+    enabled?: boolean;
+  }) {
+    return this.callDeep('skills', 'POST', body);
+  }
+
+  deleteSkill(slug: string) {
+    return this.callDeep(`skills/${encodeURIComponent(slug)}`, 'DELETE');
+  }
+
+  getMcpServers() {
+    return this.callDeep('mcp');
+  }
+
+  saveMcpServer(body: {
+    name: string;
+    url: string;
+    transport?: string;
+    enabled?: boolean;
+  }) {
+    return this.callDeep('mcp', 'POST', body);
+  }
+
+  deleteMcpServer(name: string) {
+    return this.callDeep(`mcp/${encodeURIComponent(name)}`, 'DELETE');
   }
 
   /** Chống spam chat: đọc cấu hình giới hạn (bảo vệ chi phí API AI). */

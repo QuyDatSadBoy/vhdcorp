@@ -42,6 +42,8 @@ export default function AdminClientShell({ children }: { children: ReactNode }) 
           media: "Thư viện ảnh",
           builder: "Page Builder",
           settings: "Cài đặt site",
+          knowledge: "Kiến thức AI",
+          "agent-config": "Kỹ năng & công cụ AI",
         } as Record<string, string>
       )[seg] ?? "Quản trị";
     const newTitle = `${label} | Admin | VHD Corp`;

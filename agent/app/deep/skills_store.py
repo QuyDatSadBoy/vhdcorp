@@ -102,11 +102,15 @@ def delete_skill(slug: str) -> bool:
 
 
 def _skill_md(skill: dict[str, Any]) -> str:
-    """Dựng file SKILL.md: frontmatter (name/description) + nội dung."""
-    name = str(skill.get("name", "")).replace("\n", " ").strip()
+    """Dựng file SKILL.md: frontmatter (name/description) + nội dung.
+
+    `name` phải là slug thường-gạch-nối theo chuẩn Agent Skills (admin gõ tên tiếng Việt
+    có dấu vẫn được — tên hiển thị được đưa vào description để model vẫn đọc ra)."""
+    display = str(skill.get("name", "")).replace("\n", " ").strip()
     desc = str(skill.get("description", "")).replace("\n", " ").strip()
     body = str(skill.get("content", "")).strip()
-    return f"---\nname: {name}\ndescription: {desc}\n---\n\n{body}\n"
+    full_desc = f"{display}. {desc}" if desc else display
+    return f"---\nname: {slugify(display)}\ndescription: {full_desc}\n---\n\n{body}\n"
 
 
 def to_files() -> dict[str, dict[str, str]]:

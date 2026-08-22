@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Put,
   Query,
@@ -108,5 +110,53 @@ export class AgentController {
     },
   ) {
     return this.agent.aiAssistant(body);
+  }
+
+  /* ── Cấu hình lõi DeepAgents: SKILL (quy trình nghiệp vụ) + MCP (công cụ ngoài) ── */
+
+  @Get('deep/skills')
+  getSkills() {
+    return this.agent.getSkills();
+  }
+
+  @Post('deep/skills')
+  saveSkill(
+    @Body()
+    body: {
+      name: string;
+      description?: string;
+      content?: string;
+      enabled?: boolean;
+    },
+  ) {
+    return this.agent.saveSkill(body);
+  }
+
+  @Delete('deep/skills/:slug')
+  deleteSkill(@Param('slug') slug: string) {
+    return this.agent.deleteSkill(slug);
+  }
+
+  @Get('deep/mcp')
+  getMcpServers() {
+    return this.agent.getMcpServers();
+  }
+
+  @Post('deep/mcp')
+  saveMcpServer(
+    @Body()
+    body: {
+      name: string;
+      url: string;
+      transport?: string;
+      enabled?: boolean;
+    },
+  ) {
+    return this.agent.saveMcpServer(body);
+  }
+
+  @Delete('deep/mcp/:name')
+  deleteMcpServer(@Param('name') name: string) {
+    return this.agent.deleteMcpServer(name);
   }
 }

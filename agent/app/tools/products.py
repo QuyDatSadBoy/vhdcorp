@@ -36,6 +36,13 @@ def load_catalog(force: bool = False) -> list[dict]:
             for k in ("name", "slug", "description")
         ) + " " + str((p.get("category") or {}).get("name") or "")
         p["_search"] = normalize_vi(blob)
+        # Tách riêng phần TÊN + DANH MỤC: chỉ khớp trong description không đủ để coi là
+        # kết quả (xem find_products) — nếu không, "máy bay chiến đấu" khớp chữ "dầu"
+        # trong mô tả tấm cao su và agent sẽ giới thiệu hàng chẳng liên quan.
+        p["_search_name"] = normalize_vi(
+            f"{p.get('name') or ''} {p.get('slug') or ''} "
+            f"{(p.get('category') or {}).get('name') or ''}"
+        )
     _catalog = products
     return _catalog
 
@@ -53,6 +60,13 @@ async def load_catalog_live() -> list[dict]:
                 str(p.get(k) or "") for k in ("name", "slug", "description")
             ) + " " + str((p.get("category") or {}).get("name") or "")
             p["_search"] = normalize_vi(blob)
+        # Tách riêng phần TÊN + DANH MỤC: chỉ khớp trong description không đủ để coi là
+        # kết quả (xem find_products) — nếu không, "máy bay chiến đấu" khớp chữ "dầu"
+        # trong mô tả tấm cao su và agent sẽ giới thiệu hàng chẳng liên quan.
+        p["_search_name"] = normalize_vi(
+            f"{p.get('name') or ''} {p.get('slug') or ''} "
+            f"{(p.get('category') or {}).get('name') or ''}"
+        )
         _catalog = rows
         return rows
     return load_catalog()
@@ -83,6 +97,15 @@ def _format_product(p: dict, detail: bool = False) -> str:
     return line
 
 
+# Từ nối/khách hay gõ kèm nhưng không mang thông tin sản phẩm
+_STOPWORDS = frozenset(
+    """cho toi xem minh ban co khong ạ a nhe nha muon mua tim kiem gia bao nhieu the nao
+    voi va la cua o tai can hang loai nay do duoc gium giup vui long xin""".split()
+)
+# Tỉ lệ từ khoá phải khớp trong TÊN sản phẩm để được coi là kết quả
+_MIN_MATCH_RATIO = 0.5
+
+
 def find_products(query: str, limit: int = 5) -> list[dict]:
     """Tìm và xếp hạng sản phẩm khớp query → trả list dict (dùng cho tool + gen-UI)."""
     catalog = load_catalog()
@@ -91,15 +114,30 @@ def find_products(query: str, limit: int = 5) -> list[dict]:
     if not catalog or not tokens:
         return []
 
+    # Bỏ từ nối vô nghĩa trong câu khách gõ ("cho tôi xem tấm cao su" → "tam cao su"),
+    # nếu không thì phần "cho toi xem" làm loãng tỉ lệ khớp và kéo tụt sản phẩm đúng.
+    keywords = [t for t in tokens if t not in _STOPWORDS] or tokens
+
     scored: list[tuple[float, dict]] = []
     for p in catalog:
-        blob = p["_search"]
-        matched = sum(1 for t in tokens if t in blob)
-        if matched == 0:
+        name_blob = p.get("_search_name") or p["_search"]
+        # ĐIỀU KIỆN CẦN: có từ khoá khớp ở TÊN/DANH MỤC. Khớp mỗi trong mô tả thì bỏ —
+        # mô tả dài nên gần như query nào cũng "khớp" một chữ nào đó.
+        name_hits = sum(1 for t in keywords if t in name_blob)
+        if name_hits == 0:
             continue
-        score = matched / len(tokens)
-        if q in blob:
-            score += 1.0  # khớp nguyên cụm
+        score = name_hits / len(keywords)
+        if score < _MIN_MATCH_RATIO and q not in name_blob:
+            continue  # khớp quá lẻ tẻ (1 từ trong nhiều từ) → không phải cái khách hỏi
+        if q in name_blob:
+            score += 2.0  # khớp nguyên cụm trong tên → ưu tiên cao nhất
+            # "ống đồng" phải ra "Ống đồng các loại" trước "Băng cuốn ống đồng"
+            if normalize_vi(str(p.get("name") or "")).startswith(q):
+                score += 1.0
+        elif q in p["_search"]:
+            score += 0.5  # khớp nguyên cụm nhưng ở mô tả
+        # mô tả khớp thêm thì cộng nhẹ để xếp hạng, không dùng để lọt vào kết quả
+        score += 0.1 * sum(1 for t in keywords if t in p["_search"]) / len(keywords)
         scored.append((score, p))
 
     scored.sort(key=lambda x: x[0], reverse=True)

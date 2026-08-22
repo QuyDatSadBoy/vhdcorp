@@ -59,12 +59,33 @@ export interface MessageDeltaEvent {
 export interface ToolStartEvent {
   type: "tool.start";
   name: string;
+  /** Tham số đã rút gọn (≤600 ký tự) — hiện trong log tiến trình khi khách mở ra xem */
+  input?: string;
 }
 
 /** Tool chạy xong */
 export interface ToolEndEvent {
   type: "tool.end";
   name: string;
+  /** Kết quả đã rút gọn (≤600 ký tự) */
+  output?: string;
+}
+
+/** Trạng thái một việc trong kế hoạch của agent (DeepAgents `write_todos`) */
+export type TodoStatus = "pending" | "in_progress" | "completed";
+
+export interface TodoItem {
+  content: string;
+  status: TodoStatus;
+}
+
+/**
+ * Agent tự lập kế hoạch nhiều bước (DeepAgents `write_todos`). Mỗi lần phát là
+ * TOÀN BỘ danh sách mới (thay thế danh sách cũ, không phải diff từng việc).
+ */
+export interface TodoEvent {
+  type: "todo";
+  items: TodoItem[];
 }
 
 /**
@@ -95,6 +116,7 @@ export type AgentStreamEvent =
   | MessageDeltaEvent
   | ToolStartEvent
   | ToolEndEvent
+  | TodoEvent
   | UiEvent
   | DoneEvent
   | AgentErrorEvent;
@@ -106,6 +128,21 @@ export interface UiBlock {
   id: string;
   component: string;
   props: Record<string, unknown>;
+}
+
+/** Trạng thái một lần gọi tool trong log hoạt động */
+export type ToolRunState = "running" | "ok" | "error";
+
+/** Một dòng log hoạt động: tool nào đang/đã chạy, kèm tham số & kết quả rút gọn */
+export interface ToolRun {
+  id: string;
+  /** Tên tool phía agent (search_products…) */
+  name: string;
+  /** Nhãn tiếng Việt cho khách đọc */
+  label: string;
+  state: ToolRunState;
+  input?: string;
+  output?: string;
 }
 
 /** Tin nhắn hiển thị trong khung chat (client-side, kèm trạng thái stream/lỗi) */

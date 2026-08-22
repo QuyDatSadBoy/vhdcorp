@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Bot, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { useSiteConfigStore } from "@/store/site-config.store";
 import { cn } from "@/lib/utils";
+import AgentPlan from "./agent-plan";
+import AgentTrace from "./agent-trace";
 import ChatInput from "./chat-input";
 import ConversationSidebar from "./conversation-sidebar";
 import MessageList from "./message-list";
@@ -286,6 +288,14 @@ export default function ChatWidget() {
                   onSelectPrompt={handleSend}
                   onAction={handleAction}
                 />
+                {/* Kế hoạch + log hoạt động của trợ lý: đặt sát ô nhập để luôn trong
+                    tầm mắt mà không chen vào giữa luồng tin nhắn. Tự ẩn khi rỗng. */}
+                {(chat.todos.length > 0 || chat.toolRuns.length > 0) && (
+                  <div className="space-y-1.5 px-3 pt-2">
+                    <AgentPlan items={chat.todos} />
+                    <AgentTrace runs={chat.toolRuns} />
+                  </div>
+                )}
                 <ChatInput streaming={chat.streaming} onSend={handleSend} onStop={chat.stop} />
               </div>
             </div>

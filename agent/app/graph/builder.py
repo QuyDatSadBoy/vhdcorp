@@ -153,11 +153,11 @@ class ChatGraphBuilder(BaseGraphBuilder):
 
         # LÕI DeepAgents: tự lo vòng lặp model⇄tool → graph ngoài không cần node "tools".
         if self.settings.use_deep_agent:
-            from app.deep.builder import build_deep_agent_chain
+            from app.deep.builder import build_deep_agent
             from app.graph.nodes.deep_agent_node import DeepAgentNode
 
-            deep = build_deep_agent_chain(
-                self.model_chain, self.tools, max_agents=self.settings.deep_agent_max_fallbacks
+            deep = build_deep_agent(
+                self.model_chain, self.tools, max_models=self.settings.deep_agent_max_fallbacks
             )
             graph.add_node("agent", DeepAgentNode(deep, short_term))
             graph.add_edge(START, "guardrail")

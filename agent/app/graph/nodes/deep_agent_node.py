@@ -7,7 +7,7 @@ các message MỚI về cho graph ngoài. Guardrail/cache/memory/gen-UI vẫn �
 
 from langchain_core.messages import SystemMessage
 
-from app.deep import skills_store
+from app.deep import default_skills, skills_store
 from app.graph.base import BaseNode
 from app.graph.state import AgentState
 from app.memory.short_term import ShortTermMemory
@@ -23,8 +23,10 @@ class DeepAgentNode(BaseNode):
     async def run(self, state: AgentState) -> dict:
         window = self.short_term.trim(state.get("messages", []))
         agent_input = [SystemMessage(content=state.get("system_prompt", "")), *window]
+        # SKILL mặc định của VHD + skill admin tự thêm. Admin ĐỨNG SAU nên skill cùng
+        # tên do admin viết sẽ ghi đè bản mặc định (khách toàn quyền sửa nội dung).
         try:
-            files = skills_store.to_files()
+            files = {**default_skills.to_files(), **skills_store.to_files()}
         except Exception:  # noqa: BLE001 — skill lỗi thì chạy không skill, đừng chết chat
             files = {}
 

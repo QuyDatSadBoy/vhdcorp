@@ -53,9 +53,26 @@ def test_to_files_shape_dung_cho_deepagents():
     assert path in files
     assert files[path]["encoding"] == "utf-8"
     body = files[path]["content"]
-    assert body.startswith("---\nname: Báo giá sỉ\n")
-    assert "description: Quy trình" in body
+    # name PHẢI là slug thường-gạch-nối (chuẩn Agent Skills), tên tiếng Việt có dấu
+    # được đưa vào description để model vẫn đọc ra
+    assert body.startswith("---\nname: bao-gia-si\n")
+    assert "description: Báo giá sỉ. Quy trình" in body
     assert "Giảm 10% từ 100 cái." in body
+
+
+def test_default_skills_dung_chuan_agent_skills():
+    """SKILL viết sẵn của VHD phải qua được kiểm tra spec (name slug) như skill admin."""
+    import re
+
+    from app.deep import default_skills
+
+    files = default_skills.to_files()
+    assert len(files) >= 5
+    for path, data in files.items():
+        first_line = data["content"].splitlines()[1]  # dòng sau '---'
+        name = first_line.removeprefix("name:").strip()
+        assert re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", name), f"{path} có name không hợp lệ: {name}"
+        assert data["encoding"] == "utf-8"
 
 
 def test_to_files_bo_skill_tat_va_skill_rong():

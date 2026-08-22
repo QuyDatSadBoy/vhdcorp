@@ -16,7 +16,12 @@ from __future__ import annotations
 import logging
 
 from deepagents import FilesystemMiddleware, create_deep_agent
-from langchain.agents.middleware import TodoListMiddleware
+from langchain.agents.middleware import (
+    ModelCallLimitMiddleware,
+    ModelFallbackMiddleware,
+    TodoListMiddleware,
+    ToolCallLimitMiddleware,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +29,14 @@ logger = logging.getLogger(__name__)
 # Bỏ write_file/edit_file/delete/execute — khách không có lý do gì ghi file hay chạy lệnh,
 # và loại hẳn thì prompt-injection cũng không có tool nào để lợi dụng.
 _READONLY_FS_TOOLS = ["read_file", "ls", "glob", "grep"]
+
+# ── Chốt an toàn chi phí/tốc độ ──────────────────────────────────────────────
+# Đo thật: khi catalog không có món khách hỏi, model tra `search_products` tới 20 lần
+# với 20 câu truy vấn khác nhau (mỗi lần là 1 vòng gọi model → chậm và tốn tiền).
+# Chặn ở mức đủ dùng: tra vài lần không thấy thì phải nói thẳng là chưa có.
+_SEARCH_RUN_LIMIT = 5      # số lần tra cứu sản phẩm trong MỘT lượt trả lời
+_TOOL_RUN_LIMIT = 15       # tổng số lần gọi tool trong một lượt
+_MODEL_RUN_LIMIT = 12      # tổng số vòng gọi model trong một lượt
 
 # Nhắc việc bằng tiếng Việt, đúng ngữ cảnh bán hàng (mặc định của thư viện là tiếng Anh,
 # dài và hướng về lập trình → model dễ lập kế hoạch cho câu chào hỏi tầm thường).
@@ -39,34 +52,113 @@ Khi dùng: đánh dấu `in_progress` cho việc đang làm, xong việc nào đ
 (không dồn), và câu trả lời cuối cho khách phải nằm ở tin nhắn SAU lần gọi `write_todos`
 cuối cùng."""
 
+# Nhắc thêm về tra cứu: tránh vòng lặp tra vô ích (giới hạn cứng ở middleware chỉ là
+# lưới an toàn — nói rõ trong prompt thì model dừng đúng lúc và trả lời tử tế hơn).
+_SEARCH_DISCIPLINE = f"""## Kỷ luật tra cứu
 
-def build_deep_agent(llm, tools: list, system_prompt: str = ""):
-    """Dựng 1 deep agent cho 1 model cụ thể (chưa bind tools — DeepAgents tự bind)."""
-    return create_deep_agent(
-        model=llm,
-        tools=tools,
-        system_prompt=system_prompt or None,
-        middleware=[
-            # Allowlist read-only (cách này chắc chắn ăn; HarnessProfile phải khớp
-            # provider:model nên dễ trượt khi ta đổi model).
-            FilesystemMiddleware(tools=_READONLY_FS_TOOLS),
-            TodoListMiddleware(system_prompt=_TODO_PROMPT),
-        ],
-        skills=["/skills/"],
-    )
+Mỗi lượt trả lời chỉ tra cứu sản phẩm tối đa {_SEARCH_RUN_LIMIT} lần. Nếu đã thử 2 cách
+gọi tên mà kho không có món khách hỏi thì DỪNG tra, nói thẳng "kho mình chưa có món này"
+rồi gợi ý món gần nhất hoặc mời khách để lại liên hệ — TUYỆT ĐỐI không thử thêm hàng loạt
+từ khoá khác nhau."""
 
 
-def build_deep_agent_chain(llms: list, tools: list, system_prompt: str = "", max_agents: int = 6):
-    """Chuỗi deep agent dự phòng: model đầu lỗi → chạy lại bằng model kế tiếp.
+# ── Subagent: việc nặng chạy trong context RIÊNG rồi trả về 1 bản tóm tắt ──────
+# Lợi ích thật: so sánh 4-5 sản phẩm cần tra rất nhiều lần; nếu chạy trong hội thoại
+# chính thì toàn bộ dữ liệu thô đó nằm lại trong context và những lượt sau phải trả tiền
+# cho nó mãi. Giao cho subagent thì hội thoại chính chỉ nhận phần kết luận.
+def _subagents(tools: list) -> list[dict]:
+    by_name = {getattr(t, "name", ""): t for t in tools}
 
-    Fallback đặt ở tầng AGENT (compiled graph là Runnable nên `.with_fallbacks` dùng được),
-    vì `create_deep_agent` cần một BaseChatModel thật để bind tool — không nhận được
-    RunnableWithFallbacks như chuỗi cũ. Giới hạn `max_agents` vì mỗi agent là 1 graph
-    biên dịch riêng, dựng cả 14 model là thừa (2 nhà cung cấp đầu đã đủ che quota).
+    def pick(*wanted: str) -> list:
+        """Lấy đúng ĐỐI TƯỢNG tool theo tên (subagent cần tool thật, không phải tên)."""
+        return [by_name[n] for n in wanted if n in by_name]
+
+    return [
+        {
+            "name": "tra-cuu-san-pham",
+            "description": (
+                "Dùng khi cần tra cứu / so sánh NHIỀU sản phẩm (từ 3 mặt hàng trở lên) hoặc "
+                "phải thử nhiều quy cách. Trả về bảng tóm tắt gọn: tên, giá, tồn, quy cách nổi bật."
+            ),
+            "system_prompt": (
+                "Bạn tra cứu catalog VHD Corp. Dùng search_products / get_product_detail để lấy dữ "
+                "liệu THẬT. Trả về bản tóm tắt ngắn gọn dạng danh sách: tên sản phẩm, giá (hoặc "
+                "'liên hệ báo giá'), tồn kho, quy cách/chất liệu đáng chú ý. TUYỆT ĐỐI không bịa "
+                "thông số. Tra tối đa 5 lần; không thấy thì ghi rõ 'kho không có'. Không chào hỏi, "
+                "không kết luận bán hàng — chỉ dữ liệu."
+            ),
+            "tools": pick("search_products", "get_product_detail", "list_categories", "get_recommendations"),
+        },
+        {
+            "name": "tra-cuu-tai-lieu",
+            "description": (
+                "Dùng khi câu hỏi về chính sách/dịch vụ công ty cần đối chiếu nhiều mục tài liệu "
+                "(vd vừa giao hàng vừa đổi trả vừa hoá đơn VAT)."
+            ),
+            "system_prompt": (
+                "Bạn tra tài liệu nội bộ VHD Corp bằng search_knowledge. Trả lời bằng đúng nội dung "
+                "tài liệu, trích gọn từng mục. Tài liệu không có thì ghi rõ 'tài liệu chưa có mục "
+                "này'. TUYỆT ĐỐI không suy diễn thêm."
+            ),
+            "tools": pick("search_knowledge", "get_company_info", "search_posts"),
+        },
+    ]
+
+
+def _middleware(fallback_models: list):
+    """Bộ middleware: tool chỉ-đọc → lập kế hoạch → chốt giới hạn → dự phòng model."""
+    stack = [
+        FilesystemMiddleware(tools=_READONLY_FS_TOOLS),
+        TodoListMiddleware(system_prompt=_TODO_PROMPT),
+        # 'continue' = chặn riêng tool vượt hạn nhưng vẫn để agent trả lời bằng dữ liệu
+        # đã có. Khách luôn nhận được câu trả lời, thay vì thấy lỗi.
+        ToolCallLimitMiddleware(
+            tool_name="search_products", run_limit=_SEARCH_RUN_LIMIT, exit_behavior="continue"
+        ),
+        ToolCallLimitMiddleware(run_limit=_TOOL_RUN_LIMIT, exit_behavior="continue"),
+        ModelCallLimitMiddleware(run_limit=_MODEL_RUN_LIMIT, exit_behavior="end"),
+    ]
+    if fallback_models:
+        # Dự phòng ở tầng LỜI GỌI MODEL: model chính lỗi/hết quota thì chỉ gọi lại đúng
+        # lượt đó bằng model kế tiếp — không phải chạy lại toàn bộ lượt như khi bọc
+        # fallback quanh cả graph (tránh trả lại token đã stream cho khách).
+        stack.append(ModelFallbackMiddleware(*fallback_models))
+
+    # AG-UI / CopilotKit: đưa `todos` ra ngoài dưới dạng state của agent và stream dần
+    # từng việc NGAY TRONG LÚC model còn đang sinh tham số `write_todos` (thay vì chờ
+    # gọi xong mới hiện cả bảng). Không cài được 2 gói này thì bỏ qua — chat SSE hiện
+    # tại không phụ thuộc chúng.
+    try:
+        from ag_ui_langgraph.middlewares.state_streaming import StateItem, StateStreamingMiddleware
+        from copilotkit import CopilotKitMiddleware
+
+        stack.append(CopilotKitMiddleware(expose_state=["todos"]))
+        stack.append(
+            StateStreamingMiddleware(
+                StateItem(state_key="todos", tool="write_todos", tool_argument="todos")
+            )
+        )
+    except ImportError:
+        logger.info("Chưa cài ag-ui-langgraph/copilotkit → bỏ qua middleware AG-UI")
+    return stack
+
+
+def build_deep_agent(llms: list, tools: list, system_prompt: str = "", max_models: int = 6):
+    """Dựng 1 deep agent: model đầu là chính, các model sau làm dự phòng.
+
+    `max_models` giới hạn số model dự phòng đưa vào middleware (2 nhà cung cấp đầu đã
+    đủ che trường hợp hết quota; kéo cả 14 model vào chỉ làm prompt/log dài thêm).
     """
-    chosen = [m for m in llms if m is not None][:max_agents]
+    chosen = [m for m in llms if m is not None][:max_models]
     if not chosen:
         raise ValueError("Không có model nào để dựng deep agent")
-    agents = [build_deep_agent(m, tools, system_prompt) for m in chosen]
-    logger.info("DeepAgents: %d agent trong chuỗi dự phòng", len(agents))
-    return agents[0].with_fallbacks(agents[1:]) if len(agents) > 1 else agents[0]
+    primary, fallbacks = chosen[0], chosen[1:]
+    logger.info("DeepAgents: 1 agent, model chính + %d model dự phòng", len(fallbacks))
+    return create_deep_agent(
+        model=primary,
+        tools=tools,
+        system_prompt=(system_prompt + "\n\n" + _SEARCH_DISCIPLINE).strip(),
+        middleware=_middleware(fallbacks),
+        subagents=_subagents(tools),
+        skills=["/skills/"],
+    )

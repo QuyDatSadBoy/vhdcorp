@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { chatAgentService, streamChat, getChatUserId } from "@/services/chat-agent.service";
-import type { Conversation, UiBlock, UiChatMessage } from "@/types/chat";
+import type { Conversation, TodoItem, ToolRun, UiBlock, UiChatMessage } from "@/types/chat";
 
 /** localStorage key nhớ hội thoại đang mở — mở lại panel giữ nguyên */
 const ACTIVE_ID_KEY = "vhd_chat_active_id"; // + hậu tố danh tính
@@ -44,6 +44,10 @@ export function useChat() {
   const [activeTool, setActiveTool] = useState<string | null>(null);
   /** Log tiến trình sống động ("Đang tìm kiếm trong kho…") — hiện khi chưa có chữ */
   const [procSteps, setProcSteps] = useState<{ label: string; done: boolean }[]>([]);
+  /** Kế hoạch nhiều bước agent tự lập (DeepAgents write_todos) — rỗng = ẩn panel */
+  const [todos, setTodos] = useState<TodoItem[]>([]);
+  /** Log hoạt động chi tiết: từng lần gọi tool + tham số/kết quả (mở ra xem được) */
+  const [toolRuns, setToolRuns] = useState<ToolRun[]>([]);
 
   const abortRef = useRef<AbortController | null>(null);
   /** Message user cuối cùng — dùng cho nút "Thử lại" */
@@ -148,6 +152,9 @@ export function useChat() {
       setActiveTool(null);
       // Bước đầu tiên của log tiến trình — hiện ngay khi gửi
       setProcSteps([{ label: "Đã tiếp nhận, đang phân tích yêu cầu…", done: false }]);
+      // Kế hoạch + log hoạt động thuộc về LƯỢT này → xoá của lượt trước
+      setTodos([]);
+      setToolRuns([]);
       const controller = new AbortController();
       abortRef.current = controller;
 
@@ -219,13 +226,32 @@ export function useChat() {
                 setActiveTool(null);
                 ensureTicker(); // typewriter bắt đầu chảy chữ
                 break;
-              case "tool.start":
+              case "tool.start": {
+                const label = TOOL_STEP_LABELS[event.name] ?? "Đang xử lý yêu cầu…";
                 setActiveTool(event.name);
-                pushStep(TOOL_STEP_LABELS[event.name] ?? "Đang xử lý yêu cầu…");
+                pushStep(label);
+                setToolRuns((prev) => [
+                  ...prev,
+                  { id: crypto.randomUUID(), name: event.name, label, state: "running", input: event.input },
+                ]);
                 break;
+              }
               case "tool.end":
                 setActiveTool(null);
                 pushStep("Đang tổng hợp & xác minh thông tin…");
+                // Đóng dòng ĐANG CHẠY gần nhất của đúng tool đó (nhiều tool có thể
+                // chạy song song nên không thể chỉ lấy phần tử cuối)
+                setToolRuns((prev) => {
+                  const idx = prev.findLastIndex((r) => r.name === event.name && r.state === "running");
+                  if (idx < 0) return prev;
+                  const next = [...prev];
+                  next[idx] = { ...next[idx], state: "ok", output: event.output };
+                  return next;
+                });
+                break;
+              case "todo":
+                // Danh sách MỚI thay thế toàn bộ danh sách cũ (last-wins)
+                setTodos(event.items);
                 break;
               case "ui":
                 // Card/gợi ý XẾP HÀNG chờ — chỉ gắn sau khi text stream xong
@@ -282,6 +308,12 @@ export function useChat() {
         setStreaming(false);
         setActiveTool(null);
         setProcSteps([]);
+        // Tool nào còn "running" khi stream kết thúc/bị dừng thì không thể coi là xong
+        setToolRuns((prev) =>
+          prev.some((r) => r.state === "running")
+            ? prev.map((r) => (r.state === "running" ? { ...r, state: "error" as const } : r))
+            : prev
+        );
         abortRef.current = null;
         if (!createdConversation && activeId) {
           // Cập nhật meta hội thoại hiện tại (đưa lên đầu sidebar)
@@ -363,6 +395,8 @@ export function useChat() {
     streaming,
     activeTool,
     procSteps,
+    todos,
+    toolRuns,
     init,
     send,
     stop,
