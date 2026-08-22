@@ -16,6 +16,14 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # ── MODEL CHÍNH: DeepSeek V4 Flash Vision (OpenAI-compatible) ──
+    # deepseek-v4-flash-vision-exp: 1M context, VISION (đọc ảnh khách gửi), tool-calling,
+    # không leak <think>, có prompt caching phía server (đo thật: ~1.6s chat, ~0.9s vision).
+    # Rỗng = tắt → tự động quay về Gemini làm chính (chuỗi dự phòng bên dưới không đổi).
+    deepseek_api_key: str = ""
+    deepseek_model: str = "deepseek-v4-flash-vision-exp"
+    deepseek_base_url: str = "https://api.deepseek.com"
+
     google_api_key: str = ""
     # Nhiều key Gemini (phân tách bằng dấu phẩy) — fallback cho nhau: key hết quota/
     # bị thu hồi thì tự chuyển key khác. Rỗng thì dùng google_api_key.

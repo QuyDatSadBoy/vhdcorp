@@ -102,7 +102,12 @@ def record_blocked() -> None:
 # ── Bảng giá mặc định (USD / 1 triệu token) — giá GỐC từ Google (ai.google.dev/pricing).
 # Admin có thể ghi đè qua UI.
 DEFAULT_MODEL_PRICES = {
-    "gemini-3.1-flash-lite": {"in": 0.25, "out": 1.50},  # CHÍNH
+    # CHÍNH — DeepSeek V4 Flash Vision. Giá cache-miss/output giờ CAO ĐIỂM (ước tính an
+    # toàn; giờ thấp điểm rẻ hơn ~2×, cache-hit chỉ $0.014/1tr → thực tế rẻ hơn bảng này).
+    "deepseek-v4-flash-vision-exp": {"in": 0.44, "out": 1.32},
+    "deepseek-v4-flash": {"in": 0.44, "out": 1.32},
+    "deepseek-v4-pro": {"in": 1.32, "out": 3.96},
+    "gemini-3.1-flash-lite": {"in": 0.25, "out": 1.50},  # dự phòng #1
     "gemini-3.6-flash": {"in": 1.50, "out": 7.50},        # dự phòng Gemini (mới)
     "MiniMax-Text-01": {"in": 0.20, "out": 1.10},         # dự phòng CHÉO (ước tính, admin chỉnh được)
     "openai/gpt-oss-120b": {"in": 0.0, "out": 0.0},       # dự phòng CHÉO Groq — MIỄN PHÍ
@@ -117,6 +122,9 @@ def active_models() -> list[str]:
     s = get_settings()
     fallbacks = [m.strip() for m in (getattr(s, "fallback_model", "") or "").split(",")]
     out: list[str] = []
+    # model CHÍNH = DeepSeek (nếu có key) → đứng đầu danh sách
+    if getattr(s, "deepseek_api_key", "") and getattr(s, "deepseek_model", ""):
+        out.append(s.deepseek_model.strip())
     for m in (s.agent_model, *fallbacks):
         m = (m or "").strip()
         if m and m not in out:

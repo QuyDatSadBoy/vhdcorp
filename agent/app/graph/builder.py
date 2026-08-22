@@ -83,6 +83,19 @@ class ChatGraphBuilder(BaseGraphBuilder):
                 max_retries=0,
             )
 
+        def _mk_openai(model: str, key: str, base_url: str, timeout: int = 25):
+            """LLM cho mọi nhà cung cấp OpenAI-compatible (DeepSeek/Groq/MiniMax/OpenRouter)."""
+            from langchain_openai import ChatOpenAI
+
+            return ChatOpenAI(
+                model=model,
+                api_key=key,
+                base_url=base_url,
+                temperature=0.3,
+                max_retries=0,  # lỗi là chuyển tiếp ngay, không chờ retry
+                timeout=timeout,
+            )
+
         # Chuỗi dự phòng 2 CHIỀU: nhiều KEY × nhiều MODEL.
         # Thứ tự: model tốt trên MỌI key trước (xử lý key hết quota/bị thu hồi),
         # rồi mới hạ xuống model dự phòng trên mọi key (xử lý model quá tải).
@@ -93,9 +106,21 @@ class ChatGraphBuilder(BaseGraphBuilder):
         models = list(dict.fromkeys([settings.agent_model, *fallbacks]))  # dedupe, giữ thứ tự
         combos = [(m, k) for m in models for k in keys]
 
-        self.llm = _mk(*combos[0])  # (chính) — dùng cho vision mô tả ảnh
+        gemini_chain = [_mk(m, k) for (m, k) in combos]
+
+        # MODEL CHÍNH = DeepSeek Vision (nếu có key), Gemini tụt xuống dự phòng #1.
+        # Không có key DeepSeek → Gemini vẫn làm chính như trước (không vỡ gì).
+        if settings.deepseek_api_key and settings.deepseek_model:
+            deepseek = _mk_openai(
+                settings.deepseek_model, settings.deepseek_api_key, settings.deepseek_base_url, 30
+            )
+            chain = [deepseek, *gemini_chain]
+        else:
+            chain = gemini_chain
+
+        self.llm = chain[0]  # (chính) — dùng cho vision mô tả ảnh (DeepSeek vision đọc ảnh trực tiếp)
         primary_tools = self.llm.bind_tools(self.tools)
-        rest = [_mk(m, k).bind_tools(self.tools) for (m, k) in combos[1:]]
+        rest = [m.bind_tools(self.tools) for m in chain[1:]]
 
         # DỰ PHÒNG CHÉO NHÀ CUNG CẤP (OpenAI-compatible): cả Gemini hết quota → chuyển sang
         # provider khác (không dính quota Gemini). Thứ tự theo tốc độ + độ tin cậy đo thật:
@@ -105,20 +130,9 @@ class ChatGraphBuilder(BaseGraphBuilder):
             (settings.minimax_api_key, settings.minimax_llm_model, settings.minimax_base_url, 25),
             (settings.openrouter_api_key, settings.openrouter_model, settings.openrouter_base_url, 30),
         ]
-        if any(key for key, *_ in cross_providers):
-            from langchain_openai import ChatOpenAI
-
-            for key, model, base_url, timeout in cross_providers:
-                if key and model:
-                    llm = ChatOpenAI(
-                        model=model,
-                        api_key=key,
-                        base_url=base_url,
-                        temperature=0.3,
-                        max_retries=0,  # lỗi là chuyển tiếp ngay, không chờ retry
-                        timeout=timeout,
-                    )
-                    rest.append(llm.bind_tools(self.tools))
+        for key, model, base_url, timeout in cross_providers:
+            if key and model:
+                rest.append(_mk_openai(model, key, base_url, timeout).bind_tools(self.tools))
 
         self.llm_with_tools = primary_tools.with_fallbacks(rest) if rest else primary_tools
 
