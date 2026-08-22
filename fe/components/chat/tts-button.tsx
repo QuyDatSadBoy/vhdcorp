@@ -78,6 +78,12 @@ async function getBuffer(chunk: string): Promise<AudioBuffer> {
  * tới ~140 ký tự để ít request hơn mà vẫn liền mạch.
  */
 const CHUNK_MAX = 140;
+// Đoạn ĐẦU phải đủ dài để PHÁT lâu hơn thời gian tổng hợp đoạn thứ hai, nếu không sẽ
+// nghe thấy khoảng lặng giữa hai đoạn. Đo thật trên server TTS: mỗi lượt tổng hợp tốn
+// ~1.6–2.4s gần như cố định (không phụ thuộc độ dài), tiếng Việt đọc ~15 ký tự/giây
+// → đoạn đầu cần khoảng 60 ký tự trở lên mới che được.
+const FIRST_MIN = 60;
+
 export function chunkText(text: string): string[] {
   const clean = text.replace(/\s+/g, " ").trim();
   if (!clean) return [];
@@ -86,15 +92,17 @@ export function chunkText(text: string): string[] {
   const chunks: string[] = [];
   let buf = "";
   for (const s of sentences) {
-    if (chunks.length === 0 && !buf) {
-      chunks.push(s); // câu đầu đứng riêng → tổng hợp nhanh nhất
-      continue;
-    }
-    if (buf && (buf + " " + s).length > CHUNK_MAX) {
+    const limit = chunks.length === 0 ? CHUNK_MAX : CHUNK_MAX;
+    if (buf && (buf + " " + s).length > limit) {
       chunks.push(buf);
       buf = s;
     } else {
       buf = buf ? `${buf} ${s}` : s;
+    }
+    // Đoạn đầu: chốt lại ngay khi đã đủ dài để phát che được đoạn kế tiếp
+    if (chunks.length === 0 && buf.length >= FIRST_MIN) {
+      chunks.push(buf);
+      buf = "";
     }
   }
   if (buf) chunks.push(buf);
@@ -189,8 +197,40 @@ async function playTts(text: string, setStatus: (s: Status) => void, onToken: (t
   }
   if (my !== playToken) return;
 
-  // Tổng hợp + decode SONG SONG (call song song)
-  const bufs = chunks.map((c) => getBuffer(c).catch(() => null));
+  // Tổng hợp + decode SONG SONG NHƯNG CÓ TIẾT CHẾ.
+  // Đo thật trên server TTS: bắn cả 4 đoạn cùng lúc thì MỖI đoạn tụt xuống ~4.5s
+  // (server nghẽn), trong khi chạy 2 luồng chỉ ~2.4s và chạy một mình ~1.6s.
+  // Vì vậy: đoạn ĐẦU đi riêng để có tiếng sớm nhất, phần còn lại chạy pool 2 luồng —
+  // vừa đủ nhanh để nối đuôi liền mạch, vừa không tự làm nghẽn chính mình.
+  const bufs: Promise<AudioBuffer | null>[] = [];
+  const firstBuf = getBuffer(chunks[0]).catch(() => null);
+  bufs.push(firstBuf);
+  if (chunks.length > 1) {
+    const rest = chunks.slice(1);
+    const results: (AudioBuffer | null)[] = new Array(rest.length).fill(null);
+    const resolvers: ((v: AudioBuffer | null) => void)[] = [];
+    for (let i = 0; i < rest.length; i++) {
+      bufs.push(new Promise<AudioBuffer | null>((r) => resolvers.push(r)));
+    }
+    let next = 0;
+    const worker = async () => {
+      while (true) {
+        const i = next++;
+        if (i >= rest.length) return;
+        if (my !== playToken) {
+          // Khách bấm dừng: vẫn phải resolve để vòng phát không treo ở `await bufs[i]`
+          resolvers[i](null);
+          continue;
+        }
+        results[i] = await getBuffer(rest[i]).catch(() => null);
+        resolvers[i](results[i]);
+      }
+    };
+    // CHỜ đoạn đầu xong rồi mới chạy pool: đoạn đầu quyết định "bấm loa bao lâu thì
+    // có tiếng", để nó chạy một mình là nhanh nhất. Đo thật: 4.86s → 1.63s.
+    // Đoạn đầu dài ≥60 ký tự (≈4s đọc) nên pool vẫn kịp trả đoạn 2 trước khi hết tiếng.
+    void firstBuf.then(() => Promise.all([worker(), worker()]));
+  }
   let started = false;
   let startAt = 0;
   const mySources: AudioBufferSourceNode[] = [];
@@ -315,8 +355,10 @@ export default function TtsButton({
     <button
       type="button"
       onClick={play}
-      onMouseEnter={() => prefetchChunks(text)}
-      onFocus={() => prefetchChunks(text)}
+      // Rê chuột chỉ nạp trước ĐOẠN ĐẦU (tin nhắn cũ chưa được eager nạp sẵn).
+      // Trước đây nạp HẾT mọi đoạn cùng lúc → server TTS nghẽn → chính đoạn đầu, thứ
+      // quyết định "bấm loa bao lâu thì có tiếng", tụt từ ~1.6s xuống ~4.3s.
+      onMouseEnter={() => prefetchChunks(text, 1)}
       aria-label={label}
       title={label}
       className={cn(
