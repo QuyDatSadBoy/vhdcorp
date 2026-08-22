@@ -122,3 +122,5 @@ agent/data/knowledge.local.md
 agent/data/chat_limits.local.json
 agent/data/usage_stats.local.json
 agent/data/reply_cache.local.json
+agent/data/skills.local.json
+agent/data/mcp_servers.local.json

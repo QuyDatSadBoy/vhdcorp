@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     deepseek_model: str = "deepseek-v4-flash-vision-exp"
     deepseek_base_url: str = "https://api.deepseek.com"
 
+    # LÕI agent: True = DeepAgents (write_todos lập kế hoạch, subagent, SKILL do admin
+    # cấu hình, tool MCP). False = vòng lặp agent⇄tools tự viết như trước (đường lùi an
+    # toàn nếu DeepAgents có sự cố). Guardrail/cache/memory/gen-UI không phụ thuộc cờ này.
+    use_deep_agent: bool = True
+    # Số deep agent dựng cho chuỗi dự phòng (mỗi agent = 1 graph biên dịch riêng)
+    deep_agent_max_fallbacks: int = 6
+
     google_api_key: str = ""
     # Nhiều key Gemini (phân tách bằng dấu phẩy) — fallback cho nhau: key hết quota/
     # bị thu hồi thì tự chuyển key khác. Rỗng thì dùng google_api_key.

@@ -62,6 +62,56 @@ def _chunk_text(chunk) -> str:
     return ""
 
 
+_PREVIEW_CHARS = 600
+_TODO_STATUSES = {"pending", "in_progress", "completed"}
+
+
+def _todos_from_tool_input(tool_name: str, tool_input) -> list[dict] | None:
+    """Lấy danh sách todo từ lần gọi `write_todos` của DeepAgents.
+
+    Trả None nếu không phải write_todos (để caller xử lý như tool thường).
+    Chuẩn hoá về [{content, status}] và bỏ item lạ — FE chỉ hiểu 3 status."""
+    if tool_name != "write_todos":
+        return None
+    raw = tool_input.get("todos") if isinstance(tool_input, dict) else None
+    items: list[dict] = []
+    for it in raw or []:
+        if not isinstance(it, dict):
+            continue
+        content = str(it.get("content", "")).strip()
+        status = str(it.get("status", "pending")).strip()
+        if content:
+            items.append({"content": content[:300], "status": status if status in _TODO_STATUSES else "pending"})
+    return items
+
+
+def _preview(value) -> str:
+    """Rút gọn payload tool để hiện trong log tiến trình ở FE (không đổ cả JSON lớn)."""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        text = value
+    else:
+        import json as _json
+
+        try:
+            text = _json.dumps(value, ensure_ascii=False, default=str)
+        except Exception:  # noqa: BLE001
+            text = str(value)
+    text = " ".join(text.split())
+    return text[:_PREVIEW_CHARS] + ("…" if len(text) > _PREVIEW_CHARS else "")
+
+
+def _tool_input_preview(tool_input) -> str:
+    return _preview(tool_input.get("input") if isinstance(tool_input, dict) and "input" in tool_input else tool_input)
+
+
+def _tool_output_preview(output) -> str:
+    # LangChain bọc kết quả trong ToolMessage → lấy .content cho gọn
+    content = getattr(output, "content", None)
+    return _preview(content if content is not None else output)
+
+
 class ChatService:
     def __init__(
         self,
@@ -190,10 +240,28 @@ class ChatService:
                         # (Không bắn lead-in nữa: FE hiện LOG TIẾN TRÌNH trong lúc tool
                         # chạy, và tự giữ thứ tự chữ → card bằng cách hoãn gắn card
                         # đến khi text stream xong.)
-                        tools_used.add(event.get("name", ""))
-                        yield {"type": "tool.start", "name": event.get("name", "")}
+                        name = event.get("name", "")
+                        tools_used.add(name)
+                        # DeepAgents: write_todos = model tự lập kế hoạch → FE hiện bảng
+                        # việc cần làm (thay danh sách cũ, last-wins) thay vì 1 dòng tool.
+                        todos = _todos_from_tool_input(name, event.get("data", {}).get("input"))
+                        if todos is not None:
+                            yield {"type": "todo", "items": todos}
+                            continue
+                        yield {
+                            "type": "tool.start",
+                            "name": name,
+                            "input": _tool_input_preview(event.get("data", {}).get("input")),
+                        }
                     elif kind == "on_tool_end":
-                        yield {"type": "tool.end", "name": event.get("name", "")}
+                        name = event.get("name", "")
+                        if name == "write_todos":
+                            continue  # đã bắn event todo ở on_tool_start
+                        yield {
+                            "type": "tool.end",
+                            "name": name,
+                            "output": _tool_output_preview(event.get("data", {}).get("output")),
+                        }
                         # Emit ui event TRƯỚC message.delta của lời dẫn (§9.2)
                         while ui_commands:
                             cmd = ui_commands.pop(0)

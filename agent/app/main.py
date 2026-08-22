@@ -11,6 +11,7 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from app.api import a2a as a2a_api
 from app.api import admin as admin_api
 from app.api import admin_ai as admin_ai_api
+from app.api import admin_deep as admin_deep_api
 from app.api import chat as chat_api
 from app.api import conversations as conversations_api
 from app.api import health as health_api
@@ -91,7 +92,16 @@ async def lifespan(app: FastAPI):
         message_repo = MessageRepo(db)
         memory_repo = MemoryRepo(db)
 
-        builder = ChatGraphBuilder(settings)
+        # Tool MCP do admin cấu hình ở /admin (best-effort: server chết thì bỏ qua)
+        mcp_tools: list = []
+        if settings.use_deep_agent:
+            from app.deep import mcp_store
+
+            mcp_tools = await mcp_store.load_tools()
+            if mcp_tools:
+                logger.info("Đã nạp %d tool từ MCP server của admin", len(mcp_tools))
+
+        builder = ChatGraphBuilder(settings, extra_tools=mcp_tools)
         graph = builder.compile(checkpointer)
 
         memory_service = MemoryService(
@@ -159,6 +169,7 @@ def create_app() -> FastAPI:
     app.include_router(a2a_api.router)
     app.include_router(admin_api.router)
     app.include_router(admin_ai_api.router)
+    app.include_router(admin_deep_api.router)
 
     # MCP streamable-http tại /mcp (instance riêng mỗi app; lifespan chạy session_manager)
     mcp_server = build_mcp()

@@ -46,7 +46,7 @@ def _route_agent(state: AgentState) -> str:
 
 
 class ChatGraphBuilder(BaseGraphBuilder):
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, extra_tools: list | None = None) -> None:
         self.settings = settings
         self.tools = [
             # Tra cứu / hành động
@@ -70,6 +70,10 @@ class ChatGraphBuilder(BaseGraphBuilder):
             show_comparison,
             show_faq,
         ]
+        # Tool MCP do admin cấu hình (nạp async ở lifespan rồi truyền vào đây)
+        if extra_tools:
+            self.tools.extend(extra_tools)
+
         def _mk(model: str, key: str) -> ChatGoogleGenerativeAI:
             return ChatGoogleGenerativeAI(
                 model=model,
@@ -136,6 +140,9 @@ class ChatGraphBuilder(BaseGraphBuilder):
 
         self.llm_with_tools = primary_tools.with_fallbacks(rest) if rest else primary_tools
 
+        # Danh sách model THÔ (chưa bind tools) cho DeepAgents — create_deep_agent tự bind.
+        self.model_chain = [*chain, *[_mk_openai(m, k, b, t) for k, m, b, t in cross_providers if k and m]]
+
     def build(self) -> StateGraph:
         short_term = ShortTermMemory(limit=self.settings.short_term_limit)
         pipeline = default_pipeline(max_chars=self.settings.max_input_chars)
@@ -143,6 +150,22 @@ class ChatGraphBuilder(BaseGraphBuilder):
         graph = StateGraph(AgentState)
         graph.add_node("guardrail", GuardrailNode(pipeline))
         graph.add_node("context", ContextNode())
+
+        # LÕI DeepAgents: tự lo vòng lặp model⇄tool → graph ngoài không cần node "tools".
+        if self.settings.use_deep_agent:
+            from app.deep.builder import build_deep_agent_chain
+            from app.graph.nodes.deep_agent_node import DeepAgentNode
+
+            deep = build_deep_agent_chain(
+                self.model_chain, self.tools, max_agents=self.settings.deep_agent_max_fallbacks
+            )
+            graph.add_node("agent", DeepAgentNode(deep, short_term))
+            graph.add_edge(START, "guardrail")
+            graph.add_conditional_edges("guardrail", _route_guardrail, {"blocked": END, "ok": "context"})
+            graph.add_edge("context", "agent")
+            graph.add_edge("agent", END)
+            return graph
+
         graph.add_node("agent", AgentNode(self.llm_with_tools, short_term))
         graph.add_node("tools", ToolExecutorNode(self.tools))
 
