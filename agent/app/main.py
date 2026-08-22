@@ -122,6 +122,13 @@ async def lifespan(app: FastAPI):
             llm=builder.llm,  # dùng cho vision (image search)
         )
 
+        # AG-UI (chuẩn Agent-User Interaction) cho CopilotKit — chạy SONG SONG với
+        # /api/chat, không thay thế. Gắn ở đây vì cần graph đã compile với checkpointer.
+        if settings.use_deep_agent:
+            from app.api.agui import mount_agui
+
+            app.state.agui_paths = mount_agui(app, chat_graph=graph)
+
         app.state.settings = settings
         app.state.db = db
         app.state.checkpointer = checkpointer

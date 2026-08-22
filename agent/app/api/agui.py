@@ -35,6 +35,24 @@ def mount_agui(app: FastAPI, chat_graph, admin_graph=None) -> list[str]:
         logger.info("Chưa cài ag-ui-langgraph/copilotkit → không bật endpoint AG-UI")
         return []
 
+    class _AguiAgent(LangGraphAGUIAgent):
+        """Vá lệch phiên bản giữa ag-ui-langgraph 0.0.43 và copilotkit 0.1.95.
+
+        `LangGraphAgent.clone()` dựng lại đối tượng kèm 3 tham số
+        (enable_legacy_on_interrupt_event, emit_interrupt_outcome, emit_raw_events) mà
+        `LangGraphAGUIAgent.__init__` không nhận → mọi request AG-UI đều 500. Adapter
+        clone mỗi request là CÓ CHỦ Ý (nó giữ trạng thái run trong instance), nên không
+        thể bỏ clone — chỉ dựng lại bằng đúng 4 tham số mà lớp con chấp nhận.
+        """
+
+        def clone(self):
+            return _AguiAgent(
+                name=self.name,
+                graph=self.graph,
+                description=self.description,
+                config=dict(self.config) if self.config else None,
+            )
+
     mounted: list[str] = []
     targets = [(CHAT_PATH, "vhd_chat", "Trợ lý bán hàng VHD Corp", chat_graph)]
     if admin_graph is not None:
@@ -46,7 +64,7 @@ def mount_agui(app: FastAPI, chat_graph, admin_graph=None) -> list[str]:
         try:
             add_langgraph_fastapi_endpoint(
                 app=app,
-                agent=LangGraphAGUIAgent(name=name, description=desc, graph=graph),
+                agent=_AguiAgent(name=name, description=desc, graph=graph),
                 path=path,
             )
             mounted.append(path)
