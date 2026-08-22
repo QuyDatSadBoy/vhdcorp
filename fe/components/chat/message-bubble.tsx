@@ -4,7 +4,8 @@ import { memo } from "react";
 import { AlertCircle, RotateCcw } from "lucide-react";
 import { useVoiceChatStore } from "@/store/voice-chat.store";
 import { useSiteConfigStore } from "@/store/site-config.store";
-import type { UiChatMessage } from "@/types/chat";
+import type { ToolRun, UiChatMessage } from "@/types/chat";
+import AgentTrace from "./agent-trace";
 import GenUiBlock from "./gen-ui/gen-ui-block";
 import MarkdownContent from "./markdown-content";
 import ToolIndicator from "./tool-indicator";
@@ -64,6 +65,8 @@ interface MessageBubbleProps {
   message: UiChatMessage;
   /** Tool đang chạy — chỉ truyền cho bubble assistant cuối cùng đang stream */
   activeTool?: string | null;
+  /** Log công cụ của LƯỢT NÀY — hiện ngay trong bong bóng (chỉ tin nhắn cuối) */
+  toolRuns?: ToolRun[];
   /** Log tiến trình ("Đang tìm kiếm…") — hiện khi chưa có chữ */
   procSteps?: { label: string; done: boolean }[];
   onRetry?: () => void;
@@ -74,7 +77,15 @@ interface MessageBubbleProps {
 }
 
 /** Một dòng tin nhắn: user phải (nền brand), assistant trái (avatar VHD + markdown) */
-function MessageBubble({ message, activeTool, procSteps, onRetry, onAction, isLast = false }: MessageBubbleProps) {
+function MessageBubble({
+  message,
+  activeTool,
+  toolRuns,
+  procSteps,
+  onRetry,
+  onAction,
+  isLast = false,
+}: MessageBubbleProps) {
   const isUser = message.role === "user";
   // Voice mode: câu trả lời mới nhất tự đọc to (voice-to-voice)
   const voiceOn = useVoiceChatStore((s) => s.enabled);
@@ -134,6 +145,14 @@ function MessageBubble({ message, activeTool, procSteps, onRetry, onAction, isLa
       <div className="flex w-full max-w-full items-start gap-2.5">
         <AssistantAvatar />
         <div className="min-w-0 flex-1 space-y-2">
+          {/* Log công cụ nằm NGAY TRÊN câu trả lời (như ChatGPT hiện "đã tìm kiếm…"):
+              khách thấy trợ lý tra ở đâu ra con số, mở ra kiểm chứng được. */}
+          {Boolean(toolRuns?.length) && (
+            <div className="max-w-[92%]">
+              <AgentTrace runs={toolRuns!} />
+            </div>
+          )}
+
           {/* Bong bóng chữ (chỉ hiện khi có nội dung hoặc đang chờ token) */}
           {(message.content || waitingFirstToken) && (
             <div className="min-w-0 max-w-[92%] rounded-2xl rounded-tl-md border border-border/60 bg-muted/50 px-3.5 py-2.5 text-sm text-foreground">
