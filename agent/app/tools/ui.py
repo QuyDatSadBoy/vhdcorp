@@ -177,3 +177,31 @@ async def show_faq() -> str:
     Dùng khi khách hỏi chung chung 'tư vấn giúp', 'có gì', hoặc cần thông tin tổng quan."""
     push_ui("faq", {"items": _FAQ_ITEMS})
     return "Đã hiển thị FAQ cho khách. Hãy mời khách bấm vào câu hỏi quan tâm hoặc hỏi trực tiếp."
+
+
+_MAX_OPTIONS = 5
+
+
+@tool
+@catch_tool_errors
+async def ask_user_question(question: str, options: list[str], allow_other: bool = True) -> str:
+    """HỎI LẠI khách bằng các lựa chọn BẤM ĐƯỢC (không bắt khách tự gõ).
+
+    Dùng khi thiếu đúng MỘT thông tin bắt buộc mà câu trả lời nằm trong tập hữu hạn:
+    chất liệu (EPDM/NBR/chưa rõ), nhóm quy cách, khoảng số lượng, khu vực giao hàng.
+    Mỗi lượt chỉ hỏi MỘT câu, tối đa 5 lựa chọn, mỗi lựa chọn viết ngắn như nhãn nút.
+
+    KHÔNG dùng khi: câu trả lời là số/kích thước tự do (hỏi thẳng bằng lời), hoặc khi
+    đã đủ thông tin để tra cứu — hỏi thừa làm khách mất kiên nhẫn.
+    """
+    q = (question or "").strip()
+    opts = [str(o).strip() for o in (options or []) if str(o).strip()][:_MAX_OPTIONS]
+    if not q or len(opts) < 2:
+        return "Cần một câu hỏi và ít nhất 2 lựa chọn. Hãy hỏi khách bằng lời thay vì dùng tool này."
+    push_ui("user-question", {"question": q, "options": opts, "allowOther": bool(allow_other)})
+    return (
+        f"Đã hiện câu hỏi cho khách chọn: {q} ({' / '.join(opts)}). "
+        "Hãy viết 1 câu ngắn mời khách chọn rồi DỪNG — chờ khách bấm, đừng tự đoán câu trả lời. "
+        "KHÔNG nói 'bên trên'/'bên dưới': khối lựa chọn nằm ngay sau lời của bạn, "
+        "chỉ cần nói 'bạn chọn giúp mình'."
+    )

@@ -25,6 +25,7 @@ from app.tools.site import (
     get_current_time,
 )
 from app.tools.ui import (
+    ask_user_question,
     show_comparison,
     show_contact_form,
     show_faq,
@@ -69,6 +70,7 @@ class ChatGraphBuilder(BaseGraphBuilder):
             show_quote_form,
             show_comparison,
             show_faq,
+            ask_user_question,
         ]
         # Tool MCP do admin cấu hình (nạp async ở lifespan rồi truyền vào đây)
         if extra_tools:
