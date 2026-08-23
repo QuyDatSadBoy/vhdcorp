@@ -67,6 +67,25 @@ async def lifespan(app: FastAPI):
 
     product_sync_task = asyncio.create_task(_periodic_product_sync())
 
+    # Dọn checkpoint của hội thoại cũ/đã xoá. LangGraph chỉ ghi thêm chứ không tự dọn
+    # (đo trên máy chủ: 101 hội thoại đã chiếm 27MB và chỉ có tăng), để lâu thì đầy ổ.
+    # Chạy sau 5 phút cho service ổn định rồi lặp mỗi ngày; chạy trong luồng riêng vì
+    # sqlite VACUUM là thao tác chặn.
+    async def _periodic_checkpoint_gc() -> None:
+        from app.services.checkpoint_gc import collect_garbage
+
+        await asyncio.sleep(300)
+        while True:
+            try:
+                await asyncio.to_thread(
+                    collect_garbage, settings.checkpoint_db_path, settings.chat_db_path
+                )
+            except Exception:  # noqa: BLE001 — dọn dẹp lỗi không được giết service
+                logger.exception("Dọn checkpoint thất bại — thử lại ngày mai")
+            await asyncio.sleep(86_400)
+
+    checkpoint_gc_task = asyncio.create_task(_periodic_checkpoint_gc())
+
     db = Database(settings.chat_db_path)
     await db.connect()
 
@@ -151,6 +170,7 @@ async def lifespan(app: FastAPI):
             await chat_service.wait_background()
 
     product_sync_task.cancel()
+    checkpoint_gc_task.cancel()
 
     if mcp_task is not None:
         mcp_stop.set()
