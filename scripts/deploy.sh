@@ -11,6 +11,15 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-$HOME/vhdcorp}"
 BRANCH="${DEPLOY_BRANCH:-main}"
 
+# uv (quản lý môi trường Python của agent) cài ở ~/.local/bin — thư mục này KHÔNG có
+# trong PATH của shell SSH không-đăng-nhập, nên chạy deploy qua `ssh host bash deploy.sh`
+# sẽ chết ở bước 4 với "uv: command not found" (rollback lại bản cũ). Tự thêm vào PATH
+# thay vì trông chờ người gọi export sẵn.
+for d in "$HOME/.local/bin" "$HOME/.cargo/bin" /usr/local/bin; do
+  [ -x "$d/uv" ] && case ":$PATH:" in *":$d:"*) ;; *) PATH="$d:$PATH" ;; esac
+done
+export PATH
+
 log() { echo -e "\n\033[1;34m[deploy]\033[0m $*"; }
 
 cd "$APP_DIR"
