@@ -21,6 +21,9 @@ dependencies = [
     "langchain-mcp-adapters>=0.3.2",
     "ag-ui-langgraph>=0.0.43",
     "copilotkit>=0.1.95",
+    "pypdf>=6.16.2",
+    "openpyxl>=3.1.5",
+    "python-docx>=1.2.0",
 ]
 
 [dependency-groups]

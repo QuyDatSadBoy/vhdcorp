@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AudioLines, ImagePlus, Mic, SendHorizontal, Square, X, Pencil } from "lucide-react";
+import { AudioLines, ImagePlus, Mic, SendHorizontal, Square, X, Pencil, FileText } from "lucide-react";
 import { useVoiceChatStore } from "@/store/voice-chat.store";
+import { uploadDocument } from "@/services/chat-agent.service";
 import ImageEditor from "./image-editor";
 import { cn } from "@/lib/utils";
 
@@ -119,11 +120,16 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
 
   const submit = () => {
     const text = value.trim();
-    if ((!text && !image) || streaming) return;
-    // Chỉ có ảnh, không có chữ → dùng câu mặc định để agent tìm theo ảnh
-    onSend(text || "Tìm sản phẩm giống ảnh này", image ?? undefined);
+    if ((!text && !image && !doc) || streaming) return;
+    // Nội dung tệp đi kèm câu hỏi, đánh dấu rõ là trích từ tệp để trợ lý không nhầm
+    // đó là lời khách nói.
+    const withDoc = doc
+      ? `${text || `Xem giúp mình tệp ${doc.name}`}\n\n[Nội dung tệp "${doc.name}" khách gửi]\n${doc.text}`
+      : text;
+    onSend(withDoc || "Tìm sản phẩm giống ảnh này", image ?? undefined);
     setValue("");
     setImage(null);
+    setDoc(null);
     setImageError(null);
     recognitionRef.current?.stop();
     requestAnimationFrame(() => {
@@ -237,25 +243,46 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  /** Nhận một tệp bất kỳ: ảnh xử lý tại chỗ, tài liệu gửi lên máy chủ bóc chữ. */
+  const onPickFile = async (file: File | undefined) => {
+    if (!file) return;
+    if (file.type.startsWith("image/")) return onPickImage(file);
+    setImageError(null);
+    setDocLoading(true);
+    try {
+      const res = await uploadDocument(file);
+      if (!res.ok || !res.text) {
+        setImageError(res.error || "Không đọc được tệp này.");
+        return;
+      }
+      setDoc({ name: res.filename || file.name, text: res.text, chars: res.chars || res.text.length });
+    } finally {
+      setDocLoading(false);
+    }
+  };
+
   /** Dán ảnh (Ctrl+V) — cách nhanh nhất để gửi ảnh chụp màn hình, trước đây không nhận. */
   const onPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const item = Array.from(e.clipboardData?.items ?? []).find((i) => i.type.startsWith("image/"));
+    const item = Array.from(e.clipboardData?.items ?? []).find((i) => i.kind === "file");
     if (!item) return; // dán chữ thì để nguyên hành vi mặc định
     const file = item.getAsFile();
     if (!file) return;
     e.preventDefault();
-    void onPickImage(file);
+    void onPickFile(file);
   };
 
   /** Kéo ảnh từ máy thả vào khung chat. */
   const [dragging, setDragging] = useState(false);
   /** Mở khung xem to + vẽ lên ảnh */
   const [editing, setEditing] = useState(false);
+  /** Tệp tài liệu đã bóc chữ (PDF/Excel/Word/CSV) — đính kèm câu hỏi */
+  const [doc, setDoc] = useState<{ name: string; text: string; chars: number } | null>(null);
+  const [docLoading, setDocLoading] = useState(false);
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
-    const file = Array.from(e.dataTransfer?.files ?? []).find((f) => f.type.startsWith("image/"));
-    if (file) void onPickImage(file);
+    const file = Array.from(e.dataTransfer?.files ?? [])[0];
+    if (file) void onPickFile(file);
   };
 
   return (
@@ -303,6 +330,30 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
           <span className="text-[11px] text-muted-foreground">Bấm vào ảnh để xem to và khoanh vùng cần hỏi</span>
         </div>
       )}
+      {/* Tệp tài liệu đã đọc được — cho khách thấy đã lấy đúng tệp và bao nhiêu chữ */}
+      {(doc || docLoading) && (
+        <div className="mb-2 flex items-center gap-2 rounded-xl border border-border/70 bg-muted/40 px-2.5 py-2">
+          <FileText className="h-4 w-4 shrink-0 text-brand-accent" aria-hidden />
+          {docLoading ? (
+            <span className="text-[11px] text-muted-foreground">Đang đọc tệp…</span>
+          ) : (
+            <>
+              <span className="min-w-0 flex-1 truncate text-[11px] font-medium">{doc!.name}</span>
+              <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
+                {doc!.chars.toLocaleString("vi-VN")} chữ
+              </span>
+              <button
+                type="button"
+                onClick={() => setDoc(null)}
+                aria-label="Bỏ tệp đính kèm"
+                className="grid h-5 w-5 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-3 w-3" aria-hidden />
+              </button>
+            </>
+          )}
+        </div>
+      )}
       {imageError && <p className="mb-1.5 text-[11px] font-medium text-brand-danger">{imageError}</p>}
 
       <div
@@ -323,27 +374,27 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
       >
         {dragging && (
           <span className="pointer-events-none absolute inset-0 grid place-items-center rounded-2xl text-xs font-semibold text-brand-accent">
-            Thả ảnh vào đây
+            Thả ảnh hoặc tệp vào đây
           </span>
         )}
         {/* Nút đính ảnh */}
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept="image/*,.pdf,.xlsx,.xls,.docx,.csv,.txt,.md"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
             // reset để chọn lại CÙNG một file vẫn kích hoạt onChange
             e.target.value = "";
-            void onPickImage(file);
+            void onPickFile(file);
           }}
         />
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={streaming}
-          aria-label="Đính kèm ảnh"
+          aria-label="Đính kèm ảnh hoặc tệp (PDF, Excel, Word)"
           title="Đính kèm ảnh để tìm sản phẩm"
           className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-brand-primary disabled:opacity-40 dark:hover:text-brand-accent"
         >
@@ -436,7 +487,7 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
           <button
             type="button"
             onClick={submit}
-            disabled={!value.trim() && !image}
+            disabled={!value.trim() && !image && !doc}
             aria-label="Gửi tin nhắn"
             className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-linear-to-br from-brand-primary to-brand-accent text-white transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
           >
