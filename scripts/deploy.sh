@@ -82,7 +82,19 @@ cd "$APP_DIR"
 # Thứ tự có chủ đích: backend và agent trước, frontend SAU CÙNG — trang web là thứ
 # khách nhìn thấy, để nó đứt trong lúc chờ hai service kia khởi động là thừa.
 # Frontend chạy 2 tiến trình nên `pm2 reload` thay từng cái, khách không thấy trang lỗi.
+# pm2 KHÔNG đổi được số tiến trình / chế độ chạy của app đang sống — startOrReload
+# giữ nguyên cái cũ và im lặng bỏ qua. Nếu cấu hình đòi chế độ khác thì phải xoá rồi
+# tạo lại; chỉ làm khi thực sự lệch, và làm MỘT LẦN (các lần sau đã đúng chế độ nên
+# reload lần lượt như bình thường).
+WANT_MODE=$(node -p "((require('$APP_DIR/ecosystem.config.js').apps.find(a=>a.name==='vhd-fe')||{}).exec_mode)||'fork_mode'" 2>/dev/null || echo fork_mode)
+HAVE_MODE=$(pm2 jlist 2>/dev/null | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).find(p=>p.name==='vhd-fe')?.pm2_env.exec_mode||''" 2>/dev/null || echo "")
+if [ -n "$HAVE_MODE" ] && [ "${WANT_MODE/_mode/}" != "${HAVE_MODE/_mode/}" ]; then
+  log "  ↻ vhd-fe đang chạy $HAVE_MODE nhưng cấu hình muốn $WANT_MODE → tạo lại (một lần)"
+  pm2 delete vhd-fe >/dev/null 2>&1 || true
+fi
+
 pm2 startOrReload ecosystem.config.js --update-env
+# Reload LẦN LƯỢT, frontend sau cùng (xem ghi chú thứ tự ở trên).
 for app in vhd-be vhd-agent vhd-fe; do
   pm2 reload "$app" --update-env >/dev/null 2>&1 || pm2 restart "$app" --update-env >/dev/null 2>&1 || true
 done
