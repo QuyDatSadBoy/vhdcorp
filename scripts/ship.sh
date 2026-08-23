@@ -151,6 +151,9 @@ DEPLOY_RC=0
 kill "$PROBE_PID" 2>/dev/null
 TOTAL=$(wc -l <"$PROBE_LOG" | tr -d ' ')
 BAD=$(grep -cv '^200$' "$PROBE_LOG" || true)
+# Ghi rõ MÃ LỖI và số lần: "đứt 4 lần" không cho biết phải sửa gì, còn "4×502" thì
+# nói ngay là không có tiến trình nào nghe cổng, khác hẳn 500 (ứng dụng tự lỗi).
+BAD_DETAIL=$(grep -v '^200$' "$PROBE_LOG" | sort | uniq -c | awk '{printf "%s×%s ", $1, ($2==""?"timeout":$2)}' || true)
 rm -f "$PROBE_LOG"
 
 if [ "$DEPLOY_RC" != "0" ]; then
@@ -159,7 +162,7 @@ if [ "$DEPLOY_RC" != "0" ]; then
 fi
 ok "deploy xong"
 if [ "${BAD:-0}" -gt 0 ]; then
-  fail "trang chủ ĐỨT $BAD/$TOTAL lần trong lúc phát hành (khách sẽ gặp lỗi)"
+  fail "trang chủ ĐỨT $BAD/$TOTAL lần trong lúc phát hành: ${BAD_DETAIL:-không rõ mã}"
   FAILED+=("gián đoạn khi phát hành")
 else
   ok "trang chủ không đứt lần nào trong $TOTAL lượt kiểm suốt quá trình"
