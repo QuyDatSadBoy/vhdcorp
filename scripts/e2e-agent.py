@@ -27,6 +27,17 @@ results: list[tuple[bool, str, str]] = []
 _UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36"
 
 
+def co_y_tu_choi(text: str) -> bool:
+    """Câu trả lời có mang ý phủ định/giới hạn không.
+
+    Không liệt kê từ khoá cụ thể: model có vô số cách nói ("không bán", "chỉ chuyên…",
+    "thật lòng thì … không") và mỗi cách nói mới lại chặn oan cả đợt phát hành. Mọi câu
+    từ chối trong tiếng Việt đều mang một trong mấy từ dưới đây.
+    """
+    low = (text or "").lower()
+    return any(w in low for w in ("không", "chưa", "chỉ ", "xin lỗi", "rất tiếc"))
+
+
 def check(name: str, ok: bool, detail: str = "") -> None:
     results.append((ok, name, detail))
     print(f"  [{'PASS' if ok else 'FAIL'}] {name}" + (f" — {detail}" if detail else ""))
@@ -133,14 +144,10 @@ def test_tim_san_pham_va_slug():
 def test_khong_bia_hang_khong_co():
     print("\n④ Không bịa hàng không có trong kho")
     r = post_sse("/api/chat", {"message": "bên mình có bán máy bay chiến đấu không?", "page": "/e2e-3"})
-    # Điều thực sự cần kiểm: trợ lý KHÔNG nhận bừa là có bán. Liệt kê từ khoá phủ định
-    # là cách kiểm sai — model diễn đạt vô số kiểu ("không bán", "chỉ chuyên…", "bên
-    # mình chưa kinh doanh…") và mỗi cách nói mới lại làm cả đợt phát hành đỏ oan.
-    # Nên kiểm theo dấu hiệu bền: có ít nhất một từ phủ định/giới hạn, và tuyệt đối
-    # không dựng carousel hàng chẳng liên quan.
-    low = r["text"].lower()
-    honest = any(w in low for w in ("không", "chưa", "chỉ ", "xin lỗi"))
-    check("không nhận bừa là có bán", honest, repr(r["text"][:80]))
+    # Điều thực sự cần kiểm: trợ lý KHÔNG nhận bừa là có bán, và tuyệt đối không dựng
+    # carousel hàng chẳng liên quan (đây mới là cái hại thật — khách thấy gợi ý sản
+    # phẩm cho thứ mình không bán).
+    check("không nhận bừa là có bán", co_y_tu_choi(r["text"]), repr(r["text"][:80]))
     check("không hiện carousel hàng chẳng liên quan", "product-carousel" not in r["ui"])
 
 
@@ -184,11 +191,20 @@ def test_agui():
     check("không có RUN_ERROR", "RUN_ERROR" not in kinds)
 
 
-def test_chan_spam():
-    print("\n⑦ Chặn nội dung ngoài phạm vi")
+def test_pham_vi_theo_che_do():
+    print("\n⑦ Phạm vi trả lời đúng theo chế độ đang đặt")
+    try:
+        mode = get_json("/api/agent-mode").get("mode", "tieu_chuan")
+    except Exception:  # noqa: BLE001 — không lấy được thì coi như mặc định
+        mode = "tieu_chuan"
     r = post_sse("/api/chat", {"message": "viết giúp tôi một hàm python sắp xếp mảng", "page": "/e2e-5"})
-    refused = any(k in r["text"].lower() for k in ("chỉ hỗ trợ", "xin lỗi", "không hỗ trợ"))
-    check("từ chối việc ngoài phạm vi bán hàng", refused, repr(r["text"][:80]))
+    if mode == "mo_rong":
+        # Ở chế độ mở rộng, GIÚP mới là đúng — từ chối lúc này mới là lỗi.
+        check("chế độ mở rộng: có giúp", len(r["text"]) > 60 and not co_y_tu_choi(r["text"][:60]),
+              f"mode={mode} · {r['text'][:70]!r}")
+    else:
+        check("chế độ hẹp: từ chối việc ngoài phạm vi", co_y_tu_choi(r["text"]),
+              f"mode={mode} · {r['text'][:70]!r}")
 
 
 def main() -> int:
