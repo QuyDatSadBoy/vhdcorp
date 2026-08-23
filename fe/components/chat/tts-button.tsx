@@ -356,14 +356,29 @@ class StreamSpeaker {
     });
   }
 
+  /** Còn là lượt đọc hiện hành không (chưa bị lượt khác giành mất). */
+  alive(): boolean {
+    return this.token === playToken;
+  }
+
   /** Chờ đọc hết những gì đã nạp (dùng để biết khi nào trả UI về trạng thái nghỉ). */
   async drain(): Promise<void> {
     await this.queue;
   }
 }
 
-/** Bắt đầu một lượt đọc theo dòng chảy. Trả về speaker để feed thêm text. */
-function startStreamSpeaker(setStatus: (s: Status) => void): StreamSpeaker | null {
+/* Bộ phát theo dòng chảy sống ở MODULE, không gắn vòng đời component.
+ *
+ * Trong lúc câu trả lời còn chảy, cây React quanh nút loa dựng lại nhiều lần (log
+ * công cụ xuất hiện, khối giao diện được chèn thêm). Nếu speaker nằm trong ref của
+ * component thì mỗi lần dựng lại nó bị huỷ rồi tạo mới, và lần huỷ đó đẩy token lên
+ * khiến chính speaker vừa tạo trở thành "hết hạn" — kết quả: không câu nào được đọc.
+ * Khoá theo nội dung đã đọc để nhận ra "vẫn là lượt đọc cũ" sau khi dựng lại. */
+let liveSpeaker: { speaker: StreamSpeaker; key: string } | null = null;
+
+/** Lấy (hoặc tạo) bộ phát cho lượt trả lời này. `key` phân biệt các lượt khác nhau. */
+function getStreamSpeaker(key: string, setStatus: (s: Status) => void): StreamSpeaker | null {
+  if (liveSpeaker?.key === key && liveSpeaker.speaker.alive()) return liveSpeaker.speaker;
   const ctx = getCtx();
   if (!ctx) return null;
   cancelPlayback();
@@ -371,9 +386,11 @@ function startStreamSpeaker(setStatus: (s: Status) => void): StreamSpeaker | nul
   activeReset = () => setStatus("idle");
   setStatus("loading");
   void ctx.resume().catch(() => undefined);
-  return new StreamSpeaker(ctx, my, () => {
+  const speaker = new StreamSpeaker(ctx, my, () => {
     if (my === playToken) setStatus("playing");
   });
+  liveSpeaker = { speaker, key };
+  return speaker;
 }
 
 /**
@@ -405,10 +422,14 @@ export default function TtsButton({
     statusRef.current = status;
   }, [status]);
 
-  // Unmount: nếu mình đang phát thì dừng hẳn
+  // Rời màn hình thì dừng đọc — TRỪ lượt đọc theo dòng chảy đang chạy: cây React
+  // quanh nút dựng lại nhiều lần trong lúc câu trả lời còn chảy, huỷ ở đây sẽ cắt
+  // ngang chính lượt vừa bắt đầu.
   useEffect(() => {
     return () => {
-      if (playToken === myTokenRef.current) cancelPlayback();
+      if (playToken !== myTokenRef.current) return;
+      if (liveSpeaker?.speaker === speakerRef.current && liveSpeaker.speaker.alive()) return;
+      cancelPlayback();
     };
   }, []);
 
@@ -441,22 +462,22 @@ export default function TtsButton({
   // Chế độ đàm thoại: ĐỌC NGAY khi có câu đầu, rồi nối tiếp theo dòng chảy —
   // không chờ viết xong (đó là nguyên nhân trước đây im lặng vài giây).
   useEffect(() => {
-    if (!autoPlay) return;
-    if (!autoPlayedRef.current) {
-      autoPlayedRef.current = true;
-      const sp = startStreamSpeaker(setStatus);
-      if (!sp) {
+    if (!autoPlay || !text) return;
+    // Khoá theo 40 ký tự đầu: đủ để phân biệt hai lượt trả lời khác nhau, và không
+    // đổi khi câu trả lời dài thêm — nhờ vậy dựng lại cây React vẫn là cùng một lượt.
+    const key = text.slice(0, 40);
+    const sp = getStreamSpeaker(key, setStatus);
+    if (!sp) {
+      if (!autoPlayedRef.current) {
+        autoPlayedRef.current = true;
         void play(); // không có Web Audio → quay về cách phát cả bài
-        return;
       }
-      speakerRef.current = sp;
-      myTokenRef.current = playToken;
+      return;
     }
-    const sp = speakerRef.current;
-    if (sp && myTokenRef.current === playToken) {
-      sp.feed(text, !streaming);
-      if (!streaming) void sp.drain().then(() => setStatus((s) => (s === "playing" ? "idle" : s)));
-    }
+    speakerRef.current = sp;
+    myTokenRef.current = playToken;
+    sp.feed(text, !streaming);
+    if (!streaming) void sp.drain().then(() => setStatus((s) => (s === "playing" ? "idle" : s)));
   }, [autoPlay, text, streaming, play]);
 
   return (
