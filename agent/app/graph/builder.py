@@ -160,10 +160,21 @@ class ChatGraphBuilder(BaseGraphBuilder):
             from app.deep.builder import build_deep_agent
             from app.graph.nodes.deep_agent_node import DeepAgentNode
 
+            from app.deep.builder import build_deep_agent_for_mode
+
             deep = build_deep_agent(
                 self.model_chain, self.tools, max_models=self.settings.deep_agent_max_fallbacks
             )
-            graph.add_node("agent", DeepAgentNode(deep, short_term))
+            graph.add_node(
+                "agent",
+                DeepAgentNode(
+                    deep,
+                    short_term,
+                    agent_factory=lambda: build_deep_agent_for_mode(
+                        self.model_chain, self.tools, max_models=self.settings.deep_agent_max_fallbacks
+                    ),
+                ),
+            )
             graph.add_edge(START, "guardrail")
             graph.add_conditional_edges("guardrail", _route_guardrail, {"blocked": END, "ok": "context"})
             graph.add_edge("context", "agent")

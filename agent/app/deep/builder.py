@@ -30,6 +30,23 @@ logger = logging.getLogger(__name__)
 # và loại hẳn thì prompt-injection cũng không có tool nào để lợi dụng.
 _READONLY_FS_TOOLS = ["read_file", "ls", "glob", "grep"]
 
+# Ở chế độ MỞ RỘNG, trợ lý được soạn và sửa tài liệu cho khách (bảng tính nháp, thư
+# chào hàng, danh sách quy cách). An toàn vì các tool này của DeepAgents ghi vào bộ
+# nhớ của LƯỢT CHAT, không đụng đĩa máy chủ — kiểm chứng: FilesystemMiddleware mặc
+# định lưu ở state["files"], không hề gọi open() hay ghi ra đường dẫn nào.
+# Vẫn KHÔNG mở execute/shell ở bất kỳ chế độ nào: chạy lệnh trên máy chủ là chuyện khác hẳn.
+_WRITABLE_FS_TOOLS = [*_READONLY_FS_TOOLS, "write_file", "edit_file"]
+
+
+def _fs_tools_for_mode() -> list[str]:
+    """Bộ tool tài liệu theo phạm vi admin đặt."""
+    try:
+        from app.deep.agent_mode import get_mode
+
+        return _WRITABLE_FS_TOOLS if get_mode() == "mo_rong" else _READONLY_FS_TOOLS
+    except Exception:  # noqa: BLE001 — không đọc được cấu hình thì chọn bên chặt hơn
+        return _READONLY_FS_TOOLS
+
 # ── Chốt an toàn chi phí/tốc độ ──────────────────────────────────────────────
 # Đo thật: khi catalog không có món khách hỏi, model tra `search_products` tới 20 lần
 # với 20 câu truy vấn khác nhau (mỗi lần là 1 vòng gọi model → chậm và tốn tiền).
@@ -108,7 +125,7 @@ def _subagents(tools: list) -> list[dict]:
 def _middleware(fallback_models: list):
     """Bộ middleware: tool chỉ-đọc → lập kế hoạch → chốt giới hạn → dự phòng model."""
     stack = [
-        FilesystemMiddleware(tools=_READONLY_FS_TOOLS),
+        FilesystemMiddleware(tools=_fs_tools_for_mode()),
         TodoListMiddleware(system_prompt=_TODO_PROMPT),
         # 'continue' = chặn riêng tool vượt hạn nhưng vẫn để agent trả lời bằng dữ liệu
         # đã có. Khách luôn nhận được câu trả lời, thay vì thấy lỗi.
@@ -141,6 +158,22 @@ def _middleware(fallback_models: list):
     except ImportError:
         logger.info("Chưa cài ag-ui-langgraph/copilotkit → bỏ qua middleware AG-UI")
     return stack
+
+
+# Agent đã dựng, khoá theo phạm vi đang đặt. Đổi phạm vi thì bộ tool tài liệu đổi
+# theo, mà agent chỉ dựng một lần lúc khởi động — không nhớ theo phạm vi thì admin bật
+# "mở rộng" xong trợ lý vẫn không soạn được tài liệu cho tới lần khởi động sau.
+_agent_cache: dict[str, object] = {}
+
+
+def build_deep_agent_for_mode(llms: list, tools: list, system_prompt: str = "", max_models: int = 6):
+    """Lấy agent ứng với phạm vi hiện tại, dựng mới nếu chưa có."""
+    key = _fs_tools_for_mode()[-1]  # 'grep' (chỉ đọc) hay 'edit_file' (mở rộng)
+    cached = _agent_cache.get(key)
+    if cached is None:
+        cached = build_deep_agent(llms, tools, system_prompt, max_models)
+        _agent_cache[key] = cached
+    return cached
 
 
 def build_deep_agent(llms: list, tools: list, system_prompt: str = "", max_models: int = 6):

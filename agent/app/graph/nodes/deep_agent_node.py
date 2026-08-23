@@ -16,8 +16,11 @@ from app.memory.short_term import ShortTermMemory
 class DeepAgentNode(BaseNode):
     name = "agent"
 
-    def __init__(self, deep_agent, short_term: ShortTermMemory) -> None:
+    def __init__(self, deep_agent, short_term: ShortTermMemory, agent_factory=None) -> None:
+        # `agent_factory` cho phép đổi bộ tool khi admin đổi phạm vi mà không cần khởi
+        # động lại service; thiếu nó thì dùng agent dựng sẵn như trước.
         self.agent = deep_agent
+        self.agent_factory = agent_factory
         self.short_term = short_term
 
     async def run(self, state: AgentState) -> dict:
@@ -30,7 +33,14 @@ class DeepAgentNode(BaseNode):
         except Exception:  # noqa: BLE001 — skill lỗi thì chạy không skill, đừng chết chat
             files = {}
 
-        result = await self.agent.ainvoke({"messages": agent_input, "files": files})
+        agent = self.agent
+        if self.agent_factory is not None:
+            try:
+                agent = self.agent_factory()
+            except Exception:  # noqa: BLE001 — dựng lại lỗi thì dùng bản sẵn có
+                agent = self.agent
+
+        result = await agent.ainvoke({"messages": agent_input, "files": files})
 
         # Chỉ lấy message MỚI: message cũ đã có id (LangGraph gán), message do agent
         # sinh ra thì id khác/None → so theo id an toàn hơn cắt theo độ dài (middleware
