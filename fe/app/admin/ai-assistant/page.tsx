@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Sparkles, Send, Loader2, Package, FileText, Check } from "lucide-react";
-import { aiApi, type AssistantAction, type AssistantTodo } from "@/services/ai.service";
+import { aiApi, type AssistantAction, type AssistantProposal, type AssistantTodo } from "@/services/ai.service";
+import ProposalCard from "@/components/admin/proposal-card";
 import AgentTrace from "@/components/chat/agent-trace";
 import AgentPlan from "@/components/chat/agent-plan";
 import type { ToolRun } from "@/types/chat";
@@ -23,6 +24,8 @@ interface ChatMsg {
   /** Log công cụ + kế hoạch của chính lượt này (giữ lại sau khi trả lời xong) */
   toolRuns?: ToolRun[];
   todos?: AssistantTodo[];
+  /** Đề xuất sửa dữ liệu — chờ admin bấm duyệt */
+  proposals?: AssistantProposal[];
   streaming?: boolean;
 }
 
@@ -94,6 +97,9 @@ export default function AiAssistantPage() {
             patchLast((msg) => ({ ...msg, toolRuns: [...runs] }));
           } else if (e.type === "todo") {
             patchLast((msg) => ({ ...msg, todos: e.items }));
+          } else if (e.type === "proposal") {
+            const { type: _t, ...p } = e;
+            patchLast((msg) => ({ ...msg, proposals: [...(msg.proposals ?? []), p as AssistantProposal] }));
           } else if (e.type === "error") {
             patchLast((msg) => ({ ...msg, content: msg.content || e.message }));
           }
@@ -181,6 +187,9 @@ export default function AiAssistantPage() {
               {/* Log công cụ nằm TRÊN câu trả lời — admin thấy số liệu lấy từ đâu */}
               {Boolean(m.toolRuns?.length) && <AgentTrace runs={m.toolRuns!} />}
               {Boolean(m.todos?.length) && <AgentPlan items={m.todos!} />}
+              {m.proposals?.map((p, k) => (
+                <ProposalCard key={`${p.slug}-${k}`} proposal={p} />
+              ))}
               {(m.content || m.streaming) && (
                 <div
                   className={

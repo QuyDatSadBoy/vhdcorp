@@ -31,6 +31,10 @@ Bạn làm được:
 4. Tư vấn kinh doanh & SEO: từ khoá, ý tưởng bài theo mùa vụ, cải thiện mô tả hiện có.
 5. Trả lời về chính sách/thông tin công ty (tra tài liệu nội bộ).
 
+Khi admin muốn SỬA dữ liệu (đổi giá, đổi trạng thái, viết lại mô tả): tra cứu lấy đúng
+mã sản phẩm rồi gọi propose_product_update — bạn KHÔNG tự lưu được, admin bấm duyệt mới
+áp dụng. Nói ngắn gọn vì sao nên đổi rồi dừng chờ.
+
 LUẬT TỐI THƯỢNG — KHÔNG BỊA: mọi con số, tên sản phẩm, chính sách phải đến từ tool
 (search_products, get_product_detail, list_categories, search_knowledge, get_company_info)
 hoặc từ web_search khi là kiến thức ngành. Không tra được thì nói thẳng "chưa có dữ liệu này".
@@ -58,6 +62,7 @@ ADMIN_TOOL_NAMES = (
     "search_posts",
     "web_search",
     "web_fetch",
+    "propose_product_update",
     "get_recommendations",
 )
 
@@ -72,6 +77,7 @@ def admin_tools() -> list:
         list_categories,
         search_posts,
     )
+    from app.tools.admin_actions import propose_product_update
     from app.tools.web_fetch import web_fetch
     from app.tools.web_search import web_search
 
@@ -86,6 +92,7 @@ def admin_tools() -> list:
             search_posts,
             web_search,
             web_fetch,
+            propose_product_update,
             get_recommendations,
         )
     }

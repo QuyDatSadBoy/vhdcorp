@@ -35,7 +35,13 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
     "integration: test cần kết nối mạng/dịch vụ thật (có thể skip khi offline)",
+    "live: test gọi MODEL THẬT — tốn tiền, chậm, và phụ thuộc hạn mức nhà cung cấp",
 ]
+# Mặc định BỎ QUA nhóm `live`: bốn phép thử đó gọi model thật nên khi chạy cả bộ
+# hay dính hạn mức và báo đỏ dù code không sai (chạy riêng thì xanh). Đường đi thật
+# đã có scripts/e2e-agent.py kiểm qua HTTP với model thật.
+# Muốn chạy cả nhóm này: pytest -m "live or not live"
+addopts = "-m 'not live'"
 
 [tool.uv]
 package = false

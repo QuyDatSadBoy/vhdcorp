@@ -23,11 +23,23 @@ export interface AssistantTodo {
   status: "pending" | "in_progress" | "completed";
 }
 
+/** Trợ lý đề xuất sửa dữ liệu — chờ admin bấm duyệt mới áp dụng. */
+export interface AssistantProposal {
+  kind: "product-update";
+  slug: string;
+  productId?: number;
+  productName: string;
+  before: Record<string, unknown>;
+  changes: Record<string, unknown>;
+  reason?: string;
+}
+
 export type AssistantStreamEvent =
   | { type: "message.delta"; content: string }
   | { type: "tool.start"; name: string; input?: string }
   | { type: "tool.end"; name: string; output?: string }
   | { type: "todo"; items: AssistantTodo[] }
+  | ({ type: "proposal" } & AssistantProposal)
   | { type: "done"; reply?: string }
   | { type: "error"; message: string };
 

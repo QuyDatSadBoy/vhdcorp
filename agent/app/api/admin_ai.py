@@ -315,9 +315,15 @@ async def assistant_stream(
     agent_input = _agent_input(body, json_format=False)
 
     async def event_stream():
+        from app.tools.admin_actions import reset_proposal_queue, set_proposal_queue
+
         parts: list[str] = []
         itok = otok = 0
         model = ""
+        # Kênh nhận ĐỀ XUẤT sửa dữ liệu: tool ghi vào đây, ta rút ra sau mỗi tool.end
+        # rồi bắn cho giao diện hiện thẻ chờ admin duyệt.
+        proposals: list[dict] = []
+        ptoken = set_proposal_queue(proposals)
         try:
             async for event in get_admin_agent().astream_events(agent_input, config=_CONFIG, version="v2"):
                 kind = event["event"]
@@ -352,10 +358,16 @@ async def assistant_stream(
                         "name": name,
                         "output": _tool_output_preview(event.get("data", {}).get("output")),
                     })
+                    while proposals:
+                        yield _sse({"type": "proposal", **proposals.pop(0)})
         except Exception as exc:  # noqa: BLE001 — luôn trả event error cho client
             logger.exception("assistant/stream lỗi")
             yield _sse({"type": "error", "message": f"Trợ lý AI lỗi: {exc}"})
             return
+        finally:
+            reset_proposal_queue(ptoken)
+        for leftover in proposals:  # an toàn: còn sót thì bắn nốt
+            yield _sse({"type": "proposal", **leftover})
         if itok or otok:
             usage.record_request(model or get_settings().agent_model, itok, otok)
         yield _sse({"type": "done", "reply": "".join(parts)})
