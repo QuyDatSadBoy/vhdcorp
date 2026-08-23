@@ -20,6 +20,9 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 KEEP_DAYS = 30
+# Giữ nhật ký ghi dưới 8MB: đủ rộng cho lúc nhiều khách cùng chat, đủ chặt để không
+# âm thầm chiếm cả trăm MB như trước.
+WAL_SIZE_LIMIT = 8 * 1024 * 1024
 
 
 def collect_garbage(checkpoint_path: str, chat_db_path: str, keep_days: int = KEEP_DAYS) -> int:
@@ -43,11 +46,16 @@ def collect_garbage(checkpoint_path: str, chat_db_path: str, keep_days: int = KE
 
     try:
         with sqlite3.connect(cp_file) as cp:
-            # Gộp nhật ký ghi (WAL) vào tệp chính. SQLite ở chế độ WAL chỉ ghi thêm và
-            # KHÔNG tự gộp khi còn kết nối mở — service chạy suốt nên tệp -wal phình mãi
-            # (đo trên máy chủ: 13MB, ở máy phát triển 26MB, đều chỉ tăng). Làm việc này
-            # trước cả khi có gì cần xoá, vì nó tự thân đã giải phóng chỗ.
-            cp.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            # Gộp nhật ký ghi (WAL) vào tệp chính. SQLite ở chế độ WAL chỉ ghi thêm nên
+            # tệp -wal phình mãi (đo trên máy chủ: 15MB và chỉ tăng).
+            #
+            # Dùng PASSIVE chứ không TRUNCATE: service giữ kết nối tới tệp này suốt, mà
+            # TRUNCATE đòi độc quyền nên bị từ chối im lặng — đo trên máy chủ thấy WAL
+            # không hề co lại. PASSIVE gộp được phần không ai đang đọc, và
+            # journal_size_limit khiến SQLite cắt tệp về mức đó sau mỗi lần gộp thay vì
+            # giữ nguyên kích thước đã phình.
+            cp.execute(f"PRAGMA journal_size_limit = {WAL_SIZE_LIMIT}")
+            cp.execute("PRAGMA wal_checkpoint(PASSIVE)")
             threads = {row[0] for row in cp.execute("SELECT DISTINCT thread_id FROM checkpoints")}
             stale = threads - alive
             if not stale:

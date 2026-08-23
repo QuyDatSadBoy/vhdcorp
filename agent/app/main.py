@@ -108,6 +108,15 @@ async def lifespan(app: FastAPI):
         await mcp_started.wait()
 
     async with AsyncSqliteSaver.from_conn_string(settings.checkpoint_db_path) as checkpointer:
+        # Chặn nhật ký ghi (WAL) phình vô hạn. Phải đặt trên CHÍNH kết nối mà service
+        # dùng: đặt từ một kết nối khác thì SQLite chỉ áp cho kết nối đó, nên tệp -wal
+        # vẫn cứ lớn dần (đo trên máy chủ: 15MB và chỉ tăng, dọn từ ngoài không co).
+        # Với giới hạn này, mỗi lần SQLite tự gộp là tệp được cắt về mức đã đặt.
+        try:
+            await checkpointer.conn.execute(f"PRAGMA journal_size_limit = {8 * 1024 * 1024}")
+            await checkpointer.conn.commit()
+        except Exception:  # noqa: BLE001 — không đặt được thì chạy như trước, đừng chặn khởi động
+            logger.warning("Không đặt được giới hạn nhật ký ghi cho checkpoint DB")
         conversation_repo = ConversationRepo(db)
         message_repo = MessageRepo(db)
         memory_repo = MemoryRepo(db)
