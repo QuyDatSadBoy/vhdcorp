@@ -23,6 +23,7 @@ export const TOOL_STEP_LABELS: Record<string, string> = {
   show_faq: "Đang tra cứu câu hỏi thường gặp…",
   search_knowledge: "Đang tra cứu tài liệu công ty…",
   web_search: "Đang tra cứu thêm trên web…",
+  web_fetch: "Đang đọc trang bạn gửi…",
   ask_user_question: "Đang hỏi lại để tư vấn đúng…",
   // Công cụ của lõi DeepAgents (đọc quy trình nghiệp vụ, chia việc cho trợ lý phụ)
   read_file: "Đang đọc hướng dẫn nội bộ…",

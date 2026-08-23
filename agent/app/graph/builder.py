@@ -32,6 +32,7 @@ from app.tools.ui import (
     show_product_carousel,
     show_quote_form,
 )
+from app.tools.web_fetch import web_fetch
 from app.tools.web_search import web_search
 
 
@@ -56,6 +57,7 @@ class ChatGraphBuilder(BaseGraphBuilder):
             get_product_detail,
             search_knowledge,
             web_search,
+            web_fetch,
             send_contact_request,
             create_quote_request,
             # Phủ đủ module web (đọc trực tiếp DB): tin tức, danh mục, gợi ý, liên hệ

@@ -57,6 +57,7 @@ ADMIN_TOOL_NAMES = (
     "get_company_info",
     "search_posts",
     "web_search",
+    "web_fetch",
     "get_recommendations",
 )
 
@@ -71,6 +72,7 @@ def admin_tools() -> list:
         list_categories,
         search_posts,
     )
+    from app.tools.web_fetch import web_fetch
     from app.tools.web_search import web_search
 
     by_name = {
@@ -83,6 +85,7 @@ def admin_tools() -> list:
             get_company_info,
             search_posts,
             web_search,
+            web_fetch,
             get_recommendations,
         )
     }
