@@ -222,7 +222,7 @@ def main() -> int:
         test_khong_bia_hang_khong_co,
         test_skill_nghiep_vu,
         test_agui,
-        test_chan_spam,
+        test_pham_vi_theo_che_do,
     ):
         try:
             fn()
