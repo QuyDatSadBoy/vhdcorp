@@ -41,11 +41,19 @@ bash scripts/ship.sh --deploy --skip-e2e    # bỏ phần gọi model thật (nh
 5 bước, hỏng bước nào là **dừng, không deploy**:
 
 1. Cây làm việc phải **sạch** (deploy kéo code từ remote → thay đổi chưa commit sẽ không lên server).
-2. Agent: `pytest` (toàn bộ, kể cả test `live`).
+2. Agent: `pytest` (145 phép thử; 4 phép thử `live` gọi model thật bị loại khỏi lần chạy
+   mặc định vì hay dính hạn mức và báo đỏ oan — chạy chúng bằng `pytest -m "live or not live"`).
 3. BE: `tsc --noEmit` + `yarn build`.
 4. FE: `tsc --noEmit` + `yarn lint` + `yarn build`.
 5. E2E: dựng agent thật ở **cổng 8199** (không đụng agent 8001 đang chạy) → `scripts/e2e-agent.py`
    **20 phép thử**. Deploy xong còn chạy lại e2e **thẳng trên `https://vhdcorp.com/agent`**.
+
+Trong lúc deploy, script **bấm giờ trang chủ 2 giây một lần** và báo đỏ nếu có lần nào
+không trả 200 — phát hành mà khách gặp trang lỗi thì không tính là thành công. Phép đo
+này đã bắt được sự cố thật: lần đầu đo thấy trang đứt 2/169 lần, truy ra `pm2 startOrReload`
+không đổi được số tiến trình của app đang chạy nên cấu hình 2 tiến trình chưa hề có hiệu lực.
+Frontend nay chạy **2 tiến trình** để reload thay lần lượt; backend giữ 1 tiến trình vì có
+WebSocket cho terminal quản trị (chia hai mà không có sticky session sẽ làm rơi kết nối).
 
 Nhánh deploy mặc định của ship.sh là **`develop`** (`DEPLOY_BRANCH=develop`), VPS mặc định
 `root@116.118.6.61` (đổi bằng biến `VPS_HOST`). Đổi nhánh: `DEPLOY_BRANCH=main bash scripts/ship.sh --deploy`.

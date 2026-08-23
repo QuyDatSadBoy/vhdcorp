@@ -388,7 +388,19 @@ lời bằng dữ liệu đã có — khách luôn nhận được câu trả l�
 `web_search` · `send_contact_request` · `create_quote_request` · `search_posts` ·
 `list_categories` · `get_recommendations` · `get_company_info` · `add_to_cart` ·
 `show_product_carousel` · `show_contact_form` · `show_quote_form` · `show_comparison` ·
-`show_faq` · `ask_user_question` (+ tool từ MCP server admin cấu hình, nạp lúc khởi động).
+`show_faq` · `ask_user_question` · `web_fetch` (+ tool từ MCP server admin cấu hình, nạp lúc khởi động).
+
+`web_fetch(url)` đọc nội dung một trang theo đúng địa chỉ khách/admin dán (web_search
+chỉ tìm theo từ khoá). Phần chính của công cụ này là an toàn: chỉ http/https, phân giải
+tên miền rồi chặn loopback / mạng riêng / link-local / địa chỉ metadata máy chủ, **kiểm
+lại sau mỗi lần chuyển hướng**, giới hạn 400KB tải về và 6000 ký tự trả cho model.
+Không mang `bash` và `run_code` của harness về: cho trợ lý bán hàng chạy lệnh trên máy
+chủ là mở cửa cho người lạ.
+
+`propose_product_update(slug, changes, reason)` — CHỈ trợ lý điều hành có. Trợ lý
+**không ghi được** vào cơ sở dữ liệu: nó mô tả thay đổi, giao diện quản trị hiện thẻ
+kèm giá trị trước → sau, và chính admin bấm duyệt (bằng phiên đăng nhập của mình) mới
+áp dụng. Chỉ 6 trường an toàn: price, stock, status, description, metaTitle, metaDesc.
 
 `ask_user_question(question, options, allow_other)` cho trợ lý **hỏi lại khách bằng nút
 bấm** thay vì bắt khách gõ — dùng khi thiếu đúng một thông tin mà câu trả lời nằm trong
