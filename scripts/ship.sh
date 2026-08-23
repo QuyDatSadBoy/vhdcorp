@@ -131,13 +131,38 @@ fi
 SSH=(ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 "$VPS")
 [ -n "${SSHPASS:-}" ] && SSH=(sshpass -e "${SSH[@]}")
 
+# Bấm giờ trang chủ SUỐT quá trình deploy: phát hành mà khách gặp trang lỗi thì
+# không thể gọi là thành công, nên phải đo chứ không tin là "chắc không sao".
+PROBE_LOG="$(mktemp)"
+(
+  while :; do
+    c=$(curl -s -o /dev/null -w '%{http_code}' -A 'Mozilla/5.0' https://vhdcorp.com --max-time 10 2>/dev/null)
+    echo "$c" >>"$PROBE_LOG"
+    sleep 2
+  done
+) &
+PROBE_PID=$!
+
 # deploy.sh trên server tự sao lưu, smoke test và ROLLBACK nếu hỏng — không cần
 # script này lo chuyện đó, chỉ cần chuyển đúng nhánh và đọc kết quả.
-if "${SSH[@]}" "cd /root/vhdcorp && git fetch origin '$DEPLOY_BRANCH_' -q && DEPLOY_BRANCH='$DEPLOY_BRANCH_' APP_DIR=/root/vhdcorp bash scripts/deploy.sh" 2>&1 | tail -25; then
-  ok "deploy xong"
-else
+DEPLOY_RC=0
+"${SSH[@]}" "cd /root/vhdcorp && git fetch origin '$DEPLOY_BRANCH_' -q && DEPLOY_BRANCH='$DEPLOY_BRANCH_' APP_DIR=/root/vhdcorp bash scripts/deploy.sh" 2>&1 | tail -25 || DEPLOY_RC=1
+
+kill "$PROBE_PID" 2>/dev/null
+TOTAL=$(wc -l <"$PROBE_LOG" | tr -d ' ')
+BAD=$(grep -cv '^200$' "$PROBE_LOG" || true)
+rm -f "$PROBE_LOG"
+
+if [ "$DEPLOY_RC" != "0" ]; then
   fail "deploy HỎNG — server đã tự rollback về bản cũ (xem log trên)"
   exit 1
+fi
+ok "deploy xong"
+if [ "${BAD:-0}" -gt 0 ]; then
+  fail "trang chủ ĐỨT $BAD/$TOTAL lần trong lúc phát hành (khách sẽ gặp lỗi)"
+  FAILED+=("gián đoạn khi phát hành")
+else
+  ok "trang chủ không đứt lần nào trong $TOTAL lượt kiểm suốt quá trình"
 fi
 
 step "Kiểm thử lại trên production"

@@ -78,7 +78,14 @@ uv sync --frozen
 
 log "5/7 Reload services qua PM2"
 cd "$APP_DIR"
+# Nạp cấu hình mới (thêm/bớt tiến trình) rồi RELOAD LẦN LƯỢT.
+# Thứ tự có chủ đích: backend và agent trước, frontend SAU CÙNG — trang web là thứ
+# khách nhìn thấy, để nó đứt trong lúc chờ hai service kia khởi động là thừa.
+# Frontend chạy 2 tiến trình nên `pm2 reload` thay từng cái, khách không thấy trang lỗi.
 pm2 startOrReload ecosystem.config.js --update-env
+for app in vhd-be vhd-agent vhd-fe; do
+  pm2 reload "$app" --update-env >/dev/null 2>&1 || pm2 restart "$app" --update-env >/dev/null 2>&1 || true
+done
 
 log "6/7 Smoke test bản mới"
 sleep 8
