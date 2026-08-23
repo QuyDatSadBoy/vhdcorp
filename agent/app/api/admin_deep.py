@@ -14,7 +14,7 @@ from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from app.core.security import require_admin
-from app.deep import mcp_store, skills_store
+from app.deep import agent_mode, mcp_store, skills_store
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,11 @@ class SkillPayload(BaseModel):
     description: str = Field("", max_length=500)
     content: str = Field("", max_length=20_000)
     enabled: bool = True
+
+
+class ModePayload(BaseModel):
+    mode: str | None = None
+    rules: list[str] | None = None
 
 
 class McpPayload(BaseModel):
@@ -99,6 +104,21 @@ async def remove_skill(slug: str, x_admin_secret: str = Header(None, alias="X-Ad
     if not skills_store.delete_skill(slug):
         raise HTTPException(status_code=404, detail="Không tìm thấy skill")
     return {"ok": True, "skills": skills_store.list_skills()}
+
+
+@router.get("/mode")
+async def get_mode(x_admin_secret: str = Header(None, alias="X-Admin-Secret")):
+    require_admin(x_admin_secret)
+    return agent_mode.get_state()
+
+
+@router.post("/mode")
+async def put_mode(payload: ModePayload, x_admin_secret: str = Header(None, alias="X-Admin-Secret")):
+    require_admin(x_admin_secret)
+    try:
+        return agent_mode.save(payload.mode, payload.rules)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/mcp")
