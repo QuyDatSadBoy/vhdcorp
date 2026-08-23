@@ -76,22 +76,37 @@ def catalog_size() -> int:
     return len(load_catalog())
 
 
+CONTACT_FOR_PRICE = "Liên hệ báo giá"
+
+
 def format_price(price) -> str:
+    """Giá thành chữ cho khách đọc.
+
+    VHD bán SỈ nên phần lớn hàng để trống giá — 0 hoặc None đều có nghĩa "chưa niêm yết",
+    KHÔNG phải "miễn phí". Nói "0đ" với khách là sai nghiệp vụ và mất uy tín, nên mọi giá
+    trị không dương đều trả về "Liên hệ báo giá".
+    """
     try:
-        return f"{int(float(price)):,}".replace(",", ".") + "đ"
+        value = float(price)
     except (TypeError, ValueError):
-        return str(price)
+        return CONTACT_FOR_PRICE
+    if value <= 0:
+        return CONTACT_FOR_PRICE
+    return f"{int(value):,}".replace(",", ".") + "đ"
 
 
 def _format_product(p: dict, detail: bool = False) -> str:
-    category = (p.get("category") or {}).get("name") or "Khác"
+    name = p["name"]
+    category = (p.get("category") or {}).get("name") or ""
     gia = f"Giá: {format_price(p.get('price'))}"
     if p.get("on_sale") and p.get("original_price"):
         gia = f"Giá KHUYẾN MÃI: {format_price(p.get('price'))} (giá gốc {format_price(p.get('original_price'))})"
-    line = (
-        f"- {p['name']} | {gia} | Tồn kho: {p.get('stock', 0)} "
-        f"| Danh mục: {category} | Link: {p.get('url', '')}"
-    )
+    line = f"- {name} | {gia} | Tồn kho: {p.get('stock', 0)}"
+    # Nhiều mặt hàng được đặt trong danh mục cùng tên với chính nó; nhắc lại thành
+    # "Tấm cao su các loại | Danh mục: Tấm cao su các loại" thì vô nghĩa với khách.
+    if category and normalize_vi(category) != normalize_vi(name):
+        line += f" | Danh mục: {category}"
+    line += f" | Link: {p.get('url', '')}"
     if detail and p.get("description"):
         line += f"\n  Mô tả: {p['description']}"
     return line

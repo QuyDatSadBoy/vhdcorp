@@ -1,6 +1,6 @@
 # VHD Corp
 
-Monorepo: **NestJS** backend + **Next.js** frontend.
+Monorepo: **NestJS** backend + **Next.js** frontend + **AI agent** (FastAPI + LangGraph + DeepAgents).
 
 > **Package manager: `yarn`** — KHÔNG dùng npm, pnpm, hay bun.
 
@@ -10,10 +10,11 @@ Monorepo: **NestJS** backend + **Next.js** frontend.
 
 ## Stack
 
-| Layer    | Tech                                                                      |
-| -------- | ------------------------------------------------------------------------- |
-| Backend  | NestJS 11, Prisma 7, PostgreSQL, Passport JWT                             |
-| Frontend | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui, Zustand, TanStack Query |
+| Layer    | Tech                                                                                                              |
+| -------- | ----------------------------------------------------------------------------------------------------------------- |
+| Backend  | NestJS 11, Prisma 7, PostgreSQL, Passport JWT                                                                     |
+| Frontend | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui, Zustand, TanStack Query                                         |
+| AI Agent | Python 3.13, FastAPI, LangGraph 1.x, **DeepAgents**, DeepSeek (model chính) + 13 model dự phòng, AG-UI/CopilotKit |
 
 ## Cấu trúc
 
@@ -21,8 +22,11 @@ Monorepo: **NestJS** backend + **Next.js** frontend.
 vhdcorp/
 ├── be/        # NestJS API — cổng 8080
 ├── fe/        # Next.js client — cổng 3001
-├── agent/     # AI chat agent (FastAPI + LangGraph) — cổng 8001
-└── docs/      # PRD, design docs (AGENT_PLAN.md cho agent)
+├── agent/     # AI chat agent (FastAPI + LangGraph + DeepAgents) — cổng 8001
+│   ├── skills/        # SKILL bán hàng (SKILL.md mỗi thư mục)
+│   └── skills-admin/  # SKILL cho trợ lý điều hành admin
+├── scripts/   # deploy.sh, smoke.sh, e2e-agent.py, round-full.sh
+└── docs/      # PRD, design docs (AGENT_PLAN.md §12 = hiện trạng agent)
 ```
 
 ## Khởi động
@@ -66,12 +70,17 @@ yarn dev:log                # dev + ghi log → fe/logs/app.log
 
 ```bash
 cd agent
-cp .env.example .env        # điền GOOGLE_API_KEY, CATALOG_DATABASE_URL (đọc DB trực tiếp), TAVILY_API_KEYS, GMAIL_IMAP_*, MINIMAX_API_KEY, LANGSMITH_*
+cp .env.example .env        # ⚠️ .env.example đang LẠC HẬU — dùng bảng env ở docs/AGENT_PLAN.md §12.9
 ./run.sh                    # FastAPI + LangGraph — cổng 8001
-uv run pytest               # test (57 test)
+rtk pytest                  # 113 test
+python3 ../scripts/e2e-agent.py    # 20 phép thử qua HTTP thật (agent phải đang chạy)
 ```
 
-Trợ lý AI phủ **đủ mọi module của web**: sản phẩm/giá/tồn kho + bài viết + danh mục + gợi ý "khách xem X cũng xem Y" (tracking thật) + thông tin công ty — tất cả **đọc TRỰC TIẾP PostgreSQL** qua `CATALOG_DATABASE_URL` (fallback `data/products.json` đồng bộ webhook ~0.25s khi DB lỗi). Thông tin chính sách sửa tại **Admin → Kiến thức AI**. Gen-UI trong chat: carousel sản phẩm, thẻ bài viết, chip danh mục, form liên hệ/báo giá, bảng so sánh, FAQ — **reload vẫn giữ nguyên**; lần đầu vào web panel tự mở kèm câu hỏi mẫu. Voice (Web Speech + MiniMax TTS cache), tìm sản phẩm bằng ảnh, gửi liên hệ, A2A (`/.well-known/agent-card.json`), MCP (`/mcp`), đọc Gmail (endpoint admin). Đồng bộ catalog thủ công: `POST /api/admin/resync-products` (header `X-Resync-Secret`). FE cần `NEXT_PUBLIC_AGENT_URL=http://localhost:8001` trong `fe/.env.local`.
+Env tối thiểu để chạy: `DEEPSEEK_API_KEY` (model chính) hoặc `GOOGLE_API_KEYS` (nhiều key Gemini, phân tách bằng phẩy), `CATALOG_DATABASE_URL` (đọc DB trực tiếp), `ADMIN_SECRET` + `RESYNC_SECRET` (**để rỗng là mọi endpoint admin bị từ chối**), `TAVILY_API_KEYS`, `GMAIL_IMAP_*`, `MINIMAX_API_KEY` (TTS + LLM dự phòng), `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `LANGSMITH_*`. Cờ lõi: `USE_DEEP_AGENT=true` (mặc định), `DEEP_AGENT_MAX_FALLBACKS=6`.
+
+**Lõi agent là DeepAgents**: model tự lập kế hoạch nhiều bước (bảng việc cần làm hiện trong chat), giao việc nặng cho subagent, và đọc **SKILL** — quy trình nghiệp vụ dạng file `agent/skills/<tên>/SKILL.md` (5 skill bán hàng) + `agent/skills-admin/` (3 skill cho trợ lý admin); chủ website thêm/sửa được tại **Admin → Kỹ năng & công cụ AI**.
+
+Trợ lý AI phủ **đủ mọi module của web**: sản phẩm/giá/tồn kho + bài viết + danh mục + gợi ý "khách xem X cũng xem Y" (tracking thật) + thông tin công ty — tất cả **đọc TRỰC TIẾP PostgreSQL** qua `CATALOG_DATABASE_URL` (fallback `data/products.json` đồng bộ webhook ~0.25s khi DB lỗi). Thông tin chính sách sửa tại **Admin → Kiến thức AI**. Gen-UI trong chat: carousel sản phẩm, thẻ bài viết, chip danh mục, form liên hệ/báo giá, bảng so sánh, FAQ — **reload vẫn giữ nguyên**; lần đầu vào web panel tự mở kèm câu hỏi mẫu. Voice (Web Speech + TTS MiniMax→PTIT, có cache), tìm sản phẩm bằng ảnh, gửi liên hệ, A2A (`/.well-known/agent-card.json`), MCP (`/mcp`), **AG-UI `/agui/chat`** (chạy song song `/api/chat`, dành cho CopilotKit — demo tại `/copilot-demo`), đọc Gmail (endpoint admin). Đồng bộ catalog thủ công: `POST /api/admin/resync-products` (header `X-Resync-Secret`). FE cần `NEXT_PUBLIC_AGENT_URL=http://localhost:8001` trong `fe/.env.local`.
 
 > ⚙️ **Vận hành + CI/CD hằng ngày**: [docs/VANHANH.md](docs/VANHANH.md) — quy trình push/merge, test lại PR, theo dõi server, cảnh báo, rollback.
 
@@ -84,7 +93,9 @@ Trợ lý AI phủ **đủ mọi module của web**: sản phẩm/giá/tồn kho
 ```bash
 # Chạy khi cả 3 service đang bật (BE 8080, FE 3001, Agent 8001)
 S=/tmp/vhd-test BELOG=<đường_dẫn_log_be> bash scripts/round-full.sh   # PASS khi in ROUND_RESULT=0
-cd agent && uv run pytest                                             # 57 test
+cd agent && rtk pytest                                                # 113 test
+python3 scripts/e2e-agent.py                                          # 20 phép thử qua HTTP thật
+python3 scripts/e2e-agent.py --url https://vhdcorp.com/agent          # kiểm thẳng production
 cd fe && yarn tsc --noEmit && cd ../be && yarn tsc --noEmit           # typecheck
 ```
 

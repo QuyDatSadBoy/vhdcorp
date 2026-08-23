@@ -201,14 +201,19 @@ function MessageBubble({
         </div>
       </div>
 
-      {/* Meta: timestamp + nút đọc to (chỉ khi có nội dung, đã stream xong) */}
-      {!message.streaming && message.content && (
+      {/* Meta: timestamp + nút đọc to. Hiện NGAY KHI CÓ CHỮ (kể cả còn đang chảy) để
+          nút kịp nạp trước đoạn đầu — chờ stream xong mới gắn nút thì lúc bấm vẫn
+          phải đợi tổng hợp. Chế độ đàm thoại cũng nhờ đó đọc được ngay câu đầu. */}
+      {message.content && (
         <div className="mt-1 flex items-center gap-1.5 pl-10">
           <span className="text-[10px] text-muted-foreground/70">{formatTime(message.createdAt)}</span>
           <TtsButton
             text={message.content}
+            streaming={Boolean(message.streaming)}
             eager={isLast && message.role === "assistant"}
-            autoPlay={voiceOn && isLast && message.role === "assistant" && Boolean(message.finishedLive)}
+            autoPlay={
+              voiceOn && isLast && message.role === "assistant" && Boolean(message.streaming || message.finishedLive)
+            }
           />
         </div>
       )}

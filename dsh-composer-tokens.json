@@ -1,0 +1,55 @@
+{
+  "onBody": {
+    "--dsh-composer-card-max-width": "(not on body)",
+    "--dsh-composer-side-clearance": "(not on body)",
+    "--dsh-composer-dock-inset": "(not on body)",
+    "--dsh-composer-text-max-height": "(not on body)",
+    "--dsh-chat-content-width": "(not on body)"
+  },
+  "declaredOn": {
+    "--dsh-composer-card-max-width": {
+      "value": "calc(748px + 32px)",
+      "on": "Eu5JTa_root"
+    },
+    "--dsh-composer-side-clearance": {
+      "value": "16px",
+      "on": "Eu5JTa_root"
+    },
+    "--dsh-composer-dock-inset": {
+      "value": "8px",
+      "on": "Eu5JTa_root"
+    },
+    "--dsh-chat-content-width": {
+      "value": "748px",
+      "on": "Eu5JTa_root"
+    },
+    "--dsh-composer-text-max-height": {
+      "value": "336px",
+      "on": "Eu5JTa_composerSeat"
+    }
+  },
+  "composerSeat": {
+    "cls": "Eu5JTa_composerSeat",
+    "w": 1152,
+    "h": 160,
+    "x": 280,
+    "y": 740,
+    "radius": "0px",
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "0px none rgb(15, 17, 21)",
+    "boxShadow": "none",
+    "padding": "0px"
+  },
+  "composerCard": {
+    "cls": "_76KAia_root",
+    "w": 0,
+    "h": 0,
+    "x": 0,
+    "y": 0,
+    "radius": "0px",
+    "bg": "rgba(0, 0, 0, 0)",
+    "border": "0px none rgb(15, 17, 21)",
+    "boxShadow": "none",
+    "padding": "0px 16px 8px"
+  }
+}

@@ -288,6 +288,95 @@ function prefetchChunks(text: string, limit?: number) {
 }
 
 /**
+ * Cắt phần text ĐÃ ỔN ĐỊNH ra khỏi đoạn đang stream.
+ *
+ * Trong lúc câu trả lời còn chảy, câu cuối cùng chưa chắc đã hết (model có thể còn
+ * viết tiếp), nên chỉ lấy tới ranh giới câu CUỐI CÙNG tìm được. Nhờ vậy đọc dở không
+ * bị cụt câu, mà vẫn bắt đầu đọc được ngay khi có câu đầu tiên.
+ * Trả về [phần đọc được, phần còn treo].
+ */
+export function splitStable(text: string): [string, string] {
+  const m = /[.!?…\n](?=[^.!?…\n]*$)/.exec(text);
+  if (!m) return ["", text];
+  const cut = m.index + 1;
+  return [text.slice(0, cut), text.slice(cut)];
+}
+
+/**
+ * Bộ phát NỐI TIẾP theo dòng chảy: nhận text lớn dần, cứ đủ một đoạn là tổng hợp và
+ * xếp lịch phát ngay sau đoạn trước — không chờ câu trả lời viết xong.
+ *
+ * Đây là thứ làm chế độ đàm thoại nghe gần như tức thời: trước đây phải đợi stream
+ * kết thúc mới bắt đầu tổng hợp (chờ vài giây im lặng), giờ tiếng ra ngay sau câu đầu.
+ */
+class StreamSpeaker {
+  private token: number;
+  private ctx: AudioContext;
+  private queue: Promise<void> = Promise.resolve();
+  private startAt = 0;
+  private fedChars = 0;
+  private started = false;
+  private onStart: () => void;
+
+  constructor(ctx: AudioContext, token: number, onStart: () => void) {
+    this.ctx = ctx;
+    this.token = token;
+    this.onStart = onStart;
+  }
+
+  /** Gọi mỗi khi text dài thêm. `done=true` khi stream đã kết thúc (đọc nốt phần dư). */
+  feed(fullText: string, done = false): void {
+    const fresh = fullText.slice(this.fedChars);
+    if (!fresh) return;
+    const [ready, pendingTail] = done ? [fresh, ""] : splitStable(fresh);
+    if (!ready.trim()) return;
+    this.fedChars = fullText.length - pendingTail.length;
+    for (const chunk of chunkText(ready)) this.enqueue(chunk);
+  }
+
+  /** Tổng hợp + xếp lịch TUẦN TỰ: giữ đúng thứ tự câu và chỉ 1 request mỗi lúc
+   *  (bắn song song sẽ làm server TTS nghẽn — đo thật: 1.6s → 4.5s mỗi đoạn). */
+  private enqueue(chunk: string): void {
+    this.queue = this.queue.then(async () => {
+      if (this.token !== playToken) return;
+      const buf = await getBuffer(chunk).catch(() => null);
+      if (!buf || this.token !== playToken) return;
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(this.ctx.destination);
+      const now = this.ctx.currentTime;
+      const when = this.started ? Math.max(this.startAt, now) : now + 0.02;
+      src.start(when);
+      this.startAt = when + buf.duration;
+      liveSources.push(src);
+      if (!this.started) {
+        this.started = true;
+        this.onStart();
+      }
+    });
+  }
+
+  /** Chờ đọc hết những gì đã nạp (dùng để biết khi nào trả UI về trạng thái nghỉ). */
+  async drain(): Promise<void> {
+    await this.queue;
+  }
+}
+
+/** Bắt đầu một lượt đọc theo dòng chảy. Trả về speaker để feed thêm text. */
+function startStreamSpeaker(setStatus: (s: Status) => void): StreamSpeaker | null {
+  const ctx = getCtx();
+  if (!ctx) return null;
+  cancelPlayback();
+  const my = playToken;
+  activeReset = () => setStatus("idle");
+  setStatus("loading");
+  void ctx.resume().catch(() => undefined);
+  return new StreamSpeaker(ctx, my, () => {
+    if (my === playToken) setStatus("playing");
+  });
+}
+
+/**
  * Nút loa "đọc to" câu trả lời (§9.3 voice reply): cắt câu → tổng hợp SONG SONG →
  * phát GAPLESS bằng Web Audio. Prefetch sẵn ở tin mới nhất/hover nên bấm là có
  * tiếng gần như tức thì.
@@ -296,17 +385,21 @@ export default function TtsButton({
   text,
   eager = false,
   autoPlay = false,
+  streaming = false,
 }: {
   text: string;
   eager?: boolean;
-  /** Voice mode: tự đọc to ngay khi mount (câu trả lời mới nhất vừa stream xong) */
+  /** Voice mode: tự đọc to (bắt đầu NGAY trong lúc câu trả lời còn đang chảy) */
   autoPlay?: boolean;
+  /** Câu trả lời còn đang stream → nạp/đọc dần thay vì chờ viết xong */
+  streaming?: boolean;
 }) {
   const [status, setStatus] = useState<Status>("idle");
   const myTokenRef = useRef(0);
   const statusRef = useRef<Status>("idle");
   const autoPlayedRef = useRef(false);
   const prefetchedRef = useRef(false);
+  const speakerRef = useRef<StreamSpeaker | null>(null);
 
   useEffect(() => {
     statusRef.current = status;
@@ -333,23 +426,38 @@ export default function TtsButton({
 
   const label = status === "playing" ? "Dừng đọc" : "Đọc to câu trả lời";
 
-  // Tin nhắn MỚI NHẤT vừa trả lời xong → prefetch ĐOẠN ĐẦU (1 lần, tránh tổng
-  // hợp lãng phí khi nội dung còn chỉnh sau stream). Bấm loa sẽ tổng hợp nốt
-  // các đoạn sau SONG SONG nên vẫn liền mạch.
+  // Nạp trước ĐOẠN ĐẦU ngay khi câu đầu tiên đã ổn định — làm TRONG LÚC câu trả lời
+  // còn đang chảy, nên tới lúc khách bấm loa thì tiếng đã sẵn (đo thật: 0.06s).
+  // Trước đây chỉ nạp sau khi stream xong nên vẫn phải chờ ~1.6s.
   useEffect(() => {
-    if (eager && !prefetchedRef.current) {
+    if (!eager || prefetchedRef.current) return;
+    const [stable] = streaming ? splitStable(text) : [text];
+    if (stable.trim().length >= 40) {
       prefetchedRef.current = true;
-      prefetchChunks(text, 1);
+      prefetchChunks(stable, 1);
     }
-  }, [eager, text]);
+  }, [eager, text, streaming]);
 
-  // Voice mode: câu trả lời mới nhất vừa xong → tự đọc to (1 lần duy nhất)
+  // Chế độ đàm thoại: ĐỌC NGAY khi có câu đầu, rồi nối tiếp theo dòng chảy —
+  // không chờ viết xong (đó là nguyên nhân trước đây im lặng vài giây).
   useEffect(() => {
-    if (autoPlay && !autoPlayedRef.current) {
+    if (!autoPlay) return;
+    if (!autoPlayedRef.current) {
       autoPlayedRef.current = true;
-      void play();
+      const sp = startStreamSpeaker(setStatus);
+      if (!sp) {
+        void play(); // không có Web Audio → quay về cách phát cả bài
+        return;
+      }
+      speakerRef.current = sp;
+      myTokenRef.current = playToken;
     }
-  }, [autoPlay, play]);
+    const sp = speakerRef.current;
+    if (sp && myTokenRef.current === playToken) {
+      sp.feed(text, !streaming);
+      if (!streaming) void sp.drain().then(() => setStatus((s) => (s === "playing" ? "idle" : s)));
+    }
+  }, [autoPlay, text, streaming, play]);
 
   return (
     <button

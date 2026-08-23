@@ -9,7 +9,15 @@ import json
 import pytest
 
 from app.tools import products as products_mod
-from app.tools.products import find_products, get_product_detail, normalize_vi, search_products
+from app.tools.products import (
+    CONTACT_FOR_PRICE,
+    _format_product,
+    find_products,
+    format_price,
+    get_product_detail,
+    normalize_vi,
+    search_products,
+)
 
 FAKE_CATALOG = [
     {
@@ -69,6 +77,36 @@ def _fake_catalog(tmp_path, monkeypatch):
 
 def test_normalize_vi():
     assert normalize_vi("Ống nhựa PVC Đ21") == "ong nhua pvc d21"
+
+
+@pytest.mark.parametrize("gia", [0, 0.0, -5, None, "", "abc"])
+def test_gia_khong_duong_la_lien_he_bao_gia(gia):
+    """VHD bán sỉ nên phần lớn hàng để trống giá — 0 nghĩa là CHƯA NIÊM YẾT, không
+    phải miễn phí. Nói '0đ' với khách là sai nghiệp vụ và mất uy tín."""
+    assert format_price(gia) == CONTACT_FOR_PRICE
+
+
+def test_gia_duong_dinh_dang_viet():
+    assert format_price(25000) == "25.000đ"
+    assert format_price(180000) == "180.000đ"
+
+
+def test_dong_san_pham_khong_noi_0d():
+    p = {"name": "Tấm cao su các loại", "price": 0, "stock": 100, "url": "/products/tam-cao-su-28",
+         "category": {"name": "Cao su kỹ thuật"}}
+    line = _format_product(p)
+    assert CONTACT_FOR_PRICE in line
+    assert "0đ" not in line
+
+
+def test_khong_nhac_danh_muc_trung_ten_san_pham():
+    """Dữ liệu thật có nhiều mặt hàng nằm trong danh mục cùng tên với chính nó →
+    'X | Danh mục: X' đọc lên vô nghĩa."""
+    p = {"name": "Tấm cao su các loại", "price": 0, "stock": 10, "url": "/u",
+         "category": {"name": "Tấm cao su các loại"}}
+    assert "Danh mục" not in _format_product(p)
+    p["category"] = {"name": "Cao su kỹ thuật"}
+    assert "Danh mục: Cao su kỹ thuật" in _format_product(p)
 
 
 async def test_search_products_accented():

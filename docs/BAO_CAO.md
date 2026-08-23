@@ -1,6 +1,6 @@
 # BÁO CÁO BÀN GIAO — VHD Corp
 
-> Cập nhật: 2026-07-10. Website thương hiệu B2B/B2C (nhựa PVC/HDPE, cao su kỹ thuật, đặc sản làng nghề) + trợ lý AI.
+> Cập nhật: 2026-08-23. Website thương hiệu B2B/B2C (nhựa PVC/HDPE, cao su kỹ thuật, đặc sản làng nghề) + trợ lý AI.
 > Tài liệu chi tiết: [HANDOVER.md](HANDOVER.md) (vận hành, checklist) · [AGENT_PLAN.md](AGENT_PLAN.md) (kiến trúc agent) · [README.md](../README.md) (khởi động).
 
 ## 1. Kiến trúc hệ thống
@@ -16,10 +16,12 @@
 │         │ SSE chat          │   resync    │           │ (JWT admin)
 │         ▼                   │   (0.25s)   ▼           │
 │  ┌──────────────────────────┴──────────────────────────┐
-│  │  AGENT — FastAPI + LangGraph (:8001) · Gemini 3 Flash │
+│  │  AGENT — FastAPI + LangGraph + DeepAgents (:8001)     │
+│  │  DeepSeek (chính) → Gemini/Groq/MiniMax/OpenRouter    │
 │  │  SQLite (hội thoại + checkpoint) · products.json      │
 │  │  MiniMax TTS · Tavily search · Gmail IMAP · LangSmith │
 │  │  A2A (/.well-known/agent-card.json) · MCP (/mcp)      │
+│  │  AG-UI (/agui/chat) cho CopilotKit                    │
 │  └───────────────────────────────────────────────────────┘
 ```
 
@@ -27,7 +29,7 @@
 | ------------------ | --------------------------------------------------------------------------------------------------------------- | ------------- | ----------------------------- |
 | **Client + Admin** | Next.js 16, React 19, Tailwind v4, shadcn/ui, Zustand, TanStack Query, Framer Motion, GSAP, Lenis, three.js/R3F | 3001          | `cd fe && PORT=3001 yarn dev` |
 | **Backend API**    | NestJS 11, Prisma 7, PostgreSQL, Passport JWT, nodemailer, Cloudinary                                           | 8080 (`/api`) | `cd be && yarn start:dev`     |
-| **AI Agent**       | Python 3.13, FastAPI, LangGraph ≥1.0, Gemini 3 Flash, uv                                                        | 8001          | `cd agent && ./run.sh`        |
+| **AI Agent**       | Python 3.13, FastAPI, LangGraph 1.x, DeepAgents, DeepSeek + 13 model dự phòng, uv                               | 8001          | `cd agent && ./run.sh`        |
 
 **Tài khoản admin mặc định** (tự tạo khi `yarn prisma:seed`): `vhdcorp.contact@gmail.com` / `<mật khẩu mặc định trong seed>` — đổi mật khẩu khi bàn giao.
 
@@ -35,14 +37,14 @@
 
 - **Client → BE**: REST `/api/*`; JWT nằm trong **HttpOnly cookie** (không localStorage), refresh chủ động mỗi 10 phút.
 - **Admin sửa sản phẩm/danh mục → BE bắn webhook** `POST /api/admin/resync-products` sang agent → catalog chat cập nhật trong **~0.25s** (+ agent tự đồng bộ 30s/lần làm lưới an toàn) — dữ liệu chat **real-time 100% từ DB**.
-- **Chat**: FE mở SSE `POST /api/chat` (agent) — events `conversation / message.delta / tool.start / tool.end / ui / done / error`; định danh khách bằng UUID trong localStorage (header `X-Chat-User`).
+- **Chat**: FE mở SSE `POST /api/chat` (agent) — events `conversation / message.delta / tool.start / tool.end / todo / ui / done / error` (`tool.start`/`tool.end` kèm `input`/`output` rút gọn ≤600 ký tự; `todo` = bảng việc cần làm do agent tự lập); định danh khách qua header `X-Chat-User` (`user-<id>` khi đã đăng nhập, còn lại là UUID trong localStorage).
 - **Admin sửa Kiến thức AI**: FE → BE proxy `/api/agent/knowledge` (JWT) → agent ghi `knowledge.md` + nạp lại ngay (secret chỉ nằm ở BE).
 - **SiteConfig JSONB**: draft → publish → history/rollback; giá trị publish điều khiển toàn bộ giao diện client.
 
 ### Mô hình dữ liệu (PostgreSQL / Prisma)
 
 `User` (role ADMIN/STAFF/CUSTOMER, soft-delete) · `Product` (slug, giá, tồn kho, ảnh[], SEO fields, soft-delete) · `Category` (cây cha–con, SEO) · `Post` (Tiptap HTML, tags, SEO) · `Banner` · `Media` (Cloudinary publicId) · `Review` (duyệt/ẩn) · `Contact` (hộp thư) · `SiteConfig` (JSONB + `SiteConfigHistory`) · `Statistics` (lượt xem).
-Phía agent: SQLite `chat.db` (conversations / messages **kèm ui_blocks** / memory) + `checkpoints.db` (LangGraph state).
+Phía agent: SQLite `chat.db` (conversations / messages **kèm ui_blocks** / memory) + `checkpoints.sqlite` (LangGraph state) + các file `data/*.local.json` (skill, MCP server, giới hạn chat, cache câu lặp, thống kê chi phí — gitignore, sống qua deploy).
 
 ## 2. Tính năng phía khách (client)
 
@@ -72,19 +74,25 @@ Phía agent: SQLite `chat.db` (conversations / messages **kèm ui_blocks** / mem
 | **Người dùng**                                                           | **CRUD đầy đủ**: tạo tài khoản, sửa tên, đổi vai trò, **đặt lại mật khẩu**, xóa mềm + Thùng rác, tìm email; **tài khoản ROOT tối cao** (`vhdcorp.contact@gmail.com`) không ai xóa/đổi role/reset được; **gửi email hàng loạt** (chọn 1/nhiều/tất cả, thư viện template, soạn WYSIWYG + xem trước email thật, biến {{name}}); lọc theo vai trò                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **Đánh giá / Liên hệ**                                                   | Duyệt-ẩn review, hộp thư liên hệ khách                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **Kiến thức AI** (`/admin/knowledge`)                                    | Soạn thông tin công ty cho trợ lý bằng **Tiptap WYSIWYG** hoặc Markdown thô — **Lưu là trợ lý dùng ngay**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Kỹ năng & công cụ AI** (`/admin/agent-config`)                         | Thêm/sửa/bật-tắt **kỹ năng** (quy trình nghiệp vụ của trợ lý — áp dụng ngay lượt chat sau) và khai báo **MCP server** để nạp thêm công cụ (chỉ `http(s)`; đổi xong cần khởi động lại agent — giao diện báo rõ)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Trợ lý AI** (`/admin/ai-assistant`)                                    | Chat với trợ lý điều hành: hỏi số liệu kho thật, nhờ soạn nháp sản phẩm/bài viết chuẩn SEO — trợ lý **không tự ghi DB**, admin duyệt rồi mới tạo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Server** (`/admin/server`)                                             | Trạng thái/RAM/CPU + log 3 service, restart từng service hoặc tất cả                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | **Dashboard**                                                            | KPI + biểu đồ; **tracking thật**: lượt xem sản phẩm 30 ngày, top SP được xem; **xuất báo cáo CSV + PDF** (lượt xem/top SP/liên hệ/sản phẩm)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ## 4. Trợ lý AI (điểm nhấn)
 
-- **Kiến trúc LangGraph**: guardrail (chặn prompt-injection/spam) → context (nhồi knowledge + catalog + memory) → agent ⇄ tools; checkpoint SQLite; LangSmith tracing.
+- **Kiến trúc LangGraph**: guardrail (chặn prompt-injection/spam) → context (nhồi knowledge + catalog + memory) → **agent = DeepAgents** (tự lo vòng lặp model⇄tool, lập kế hoạch `write_todos`, subagent, SKILL); checkpoint SQLite; LangSmith tracing.
+- **Model không bao giờ chết**: DeepSeek `deepseek-v4-flash-vision-exp` làm chính (1M context, đọc ảnh) → 10 nước dự phòng Gemini (2 model × 5 key) → Groq → MiniMax → OpenRouter. Chuyển model ở **từng lần gọi model**, không chạy lại cả lượt chat.
+- **Kỹ năng & công cụ cấu hình được từ admin**: SKILL (quy trình nghiệp vụ) + MCP server — trang **Quản trị → Kỹ năng & công cụ AI**.
+- **Trợ lý điều hành riêng cho admin** (`/admin/ai-assistant`): cùng lõi DeepAgents nhưng bộ tool tra cứu thuần + SKILL riêng; trả bản nháp sản phẩm/bài viết để admin duyệt, **không tự ghi DB**.
 - **Gen-UI trong chat** (kiểu CopilotKit): carousel sản phẩm, form liên hệ, form báo giá, bảng so sánh, FAQ accordion, kết quả tìm bằng ảnh — render inline, submit human-in-the-loop, **reload trang vẫn giữ nguyên** (persist `ui_blocks` SQLite).
 - **Dữ liệu real-time 100%**: giá/tồn kho từ DB qua webhook 0.25s; thông tin công ty từ Kiến thức AI (admin sửa là áp ngay).
 - **Voice 2 chiều**: nói-thành-chữ (Web Speech vi-VN) + đọc-to câu trả lời (MiniMax TTS, cache 2 lớp: server LRU + client — nghe lại ~60ms).
-- **Tìm sản phẩm bằng ảnh** (Gemini vision): đính ảnh bất kỳ (tự thu nhỏ về 1280px nên ảnh chụp điện thoại 8–15MB vẫn gửi ngay).
+- **Tìm sản phẩm bằng ảnh** (vision của model chính — hiện là DeepSeek): đính ảnh bất kỳ (tự thu nhỏ về 1280px nên ảnh chụp điện thoại 8–15MB vẫn gửi ngay).
 - **Tools**: tra catalog (fuzzy tiếng Việt không dấu), tra knowledge, tìm web (Tavily, xoay vòng 13 key), **chủ động gửi liên hệ** vào BE (khách nhận email xác nhận).
 - **Quản lý hội thoại kiểu ChatGPT**: danh sách/lịch sử/đổi tên/xóa; chỉ tạo khi gửi tin đầu; memory = 8 tin gần nhất + tóm tắt nền + facts dài hạn (task nền).
 - **UX widget**: streaming từng chữ, nút dừng/thử lại, con lăn chuột **chỉ cuộn trong khung chat** (không kéo trang phía sau), mobile full-screen.
-- **Chuẩn mở**: **A2A** (agent-card + JSON-RPC `message/send`), **MCP** server tại `/mcp` (publish catalog cho agent khác), **đọc Gmail** IMAP (endpoint admin).
+- **Chuẩn mở**: **A2A** (agent-card + JSON-RPC `message/send`), **MCP** server tại `/mcp` (publish catalog cho agent khác), **AG-UI** tại `/agui/chat` (CopilotKit self-host cắm vào là chạy — demo `/copilot-demo`), **đọc Gmail** IMAP (endpoint admin).
 
 ## 5. Email (Gmail SMTP thật)
 
@@ -98,7 +106,7 @@ JWT trong HttpOnly cookie + refresh; guards role ADMIN/STAFF trên mọi route q
 
 ## 7. Kiểm thử
 
-- **Agent**: 57 pytest PASS. **FE/BE**: production build PASS, `tsc` + ESLint sạch.
+- **Agent**: **113 pytest** PASS + `scripts/e2e-agent.py` **20 phép thử qua HTTP thật** (chạy được cả trên production: `--url https://vhdcorp.com/agent`). **FE/BE**: production build PASS, `tsc` + ESLint sạch.
 - **3 vòng E2E liên tiếp PASS 100%** (`round-full.sh`): 17 route FE + 6 API BE + SEO + security + gửi email thật + agent (giá/ngữ cảnh/gen-UI/knowledge/guardrail/TTS/A2A/Gmail) + đồng bộ products.json = DB.
 - Browser thật (Playwright, desktop 1854 + mobile 390, light/dark): reload giữ gen-UI, upload ảnh chat end-to-end, con lăn chỉ cuộn khung chat, admin thêm kênh + tải icon → publish → client hiển thị đúng, console **0 lỗi**.
 
@@ -121,3 +129,28 @@ JWT trong HttpOnly cookie + refresh; guards role ADMIN/STAFF trên mọi route q
 - Đổi khi lên production: mật khẩu admin, JWT/COOKIE secrets, `REVALIDATE_SECRET`, `X-Admin-Secret`/`X-Resync-Secret`, hộp Gmail (`GMAIL_IMAP_*`, `SMTP_*`).
 - **Gửi email số lượng lớn không vào spam triệt để**: cần domain riêng + SPF/DKIM/DMARC (hoặc dịch vụ như SES/SendGrid) — Gmail cá nhân đã được tối ưu hết mức có thể (List-Unsubscribe, plain-text, logo, địa chỉ) nhưng có giới hạn bản chất.
 - Thư viện ảnh còn 3 ảnh logo trùng do test upload (id 5/6/7) — xóa bằng nút thùng rác nếu không dùng.
+
+## 10. Cập nhật 2026-08-23 — Trợ lý AI mạnh hơn (lõi DeepAgents)
+
+Dành cho người vận hành, nói gọn thay đổi gì:
+
+- **AI không còn "chết" giữa lúc khách đang hỏi**: khi nhà cung cấp chính hết lượt miễn phí
+  hoặc lỗi, hệ thống tự đổi sang nhà cung cấp khác ngay trong câu trả lời đó (14 nước dự
+  phòng, có 3 nhà cung cấp miễn phí). Khách không thấy gì bất thường.
+- **AI đọc được ảnh khách gửi tốt hơn** vì model chính (DeepSeek) hỗ trợ ảnh trực tiếp.
+- **AI biết lập kế hoạch**: yêu cầu phức tạp (so sánh nhiều mặt hàng rồi báo giá) sẽ hiện
+  **bảng việc cần làm** trong khung chat, tick dần từng việc — khách thấy AI đang làm gì.
+- **Thêm "kỹ năng" cho AI mà không cần lập trình**: Quản trị → **Kỹ năng & công cụ AI** →
+  viết quy trình bằng tiếng Việt (vd cách hỏi quy cách gioăng trước khi báo giá) → lưu là
+  lượt chat sau AI đã dùng. Đang có sẵn 5 kỹ năng bán hàng.
+  ⚠️ Trong kỹ năng **đừng viết giá / tồn kho / bậc chiết khấu** — để AI tra từ hệ thống, viết
+  cứng vào là AI sẽ nói số cũ rất tự tin.
+- **Chặn chi phí bất thường**: mỗi câu trả lời chỉ được tra cứu tối đa 5 lần, gọi công cụ 15
+  lần, gọi AI 12 vòng — không còn trường hợp AI tra 20 lần cho 1 câu hỏi.
+- **Trợ lý riêng cho chủ website** (Quản trị → **Trợ lý AI**): hỏi số liệu kho thật, nhờ soạn
+  mô tả sản phẩm / bài viết chuẩn SEO. Nó **chỉ đưa bản nháp**, admin duyệt rồi mới tạo.
+- **Câu hỏi lặp trả lời tức thì và miễn phí** (chào hỏi, giờ mở cửa…): cache dùng chung cho
+  mọi khách, phân theo khu vực trang. Sửa Kiến thức AI là cache tự hết hiệu lực.
+- Kiểm thử: 113 test tự động + 20 phép thử qua HTTP thật (chạy được thẳng trên vhdcorp.com).
+
+Chi tiết kỹ thuật: [AGENT_PLAN.md §12](AGENT_PLAN.md).

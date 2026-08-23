@@ -1,0 +1,38 @@
+{
+  "errorHtml": "<div class=\"W20LnG_root\" data-variant=\"read\" data-tool=\"read\" data-state=\"error\"><span class=\"W20LnG_visuallyHidden\">Failed</span><div class=\"_root_9cl6j_3\"><div class=\"_row_9cl6j_10 W20LnG_row\" data-disclosure-row=\"true\" data-expandable=\"true\" role=\"button\" tabindex=\"0\" aria-expanded=\"false\"><span class=\"_leading_9cl6j_23 W20LnG_leading\"><span class=\"_iconIdle_9cl6j_42\"><span class=\"_dot_10orb_3\" data-state=\"error\" aria-hidden=\"true\" style=\"width: 10px; height: 10px;\"></span></span><svg width=\"14\" height=\"14\" class=\"W20LnG_chevron _chevronHover_9cl6j_48\" viewBox=\"0 0 14 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path/></svg></span><span class=\"_title_9cl6j_64 W20LnG_title\">Read</span><span class=\"W20LnG_sep\" aria-hidden=\"true\"></span><span class=\"W20LnG_summary W20LnG_errorSummary\">Error: ENOENT: notes/missing.txt not found</span></div></div></div>",
+  "errorColors": {
+    ".W20LnG_leading": {
+      "color": "rgb(129, 133, 140)",
+      "bg": "rgba(0, 0, 0, 0)"
+    },
+    ".W20LnG_title": {
+      "color": "rgb(97, 102, 107)",
+      "bg": "rgba(0, 0, 0, 0)"
+    },
+    ".W20LnG_summary": {
+      "color": "rgb(236, 19, 19)",
+      "bg": "rgba(0, 0, 0, 0)"
+    },
+    ".W20LnG_sep": {
+      "color": "rgb(15, 17, 21)",
+      "bg": "rgb(173, 178, 184)"
+    },
+    "rowBg": "rgba(0, 0, 0, 0)"
+  },
+  "editHtml": "<div class=\"W20LnG_root\" data-variant=\"edit\" data-tool=\"edit\" data-state=\"ok\"><div class=\"_root_9cl6j_3\"><div class=\"_row_9cl6j_10 W20LnG_row\" data-disclosure-row=\"true\" data-expandable=\"true\" role=\"button\" tabindex=\"0\" aria-expanded=\"false\"><span class=\"_leading_9cl6j_23 W20LnG_leading\"><span class=\"_iconIdle_9cl6j_42\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path/></svg></span><svg width=\"14\" height=\"14\" class=\"W20LnG_chevron _chevronHover_9cl6j_48\" viewBox=\"0 0 14 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path/></svg></span><span class=\"_title_9cl6j_64 W20LnG_title\">Edit</span><span class=\"W20LnG_sep\" aria-hidden=\"true\"></span><button type=\"button\" class=\"W20LnG_fileLink\">notes/demo.txt</button></div></div></div>",
+  "editColors": {
+    ".W20LnG_leading": {
+      "color": "rgb(129, 133, 140)",
+      "bg": "rgba(0, 0, 0, 0)"
+    },
+    ".W20LnG_title": {
+      "color": "rgb(97, 102, 107)",
+      "bg": "rgba(0, 0, 0, 0)"
+    },
+    ".W20LnG_sep": {
+      "color": "rgb(15, 17, 21)",
+      "bg": "rgb(173, 178, 184)"
+    },
+    "rowBg": "rgba(0, 0, 0, 0)"
+  }
+}
