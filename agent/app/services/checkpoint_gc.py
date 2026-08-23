@@ -43,6 +43,11 @@ def collect_garbage(checkpoint_path: str, chat_db_path: str, keep_days: int = KE
 
     try:
         with sqlite3.connect(cp_file) as cp:
+            # Gộp nhật ký ghi (WAL) vào tệp chính. SQLite ở chế độ WAL chỉ ghi thêm và
+            # KHÔNG tự gộp khi còn kết nối mở — service chạy suốt nên tệp -wal phình mãi
+            # (đo trên máy chủ: 13MB, ở máy phát triển 26MB, đều chỉ tăng). Làm việc này
+            # trước cả khi có gì cần xoá, vì nó tự thân đã giải phóng chỗ.
+            cp.execute("PRAGMA wal_checkpoint(TRUNCATE)")
             threads = {row[0] for row in cp.execute("SELECT DISTINCT thread_id FROM checkpoints")}
             stale = threads - alive
             if not stale:
