@@ -54,7 +54,41 @@
 - Nút liên hệ nổi (Zalo/Messenger/hotline… admin tự cấu hình kênh + icon).
 - Tracking ẩn danh: mở trang SP ≥2s → 1 lượt xem (dedupe 30 phút) → nguồn cho recommendation + báo cáo.
 
-### Trợ lý AI (chat widget)
+#
+
+### Gửi ảnh và tệp cho trợ lý
+
+- **Dán ảnh** (Ctrl+V), **kéo-thả**, hoặc bấm nút đính kèm
+- **Bấm vào ảnh** để xem to và **khoanh vùng cần hỏi** (6 màu, hoàn tác, xoá hết) —
+  chỉ chỗ hỏng bằng lời rất khó, khoanh một vòng đỏ thì ai cũng hiểu
+- **Tệp PDF / Excel / Word / CSV**: trợ lý đọc nội dung để trả lời. Tệp không được lưu
+  lại trên máy chủ — bóc chữ xong là bỏ. Giới hạn 10MB, 30 trang PDF, 300 dòng bảng
+
+### Phạm vi trợ lý (admin đặt trong /admin/agent-config)
+
+| Mức                   | Trợ lý làm gì                                                            |
+| --------------------- | ------------------------------------------------------------------------ |
+| Chỉ việc VHD          | Chỉ trả lời sản phẩm, báo giá, chính sách. Ngoài phạm vi thì từ chối     |
+| Tiêu chuẩn (mặc định) | Việc VHD là chính, vẫn giúp việc đời thường liên quan                    |
+| Mở rộng               | Trợ lý đa năng, giúp mọi việc hợp pháp, vẫn ưu tiên dữ liệu thật của VHD |
+
+Admin thêm được luật riêng (tối đa 20). Khách nhìn thấy mức đang chọn ngay trên khung
+chat nên biết trước hỏi được tới đâu.
+
+**Nới ở đây là nới phạm vi CHỦ ĐỀ, không nới bảo mật**: chống chiếm quyền câu lệnh,
+chống lộ chỉ dẫn nội bộ giữ nguyên ở cả ba mức; tư vấn y tế/pháp lý chuyên môn và bình
+luận chính trị vẫn bị từ chối ở mọi mức.
+
+### Số liệu hiển thị cho khách
+
+Dưới mỗi câu trả lời: giờ · thời gian chạy · bao lâu tới chữ đầu · tốc độ. Câu lấy từ
+bộ nhớ đệm ghi rõ "trả từ bộ đệm". Dưới ô nhập có thanh tổng: số câu hỏi, thời gian chờ
+trung bình, số câu trả sẵn.
+
+Nút **dừng** cắt cả phía máy chủ — không chỉ ngắt kết nối trình duyệt mà mô hình vẫn
+chạy tiếp (đã đo: bộ đếm lượt gọi mô hình đứng nguyên sau khi ngắt).
+
+## Trợ lý AI (chat widget)
 
 - Lần đầu vào web (desktop): panel **tự mở** kèm 6 câu hỏi mẫu; mobile hiện bong bóng chào.
 - Chi tiết năng lực: mục 4.
