@@ -149,6 +149,11 @@ export function useChat() {
       let finalized = false;
       let finalMessageId: string | null = null;
       let ticker: number | null = null;
+      // Số đo hiển thị dưới bong bóng. Đo ở TRÌNH DUYỆT vì đó mới là thứ khách cảm
+      // nhận (gồm cả đường truyền), khác với thời gian server tự báo.
+      const startedAt = performance.now();
+      let firstTokenAt: number | null = null;
+      let cachedAnswer = false;
       let typewriterResolve: (() => void) | null = null;
 
       const finalize = () => {
@@ -162,6 +167,12 @@ export function useChat() {
           uiBlocks: uiBlocks.length ? uiBlocks : undefined,
           streaming: false,
           finishedLive: true,
+          metrics: {
+            ttft: ((firstTokenAt ?? performance.now()) - startedAt) / 1000,
+            total: (performance.now() - startedAt) / 1000,
+            chars: content.length,
+            cached: cachedAnswer,
+          },
         });
         typewriterResolve?.();
       };
@@ -204,6 +215,7 @@ export function useChat() {
                 ]);
                 break;
               case "message.delta":
+                if (firstTokenAt === null) firstTokenAt = performance.now();
                 content += event.content;
                 setActiveTool(null);
                 ensureTicker(); // typewriter bắt đầu chảy chữ
@@ -241,6 +253,7 @@ export function useChat() {
                 break;
               case "done":
                 finalMessageId = event.message_id;
+                cachedAnswer = Boolean((event as { cached?: boolean }).cached);
                 serverDone = true;
                 // Không có chữ (vd guardrail) → chốt luôn; có chữ → typewriter chảy nốt rồi tự finalize
                 if (content.length === 0 || shownChars >= content.length) finalize();

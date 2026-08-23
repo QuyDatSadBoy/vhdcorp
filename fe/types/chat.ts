@@ -163,4 +163,18 @@ export interface UiChatMessage {
   image?: string;
   /** Các block gen-UI agent yêu cầu render inline (chỉ bubble assistant) */
   uiBlocks?: UiBlock[];
+  /** Số đo của lượt trả lời — hiện dưới bong bóng như ChatGPT/deepseek-harness */
+  metrics?: ChatMetrics;
+}
+
+/** Số đo một lượt trả lời (đo ở trình duyệt, không phải con số server báo). */
+export interface ChatMetrics {
+  /** Giây tới chữ đầu tiên — cảm nhận "nhanh hay chậm" nằm ở con số này */
+  ttft: number;
+  /** Tổng giây của cả lượt */
+  total: number;
+  /** Số ký tự trả lời (dùng để ước lượng tốc độ đọc ra) */
+  chars: number;
+  /** Trả từ bộ nhớ đệm, không gọi mô hình */
+  cached?: boolean;
 }

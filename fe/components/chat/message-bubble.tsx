@@ -9,6 +9,7 @@ import AgentTrace from "./agent-trace";
 import GenUiBlock from "./gen-ui/gen-ui-block";
 import MarkdownContent from "./markdown-content";
 import ToolIndicator from "./tool-indicator";
+import CopyButton from "./copy-button";
 import TtsButton from "./tts-button";
 
 /** Giờ:phút vi-VN cho timestamp mờ dưới bubble */
@@ -43,6 +44,33 @@ function ProcessLog({ steps }: { steps: { label: string; done: boolean }[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/**
+ * Số đo của lượt trả lời — chữ nhỏ, mờ, đặt cạnh giờ.
+ *
+ * Chỉ nêu thứ khách kiểm chứng được bằng cảm nhận: bao lâu thì thấy chữ đầu, cả lượt
+ * mất bao lâu. Quy ra "chữ/giây" thay vì token/giây vì token là đơn vị của máy, người
+ * đọc đếm bằng chữ. Câu lấy từ bộ nhớ đệm thì nói thẳng — con số tốc độ lúc đó không
+ * phản ánh mô hình nhanh hay chậm.
+ */
+function Metrics({ m }: { m: NonNullable<UiChatMessage["metrics"]> }) {
+  if (m.cached) {
+    return (
+      <span className="text-[10px] tabular-nums text-muted-foreground/60" title="Trả lời sẵn có, không gọi mô hình">
+        · đệm sẵn · {m.total.toFixed(2)}s
+      </span>
+    );
+  }
+  const cps = m.total > 0 ? Math.round(m.chars / m.total) : 0;
+  return (
+    <span
+      className="text-[10px] tabular-nums text-muted-foreground/60"
+      title={`Chữ đầu sau ${m.ttft.toFixed(2)}s · cả lượt ${m.total.toFixed(1)}s · ${m.chars} ký tự`}
+    >
+      · {m.ttft.toFixed(1)}s đầu · {m.total.toFixed(1)}s{cps > 0 ? ` · ${cps} chữ/s` : ""}
+    </span>
   );
 }
 
@@ -215,6 +243,8 @@ function MessageBubble({
               voiceOn && isLast && message.role === "assistant" && Boolean(message.streaming || message.finishedLive)
             }
           />
+          <CopyButton text={message.content} />
+          {message.metrics && !message.streaming && <Metrics m={message.metrics} />}
         </div>
       )}
     </div>

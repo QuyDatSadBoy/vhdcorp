@@ -236,6 +236,25 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  /** Dán ảnh (Ctrl+V) — cách nhanh nhất để gửi ảnh chụp màn hình, trước đây không nhận. */
+  const onPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const item = Array.from(e.clipboardData?.items ?? []).find((i) => i.type.startsWith("image/"));
+    if (!item) return; // dán chữ thì để nguyên hành vi mặc định
+    const file = item.getAsFile();
+    if (!file) return;
+    e.preventDefault();
+    void onPickImage(file);
+  };
+
+  /** Kéo ảnh từ máy thả vào khung chat. */
+  const [dragging, setDragging] = useState(false);
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const file = Array.from(e.dataTransfer?.files ?? []).find((f) => f.type.startsWith("image/"));
+    if (file) void onPickImage(file);
+  };
+
   return (
     <div className="border-t border-border/60 bg-background/95 px-3 pb-2.5 pt-2.5">
       {/* Preview ảnh đính kèm */}
@@ -259,11 +278,26 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
       {imageError && <p className="mb-1.5 text-[11px] font-medium text-brand-danger">{imageError}</p>}
 
       <div
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes("Files")) {
+            e.preventDefault();
+            setDragging(true);
+          }
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
         className={cn(
-          "flex items-end gap-1.5 rounded-2xl border bg-muted/40 px-2 py-1.5 transition-colors",
-          "border-border focus-within:border-brand-accent focus-within:ring-2 focus-within:ring-brand-accent/25"
+          "relative flex items-end gap-1.5 rounded-2xl border bg-muted/40 px-2 py-1.5 transition-colors",
+          dragging
+            ? "border-brand-accent bg-brand-accent/10 ring-2 ring-brand-accent/30"
+            : "border-border focus-within:border-brand-accent focus-within:ring-2 focus-within:ring-brand-accent/25"
         )}
       >
+        {dragging && (
+          <span className="pointer-events-none absolute inset-0 grid place-items-center rounded-2xl text-xs font-semibold text-brand-accent">
+            Thả ảnh vào đây
+          </span>
+        )}
         {/* Nút đính ảnh */}
         <input
           ref={fileRef}
@@ -292,6 +326,7 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
             disable làm mất focus → phải bấm lại ô nhập mới chat tiếp được. */}
         <textarea
           ref={textareaRef}
+          onPaste={onPaste}
           rows={1}
           value={value}
           placeholder={
