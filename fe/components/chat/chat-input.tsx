@@ -36,6 +36,8 @@ async function downscaleToDataUrl(file: File): Promise<string> {
 /* ── Web Speech API (không có type sẵn trong TS DOM lib) ────────── */
 interface SpeechRecognitionResultLike {
   0: { transcript: string };
+  /** Trình duyệt đã chốt đoạn này, không sửa nữa */
+  isFinal?: boolean;
 }
 interface SpeechRecognitionEventLike {
   results: ArrayLike<SpeechRecognitionResultLike>;
@@ -44,6 +46,7 @@ interface SpeechRecognitionLike {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
+  maxAlternatives?: number;
   start(): void;
   stop(): void;
   onresult: ((e: SpeechRecognitionEventLike) => void) | null;
@@ -79,6 +82,8 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
   const [micSupported, setMicSupported] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  /** Hẹn giờ chốt lời sớm khi người dùng ngừng nói (xem onresult) */
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   /** Nội dung ô nhập tại thời điểm bắt đầu nói — transcript ghép sau phần này */
@@ -101,7 +106,10 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
   // Feature-detect mic — không hỗ trợ thì ẩn nút
   useEffect(() => {
     setMicSupported(getSpeechRecognition() !== null);
-    return () => recognitionRef.current?.stop();
+    return () => {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      recognitionRef.current?.stop();
+    };
   }, []);
 
   // AI trả lời xong → tự focus lại ô nhập để khách chat tiếp luôn (không phải bấm lại)
@@ -151,23 +159,41 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
     rec.lang = "vi-VN";
     rec.continuous = !autoSend;
     rec.interimResults = true;
+    rec.maxAlternatives = 1; // chỉ cần bản đọc tốt nhất — xin nhiều phương án làm chậm thêm
     baseValueRef.current = autoSend ? "" : valueRef.current ? `${valueRef.current.trim()} ` : "";
     if (autoSend) setValue("");
     rec.onresult = (e) => {
       let transcript = "";
+      let hasFinal = false;
       for (let i = 0; i < e.results.length; i++) {
         transcript += e.results[i][0].transcript;
+        if (e.results[i].isFinal) hasFinal = true;
       }
       const next = baseValueRef.current + transcript;
       setValue(next);
       valueRef.current = next;
       resize();
+
+      // Chốt sớm: trình duyệt tự kết thúc sau khoảng lặng khá dài (đo trên Chrome
+      // thường hơn một giây), trong khi lời đã chốt rồi. Khi đã có đoạn final, hẹn
+      // một khoảng ngắn — nói tiếp thì huỷ hẹn, im luôn thì dừng ngay để gửi.
+      if (autoSend && hasFinal) {
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = setTimeout(() => {
+          silenceTimerRef.current = null;
+          recognitionRef.current?.stop();
+        }, 600);
+      }
     };
     rec.onerror = () => {
       recognitionRef.current = null;
       setListening(false);
     };
     rec.onend = () => {
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
       recognitionRef.current = null;
       setListening(false);
       // Voice mode: ngừng nói là gửi luôn — không cần bấm Enter
