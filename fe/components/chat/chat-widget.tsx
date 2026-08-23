@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchAgentMode, type AgentModeInfo } from "@/services/chat-agent.service";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bot, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { useSiteConfigStore } from "@/store/site-config.store";
@@ -23,6 +24,15 @@ export default function ChatWidget() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   /** Bong bóng chào lần đầu — chỉ dẫn user biết đây là trợ lý AI */
   const [showHint, setShowHint] = useState(false);
+  /** Chế độ trợ lý (do cửa hàng đặt) — chỉ nạp khi khách mở chat, không tốn request lúc tải trang */
+  const [agentMode, setAgentMode] = useState<AgentModeInfo | null>(null);
+
+  useEffect(() => {
+    if (!open || agentMode) return;
+    const ac = new AbortController();
+    void fetchAgentMode(ac.signal).then((m) => m && setAgentMode(m));
+    return () => ac.abort();
+  }, [open, agentMode]);
   /** Ảnh mascot AI (fe/public/images/ai-agent.png) — thiếu thì fallback icon robot */
   const [mascotOk, setMascotOk] = useState(true);
   // Tên trợ lý theo brand trong Cài đặt site — đổi tên site là widget đổi theo
@@ -234,6 +244,16 @@ export default function ChatWidget() {
                 <p className="flex items-center gap-1.5 text-[11px] text-white/80">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
                   AI · trả lời tức thì
+                  {/* Cho khách biết hỏi được tới đâu — trợ lý cùng khung chat nhưng phạm vi
+                      do cửa hàng đặt, không nói thì khách đoán mò rồi thất vọng khi bị từ chối. */}
+                  {agentMode && (
+                    <span
+                      title={agentMode.hint}
+                      className="ml-0.5 rounded-full bg-white/15 px-1.5 py-px text-[10px] font-medium text-white"
+                    >
+                      {agentMode.label}
+                    </span>
+                  )}
                 </p>
               </div>
               <button

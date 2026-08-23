@@ -142,6 +142,16 @@ export class AgentController {
 
   /* ── Cấu hình lõi DeepAgents: SKILL (quy trình nghiệp vụ) + MCP (công cụ ngoài) ── */
 
+  @Get('deep/mode')
+  getAgentMode() {
+    return this.agent.getAgentMode();
+  }
+
+  @Post('deep/mode')
+  saveAgentMode(@Body() body: { mode?: string; rules?: string[] }) {
+    return this.agent.saveAgentMode(body);
+  }
+
   @Get('deep/skills')
   getSkills() {
     return this.agent.getSkills();

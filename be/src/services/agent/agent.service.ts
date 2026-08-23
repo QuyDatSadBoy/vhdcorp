@@ -110,6 +110,15 @@ export class AgentService {
     return data;
   }
 
+  /** Phạm vi hoạt động của trợ lý (chặt / tiêu chuẩn / mở rộng) + luật riêng. */
+  getAgentMode() {
+    return this.callDeep('mode');
+  }
+
+  saveAgentMode(body: { mode?: string; rules?: string[] }) {
+    return this.callDeep('mode', 'POST', body);
+  }
+
   getSkills() {
     return this.callDeep('skills');
   }

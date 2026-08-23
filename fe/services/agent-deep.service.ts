@@ -16,6 +16,15 @@ export interface DeepSkill {
   builtin?: boolean;
 }
 
+/** Chế độ hoạt động của trợ lý — admin đặt phạm vi + luật riêng. */
+export interface AgentModeState {
+  mode: string;
+  label: string;
+  hint: string;
+  rules: string[];
+  modes: { id: string; label: string; hint: string }[];
+}
+
 export type McpTransport = "streamable_http" | "sse";
 
 export interface McpServer {
@@ -27,26 +36,53 @@ export interface McpServer {
 
 const BASE = "/agent/deep";
 
+/**
+ * Bóc phong bì của backend.
+ *
+ * Mọi phản hồi đều được gói thành { statusCode, success, data } bởi interceptor chung.
+ * Trước đây file này đọc thẳng `res.data` nên nhận về phong bì chứ không phải nội dung —
+ * danh sách kỹ năng và MCP vì thế LUÔN rỗng trên trang quản trị dù server trả đủ.
+ */
+function body<T>(res: { data: unknown }): T {
+  const d = res.data as { data?: T } | T;
+  return (d && typeof d === "object" && "data" in (d as object) ? (d as { data: T }).data : (d as T)) as T;
+}
+
 export const agentDeepService = {
-  getSkills: async () => (await axios.get<{ skills: DeepSkill[] }>(`${BASE}/skills`)).data,
-  saveSkill: async (body: Omit<DeepSkill, "slug">) =>
-    (await axios.post<{ skill: DeepSkill; skills: DeepSkill[] }>(`${BASE}/skills`, body)).data,
+  getMode: async () => body<AgentModeState>(await axios.get(`${BASE}/mode`)),
+  saveMode: async (payload: { mode?: string; rules?: string[] }) =>
+    body<AgentModeState>(await axios.post(`${BASE}/mode`, payload)),
+  getSkills: async () => body<{ skills: DeepSkill[] }>(await axios.get(`${BASE}/skills`)),
+  saveSkill: async (payload: Omit<DeepSkill, "slug">) =>
+    body<{ skill: DeepSkill; skills: DeepSkill[] }>(await axios.post(`${BASE}/skills`, payload)),
   deleteSkill: async (slug: string) =>
-    (await axios.delete<{ ok: boolean; skills: DeepSkill[] }>(`${BASE}/skills/${encodeURIComponent(slug)}`)).data,
-  getMcpServers: async () => (await axios.get<{ servers: McpServer[] }>(`${BASE}/mcp`)).data,
-  saveMcpServer: async (body: McpServer) =>
-    (await axios.post<{ server: McpServer; servers: McpServer[]; restart_required: boolean }>(`${BASE}/mcp`, body))
-      .data,
+    body<{ ok: boolean; skills: DeepSkill[] }>(await axios.delete(`${BASE}/skills/${encodeURIComponent(slug)}`)),
+  getMcpServers: async () => body<{ servers: McpServer[] }>(await axios.get(`${BASE}/mcp`)),
+  saveMcpServer: async (payload: McpServer) =>
+    body<{ server: McpServer; servers: McpServer[]; restart_required: boolean }>(
+      await axios.post(`${BASE}/mcp`, payload)
+    ),
   deleteMcpServer: async (name: string) =>
-    (
-      await axios.delete<{ ok: boolean; servers: McpServer[]; restart_required: boolean }>(
-        `${BASE}/mcp/${encodeURIComponent(name)}`
-      )
-    ).data,
+    body<{ ok: boolean; servers: McpServer[]; restart_required: boolean }>(
+      await axios.delete(`${BASE}/mcp/${encodeURIComponent(name)}`)
+    ),
 };
 
+export const deepModeKey = ["agent", "deep", "mode"] as const;
 export const deepSkillsKey = ["agent", "deep", "skills"] as const;
 export const deepMcpKey = ["agent", "deep", "mcp"] as const;
+
+export function useAgentMode() {
+  return useQuery({ queryKey: deepModeKey, queryFn: agentDeepService.getMode });
+}
+
+export function useSaveAgentMode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: agentDeepService.saveMode,
+    onSuccess: (data) => qc.setQueryData(deepModeKey, data),
+  });
+}
 
 export function useDeepSkills() {
   return useQuery({ queryKey: deepSkillsKey, queryFn: agentDeepService.getSkills });

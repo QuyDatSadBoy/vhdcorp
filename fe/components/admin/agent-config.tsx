@@ -2,8 +2,24 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { BookOpen, Eye, Loader2, Pencil, Plug, Plus, RefreshCw, Save, Trash2, TriangleAlert, X } from "lucide-react";
 import {
+  BookOpen,
+  Eye,
+  Loader2,
+  Pencil,
+  Plug,
+  Plus,
+  RefreshCw,
+  Save,
+  Trash2,
+  TriangleAlert,
+  X,
+  Check,
+  ShieldCheck,
+} from "lucide-react";
+import {
+  useAgentMode,
+  useSaveAgentMode,
   useDeepSkills,
   useSaveDeepSkill,
   useDeleteDeepSkill,
@@ -587,10 +603,137 @@ function McpCard() {
   );
 }
 
-/** Trang cấu hình lõi trợ lý AI: kỹ năng (quy trình) + công cụ MCP. */
+/**
+ * Phạm vi hoạt động của trợ lý — thứ admin đổi thường xuyên nhất nên đặt trên cùng.
+ *
+ * Nói rõ đây là phạm vi CHỦ ĐỀ, không phải mức bảo mật: các chặn về an toàn giữ nguyên
+ * ở mọi mức. Không nói thì dễ hiểu nhầm rằng "mở rộng" là tắt bảo vệ.
+ */
+function ModeCard() {
+  const { data, isLoading } = useAgentMode();
+  const save = useSaveAgentMode();
+  const [newRule, setNewRule] = useState("");
+
+  const setMode = async (mode: string) => {
+    try {
+      await save.mutateAsync({ mode });
+      toast.success("Đã đổi phạm vi trợ lý — áp dụng ngay ở câu hỏi kế tiếp.");
+    } catch {
+      toast.error("Không lưu được, thử lại.");
+    }
+  };
+
+  const addRule = async () => {
+    const rule = newRule.trim();
+    if (!rule || !data) return;
+    try {
+      await save.mutateAsync({ rules: [...data.rules, rule] });
+      setNewRule("");
+      toast.success("Đã thêm luật riêng.");
+    } catch {
+      toast.error("Không lưu được, thử lại.");
+    }
+  };
+
+  const removeRule = async (idx: number) => {
+    if (!data) return;
+    try {
+      await save.mutateAsync({ rules: data.rules.filter((_, i) => i !== idx) });
+    } catch {
+      toast.error("Không xoá được, thử lại.");
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="space-y-4 p-4 sm:p-5">
+        <div>
+          <p className="flex items-center gap-2 text-sm font-bold">
+            <ShieldCheck className="h-4 w-4 text-brand-primary" /> Phạm vi trợ lý được phép giúp
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Đây là phạm vi CHỦ ĐỀ. Các chặn về an toàn (chống chiếm quyền câu lệnh, chống lộ chỉ dẫn nội bộ) giữ nguyên
+            ở mọi mức. Khách nhìn thấy mức đang chọn ngay trên khung chat.
+          </p>
+        </div>
+
+        {isLoading || !data ? (
+          <p className="text-sm text-muted-foreground">Đang tải…</p>
+        ) : (
+          <>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {data.modes.map((m) => {
+                const active = m.id === data.mode;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => void setMode(m.id)}
+                    disabled={save.isPending}
+                    className={
+                      "cursor-pointer rounded-xl border p-3 text-left transition-colors " +
+                      (active
+                        ? "border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary/30"
+                        : "border-foreground/10 hover:border-foreground/25")
+                    }
+                  >
+                    <p className="flex items-center gap-1.5 text-sm font-semibold">
+                      {m.label}
+                      {active && <Check className="h-3.5 w-3.5 text-brand-primary" />}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{m.hint}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs">Luật riêng của cửa hàng (trợ lý luôn tuân thủ)</Label>
+              {data.rules.length > 0 && (
+                <ul className="space-y-1.5">
+                  {data.rules.map((r, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 rounded-lg border border-foreground/8 bg-card px-2.5 py-1.5 text-xs"
+                    >
+                      <span className="min-w-0 flex-1">{r}</span>
+                      <button
+                        type="button"
+                        onClick={() => void removeRule(i)}
+                        aria-label={`Xoá luật: ${r}`}
+                        className="shrink-0 cursor-pointer text-muted-foreground hover:text-(--vhd-color-danger)"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  value={newRule}
+                  maxLength={300}
+                  onChange={(e) => setNewRule(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && void addRule()}
+                  placeholder="Vd: Không hứa giao trong ngày cho đơn ngoại tỉnh"
+                />
+                <Button type="button" onClick={() => void addRule()} disabled={!newRule.trim() || save.isPending}>
+                  <Plus className="h-4 w-4" /> Thêm
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Trang cấu hình lõi trợ lý AI: phạm vi + kỹ năng (quy trình) + công cụ MCP. */
 export function AgentConfig() {
   return (
     <div className="space-y-6">
+      <ModeCard />
       <SkillsCard />
       <McpCard />
     </div>
