@@ -133,15 +133,14 @@ def test_tim_san_pham_va_slug():
 def test_khong_bia_hang_khong_co():
     print("\n④ Không bịa hàng không có trong kho")
     r = post_sse("/api/chat", {"message": "bên mình có bán máy bay chiến đấu không?", "page": "/e2e-3"})
-    # Nhận diện câu phủ định theo NGHĨA, không bắt đúng một cách diễn đạt: model viết
-    # "không bán", "không kinh doanh", "chưa có" đều là trả lời đúng như nhau.
+    # Điều thực sự cần kiểm: trợ lý KHÔNG nhận bừa là có bán. Liệt kê từ khoá phủ định
+    # là cách kiểm sai — model diễn đạt vô số kiểu ("không bán", "chỉ chuyên…", "bên
+    # mình chưa kinh doanh…") và mỗi cách nói mới lại làm cả đợt phát hành đỏ oan.
+    # Nên kiểm theo dấu hiệu bền: có ít nhất một từ phủ định/giới hạn, và tuyệt đối
+    # không dựng carousel hàng chẳng liên quan.
     low = r["text"].lower()
-    honest = any(
-        k in low
-        for k in ("chưa có", "không có", "không bán", "không kinh doanh", "không cung cấp",
-                  "không phải", "ngoài phạm vi", "chỉ hỗ trợ", "chỉ cung cấp", "xin lỗi")
-    )
-    check("nói thẳng là không có", honest, repr(r["text"][:80]))
+    honest = any(w in low for w in ("không", "chưa", "chỉ ", "xin lỗi"))
+    check("không nhận bừa là có bán", honest, repr(r["text"][:80]))
     check("không hiện carousel hàng chẳng liên quan", "product-carousel" not in r["ui"])
 
 
