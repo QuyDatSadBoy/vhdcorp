@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AudioLines, ImagePlus, Mic, SendHorizontal, Square, X } from "lucide-react";
+import { AudioLines, ImagePlus, Mic, SendHorizontal, Square, X, Pencil } from "lucide-react";
 import { useVoiceChatStore } from "@/store/voice-chat.store";
+import ImageEditor from "./image-editor";
 import { cn } from "@/lib/utils";
 
 /** Chiều cao tối đa ≈ 5 dòng (5 × 20px line-height + padding) */
@@ -248,6 +249,8 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
 
   /** Kéo ảnh từ máy thả vào khung chat. */
   const [dragging, setDragging] = useState(false);
+  /** Mở khung xem to + vẽ lên ảnh */
+  const [editing, setEditing] = useState(false);
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
@@ -257,12 +260,37 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
 
   return (
     <div className="border-t border-border/60 bg-background/95 px-3 pb-2.5 pt-2.5">
+      {editing && image && (
+        <ImageEditor
+          src={image}
+          onCancel={() => setEditing(false)}
+          onSave={(edited) => {
+            setImage(edited);
+            setEditing(false);
+          }}
+        />
+      )}
       {/* Preview ảnh đính kèm */}
       {image && (
         <div className="mb-2 flex items-center gap-2">
-          <div className="relative">
-            {/* eslint-disable-next-line @next/next/no-img-element -- data URL preview tạm */}
-            <img src={image} alt="Ảnh sẽ gửi" className="h-16 w-16 rounded-lg border border-border object-cover" />
+          <div className="group relative">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              aria-label="Xem to và vẽ lên ảnh"
+              title="Bấm để xem to và khoanh vùng"
+              className="block cursor-zoom-in"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- data URL preview tạm */}
+              <img
+                src={image}
+                alt="Ảnh sẽ gửi"
+                className="h-16 w-16 rounded-lg border border-border object-cover transition-opacity group-hover:opacity-80"
+              />
+              <span className="pointer-events-none absolute inset-0 grid place-items-center rounded-lg opacity-0 transition-opacity group-hover:opacity-100">
+                <Pencil className="h-4 w-4 text-white drop-shadow" aria-hidden />
+              </span>
+            </button>
             <button
               type="button"
               onClick={clearImage}
@@ -272,7 +300,7 @@ export default function ChatInput({ streaming, onSend, onStop }: ChatInputProps)
               <X className="h-3 w-3" aria-hidden />
             </button>
           </div>
-          <span className="text-[11px] text-muted-foreground">Ảnh đính kèm · gửi để tìm sản phẩm</span>
+          <span className="text-[11px] text-muted-foreground">Bấm vào ảnh để xem to và khoanh vùng cần hỏi</span>
         </div>
       )}
       {imageError && <p className="mb-1.5 text-[11px] font-medium text-brand-danger">{imageError}</p>}
