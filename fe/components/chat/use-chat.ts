@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { chatAgentService, streamChat, getChatUserId } from "@/services/chat-agent.service";
+import { TOOL_STEP_LABELS } from "@/lib/tool-labels";
 import type { Conversation, TodoItem, ToolRun, UiBlock, UiChatMessage } from "@/types/chat";
 
 /** localStorage key nhớ hội thoại đang mở — mở lại panel giữ nguyên */
@@ -10,25 +11,6 @@ const ACTIVE_ID_KEY = "vhd_chat_active_id"; // + hậu tố danh tính
 const GENERIC_ERROR = "Không kết nối được trợ lý. Vui lòng thử lại.";
 
 /** Nhãn tiến trình theo tool — khách thấy VHD "đang làm việc" thật */
-const TOOL_STEP_LABELS: Record<string, string> = {
-  get_current_time: "Đang xem ngày giờ hiện tại…",
-  search_products: "Đang tìm kiếm trong kho VHD…",
-  get_product_detail: "Đang lấy thông tin chi tiết sản phẩm…",
-  show_product_carousel: "Đang tìm kiếm & chọn lọc sản phẩm…",
-  show_comparison: "Đang lập bảng so sánh…",
-  get_recommendations: "Đang chọn gợi ý phù hợp với bạn…",
-  list_categories: "Đang tổng hợp danh mục hàng…",
-  search_posts: "Đang tìm bài viết liên quan…",
-  get_company_info: "Đang lấy thông tin liên hệ chính thức…",
-  add_to_cart: "Đang thêm sản phẩm vào giỏ…",
-  show_quote_form: "Đang chuẩn bị form báo giá…",
-  create_quote_request: "Đang gửi yêu cầu báo giá…",
-  show_contact_form: "Đang mở form liên hệ…",
-  send_contact_request: "Đang gửi thông tin liên hệ…",
-  show_faq: "Đang tra cứu câu hỏi thường gặp…",
-  search_knowledge: "Đang tra cứu tài liệu công ty…",
-  web_search: "Đang tra cứu thêm trên web…",
-};
 
 /**
  * State machine cho widget chat: danh sách hội thoại, tin nhắn của hội thoại

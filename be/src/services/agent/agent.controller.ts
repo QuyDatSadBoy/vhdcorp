@@ -7,8 +7,10 @@ import {
   Post,
   Put,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@guard/jwt-auth.guard';
@@ -110,6 +112,32 @@ export class AgentController {
     },
   ) {
     return this.agent.aiAssistant(body);
+  }
+
+  /**
+   * Như ai/assistant nhưng STREAM: trang quản trị thấy trợ lý gõ dần, kèm log công cụ
+   * và bảng kế hoạch — giống hệt khung chat của khách. Chuyển tiếp thẳng luồng SSE của
+   * agent; khoá admin vẫn nằm ở backend nên trình duyệt không bao giờ thấy nó.
+   */
+  @Post('ai/assistant/stream')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  async aiAssistantStream(
+    @Body()
+    body: {
+      messages?: { role: string; content: string }[];
+      categories?: string[];
+    },
+    @Res() res: Response,
+  ) {
+    const upstream = await this.agent.aiAssistantStream(body);
+    res.set({
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      // nginx mặc định đệm phản hồi → SSE sẽ ra một cục khi xong; tắt để chảy dần
+      'X-Accel-Buffering': 'no',
+    });
+    upstream.pipe(res);
   }
 
   /* ── Cấu hình lõi DeepAgents: SKILL (quy trình nghiệp vụ) + MCP (công cụ ngoài) ── */

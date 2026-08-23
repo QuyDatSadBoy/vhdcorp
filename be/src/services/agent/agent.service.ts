@@ -1,8 +1,10 @@
+import { Readable } from 'stream';
 import {
   BadGatewayException,
   BadRequestException,
   Injectable,
   Logger,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -241,6 +243,35 @@ export class AgentService {
     categories?: string[];
   }): Promise<Record<string, unknown>> {
     return this.postAi('/api/admin/ai/assistant', body);
+  }
+
+  /**
+   * Chuyển tiếp NGUYÊN LUỒNG SSE của trợ lý admin (message.delta / tool.start /
+   * tool.end / todo / done) về cho trình duyệt.
+   *
+   * Phải đi qua đây chứ không gọi agent trực tiếp từ trang quản trị: khoá admin nằm
+   * ở backend, đưa xuống client là lộ. Trả về ReadableStream để controller stream lại
+   * mà không gom hết vào bộ nhớ — câu trả lời dài vẫn hiện dần.
+   */
+  async aiAssistantStream(body: {
+    messages?: { role: string; content: string }[];
+    categories?: string[];
+  }): Promise<NodeJS.ReadableStream> {
+    const res = await fetch(`${this.baseUrl}/api/admin/ai/assistant/stream`, {
+      method: 'POST',
+      headers: {
+        'X-Admin-Secret': this.adminSecret,
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify(body ?? {}),
+    });
+    if (!res.ok || !res.body) {
+      throw new ServiceUnavailableException(
+        `Trợ lý AI không phản hồi (HTTP ${res.status}).`,
+      );
+    }
+    return Readable.fromWeb(res.body as never);
   }
 
   private async postAi(
