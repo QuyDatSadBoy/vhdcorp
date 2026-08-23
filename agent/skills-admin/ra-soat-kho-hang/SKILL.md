@@ -1,6 +1,6 @@
 ---
 name: ra-soat-kho-hang
-description: Ra soat kho hang. Cách trả lời câu hỏi thống kê về kho: số lượng sản phẩm, danh mục, hàng thiếu mô tả.
+description: "Ra soat kho hang. Cách trả lời câu hỏi thống kê về kho: số lượng sản phẩm, danh mục, hàng thiếu mô tả."
 ---
 
 # Rà soát kho hàng

@@ -46,6 +46,75 @@ def admin_skill_files() -> dict[str, dict[str, str]]:
     return default_skills.admin_to_files()
 
 
+# Bộ tool của admin = tra cứu thuần. KHÔNG có tool giao diện khách
+# (show_product_carousel / show_contact_form / show_quote_form / add_to_cart…):
+# admin xem bảng dữ liệu và bản nháp, không render card bán hàng cho chính mình.
+ADMIN_TOOL_NAMES = (
+    "search_products",
+    "get_product_detail",
+    "list_categories",
+    "search_knowledge",
+    "get_company_info",
+    "search_posts",
+    "web_search",
+    "get_recommendations",
+)
+
+
+def admin_tools() -> list:
+    """Đối tượng tool theo đúng ADMIN_TOOL_NAMES (giữ nguyên thứ tự)."""
+    from app.tools.knowledge import search_knowledge
+    from app.tools.products import get_product_detail, search_products
+    from app.tools.site import (
+        get_company_info,
+        get_recommendations,
+        list_categories,
+        search_posts,
+    )
+    from app.tools.web_search import web_search
+
+    by_name = {
+        t.name: t
+        for t in (
+            search_products,
+            get_product_detail,
+            list_categories,
+            search_knowledge,
+            get_company_info,
+            search_posts,
+            web_search,
+            get_recommendations,
+        )
+    }
+    return [by_name[n] for n in ADMIN_TOOL_NAMES]
+
+
 def build_admin_agent(llms: list, tools: list, max_models: int = 4):
     """Deep agent cho admin: cùng lõi, khác persona + bộ tool."""
     return build_deep_agent(llms, tools, system_prompt=ADMIN_PERSONA, max_models=max_models)
+
+
+_agent = None  # cache: mỗi lần dựng là 1 lần biên dịch graph → chỉ dựng 1 lần cho cả tiến trình
+
+
+def get_admin_agent():
+    """Deep agent admin dùng chung (lazy + cache). Model tái dùng chuỗi fallback của chat."""
+    global _agent
+    if _agent is None:
+        from app.core.config import get_settings
+        from app.graph.builder import ChatGraphBuilder
+
+        settings = get_settings()
+        _agent = build_admin_agent(
+            ChatGraphBuilder(settings).model_chain,
+            admin_tools(),
+            max_models=settings.deep_agent_max_fallbacks,
+        )
+        logger.info("Đã dựng deep agent ADMIN (%d tool)", len(ADMIN_TOOL_NAMES))
+    return _agent
+
+
+def reset_admin_agent() -> None:
+    """Xoá cache agent (dùng trong test / khi đổi cấu hình model)."""
+    global _agent
+    _agent = None
