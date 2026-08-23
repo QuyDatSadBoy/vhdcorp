@@ -124,3 +124,7 @@ agent/data/usage_stats.local.json
 agent/data/reply_cache.local.json
 agent/data/skills.local.json
 agent/data/mcp_servers.local.json
+
+# File đo lường tạm do công cụ kiểm thử trình duyệt sinh ra (sandbox chỉ ghi được
+# vào thư mục repo) — không thuộc mã nguồn
+dsh-*.json
