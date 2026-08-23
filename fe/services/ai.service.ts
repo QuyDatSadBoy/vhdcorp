@@ -52,13 +52,28 @@ export const aiApi = {
     onEvent: (e: AssistantStreamEvent) => void,
     signal?: AbortSignal
   ): Promise<void> => {
-    const res = await fetch(`${axios.defaults.baseURL ?? ""}/agent/ai/assistant/stream`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-      credentials: "include",
-      body: JSON.stringify(body),
-      signal,
-    });
+    const call = () =>
+      fetch(`${axios.defaults.baseURL ?? ""}/agent/ai/assistant/stream`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+          // Phiên admin và phiên khách dùng hai bộ cookie riêng; backend chọn bộ nào
+          // theo header này. Thiếu nó thì request bị coi là chưa đăng nhập (401).
+          "X-Session-Scope": "admin",
+        },
+        credentials: "include",
+        body: JSON.stringify(body),
+        signal,
+      });
+
+    let res = await call();
+    if (res.status === 401) {
+      // Vé hết hạn: làm mới rồi gọi lại đúng một lần (axios tự làm việc này qua
+      // interceptor, còn fetch thì phải tự lo).
+      await axios.post("/auth/refresh").catch(() => undefined);
+      res = await call();
+    }
     if (!res.ok || !res.body) throw new Error(`Trợ lý AI lỗi (HTTP ${res.status})`);
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
