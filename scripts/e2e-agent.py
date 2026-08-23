@@ -133,7 +133,14 @@ def test_tim_san_pham_va_slug():
 def test_khong_bia_hang_khong_co():
     print("\n④ Không bịa hàng không có trong kho")
     r = post_sse("/api/chat", {"message": "bên mình có bán máy bay chiến đấu không?", "page": "/e2e-3"})
-    honest = any(k in r["text"].lower() for k in ("chưa có", "không có", "không kinh doanh", "chỉ hỗ trợ", "xin lỗi"))
+    # Nhận diện câu phủ định theo NGHĨA, không bắt đúng một cách diễn đạt: model viết
+    # "không bán", "không kinh doanh", "chưa có" đều là trả lời đúng như nhau.
+    low = r["text"].lower()
+    honest = any(
+        k in low
+        for k in ("chưa có", "không có", "không bán", "không kinh doanh", "không cung cấp",
+                  "không phải", "ngoài phạm vi", "chỉ hỗ trợ", "chỉ cung cấp", "xin lỗi")
+    )
     check("nói thẳng là không có", honest, repr(r["text"][:80]))
     check("không hiện carousel hàng chẳng liên quan", "product-carousel" not in r["ui"])
 
