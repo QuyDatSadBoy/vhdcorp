@@ -151,6 +151,6 @@ Dành cho người vận hành, nói gọn thay đổi gì:
   mô tả sản phẩm / bài viết chuẩn SEO. Nó **chỉ đưa bản nháp**, admin duyệt rồi mới tạo.
 - **Câu hỏi lặp trả lời tức thì và miễn phí** (chào hỏi, giờ mở cửa…): cache dùng chung cho
   mọi khách, phân theo khu vực trang. Sửa Kiến thức AI là cache tự hết hiệu lực.
-- Kiểm thử: 113 test tự động + 20 phép thử qua HTTP thật (chạy được thẳng trên vhdcorp.com).
+- Kiểm thử: 122 test tự động (118 chạy được offline) + 20 phép thử qua HTTP thật (chạy được thẳng trên vhdcorp.com).
 
 Chi tiết kỹ thuật: [AGENT_PLAN.md §12](AGENT_PLAN.md).

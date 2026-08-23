@@ -37,7 +37,11 @@ app/
 ├── (client)/    # Client routes: /, /products, /posts, /about, /contact
 ├── (auth)/      # /login, /register, /auth/callback
 ├── account/     # /account/* — protected, cần đăng nhập
-└── admin/       # /admin/* — protected, cần role admin/staff
+├── admin/       # /admin/* — protected, cần role admin/staff
+├── api/         # CHỈ 3 route handler: preview, preview/disable, revalidate
+├── copilotkit/  # Runtime CopilotKit self-host (/copilotkit) — KHÔNG đặt dưới /api/*
+│               #   vì nginx đẩy /api/* sang NestJS (xem deploy/nginx.conf)
+└── copilot-demo/ # Trang demo chat headless qua AG-UI
 
 components/
 ├── client/      # Header, Footer, Card, ...
@@ -50,17 +54,19 @@ store/           # {name}.store.ts — Zustand
 hooks/           # use-{name}.ts — custom hooks
 lib/             # axios.ts, utils.ts, cloudinary.ts
 types/           # {domain}.ts — TypeScript interfaces
-messages/        # vi.json, en.json — next-intl strings
+messages/        # vi.json — chuỗi UI tiếng Việt (chỉ 1 ngôn ngữ)
 public/          # static assets (icons/, images/)
 ```
 
 ## Env quan trọng
 
-| Biến                                | Mô tả                                        |
-| ----------------------------------- | -------------------------------------------- |
-| `NEXT_PUBLIC_API_URL`               | URL backend, vd: `http://localhost:8080/api` |
-| `NEXT_PUBLIC_APP_URL`               | URL frontend, vd: `http://localhost:3001`    |
-| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name                        |
-| `NEXT_PUBLIC_GA_ID`                 | Google Analytics (tùy chọn)                  |
+| Biến                                | Mô tả                                                                                                                                          |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_API_URL`               | URL backend, vd: `http://localhost:8080/api`                                                                                                   |
+| `NEXT_PUBLIC_APP_URL`               | URL frontend, vd: `http://localhost:3001`                                                                                                      |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name                                                                                                                          |
+| `NEXT_PUBLIC_GA_ID`                 | Google Analytics (tùy chọn)                                                                                                                    |
+| `NEXT_PUBLIC_AGENT_URL`             | URL agent cho chat widget — dev `http://localhost:8001`, prod `https://<domain>/agent`                                                         |
+| `AGENT_AGUI_URL`                    | Endpoint AG-UI cho runtime CopilotKit (server-side). Mặc định trong code: `http://localhost:8001/agui/chat` — **chưa có trong `.env.example`** |
 
 Xem mẫu đầy đủ tại `.env.example`.

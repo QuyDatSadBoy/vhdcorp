@@ -13,7 +13,10 @@
 
 - `be/` — NestJS 11 + Prisma 7 + PostgreSQL, cổng **8080**, prefix `/api`.
 - `fe/` — Next.js 16 (App Router) + Tailwind v4, cổng **3001**.
-- `agent/` — FastAPI + LangGraph (Gemini), cổng **8001**; đọc trực tiếp Postgres qua `CATALOG_DATABASE_URL`, có A2A (`/.well-known/agent-card.json`) + MCP (`/mcp`).
+- `agent/` — FastAPI + LangGraph + **DeepAgents**, cổng **8001**; model chính **DeepSeek**
+  (`deepseek-v4-flash-vision-exp`), dự phòng Gemini/Groq/MiniMax/OpenRouter; đọc trực tiếp
+  Postgres qua `CATALOG_DATABASE_URL`; có A2A (`/.well-known/agent-card.json`) + MCP (`/mcp`)
+  - **AG-UI** (`/agui/chat`).
 
 **Tài liệu phải đọc theo thứ tự**:
 
@@ -21,7 +24,7 @@
 2. `docs/DEPLOY.md` (file này) — cách triển khai + vận hành.
 3. `docs/HANDOVER.md` — changelog kỹ thuật chi tiết từng đợt (tra khi cần hiểu 1 quyết định cụ thể).
 4. `README.md` — chạy local + lệnh dev.
-5. `docs/AGENT_PLAN.md` — kiến trúc agent · `docs/DATABASE.md` — schema.
+5. `docs/AGENT_PLAN.md` — kiến trúc agent (**§12 = hiện trạng: DeepAgents, chuỗi model, biến env**) · `docs/DATABASE.md` — schema.
 
 **Quy tắc khi thao tác trên VPS**:
 
@@ -81,7 +84,12 @@ cp be/.env.example be/.env         # DATABASE_URL (vhdcorp_prod), JWT/COOKIE sec
                                    # FRONTEND_URL + CORS_ORIGIN=https://<domain>, NODE_ENV=production
 cp fe/.env.example fe/.env.local   # NEXT_PUBLIC_API_URL=https://<domain>/api
                                    # NEXT_PUBLIC_AGENT_URL=https://<domain>/agent
-cp agent/.env.example agent/.env   # GOOGLE_API_KEY, CATALOG_DATABASE_URL=<DATABASE_URL>, Gmail, MiniMax…
+cp agent/.env.example agent/.env   # ⚠️ .env.example LẠC HẬU — bảng env đầy đủ: docs/AGENT_PLAN.md §12.9
+                                   # tối thiểu: DEEPSEEK_API_KEY (model chính), GOOGLE_API_KEYS,
+                                   # GROQ_API_KEY, OPENROUTER_API_KEY, MINIMAX_API_KEY (TTS),
+                                   # CATALOG_DATABASE_URL=<DATABASE_URL>, TAVILY_API_KEYS,
+                                   # ADMIN_SECRET + RESYNC_SECRET (rỗng = chặn hết admin),
+                                   # GMAIL_IMAP_*, CORS_ORIGINS=https://<domain>
 ```
 
 ### 1.5 Deploy lần đầu + seed
@@ -159,6 +167,9 @@ sudo ufw --force enable    # chặn 3001/8080/8001 khỏi truy cập ngoài
 - Nginx nghe **cả :80 và :443** (self-signed cert `/etc/nginx/ssl/origin.crt`) → Cloudflare **Full** mode gọi origin qua 443 mã hóa.
 - Path **`/agent/mcp`** có location riêng đặt `proxy_set_header Host 127.0.0.1:8001` — vì MCP (FastMCP) có DNS-rebinding protection chỉ chấp nhận host nội bộ; A2A/chat giữ Host domain bình thường.
 - File cấu hình mẫu đầy đủ: **`deploy/nginx.conf`** trong repo (copy vào `/etc/nginx/sites-available/vhdcorp`).
+- ⚠️ **Vì `location /api/` đẩy hết sang NestJS:8080**, mọi route handler của Next **không được**
+  đặt dưới `/api/*` (nếu không sẽ không bao giờ chạy). Đó là lý do runtime CopilotKit nằm ở
+  **`/copilotkit`** chứ không phải `/api/copilotkit` — nó đi qua `location /` về Next:3001.
 - BE `.env` production: `COOKIE_DOMAIN=.vhdcorp.com` (bắt buộc — nếu để `localhost` thì trình duyệt trên domain từ chối cookie → không đăng nhập được).
 
 ## 3. CI/CD — push `main` là VPS tự cập nhật
@@ -166,7 +177,17 @@ sudo ufw --force enable    # chặn 3001/8080/8001 khỏi truy cập ngoài
 1. Tạo SSH key deploy: `ssh-keygen -t ed25519 -f vhd_deploy` → thêm `vhd_deploy.pub` vào `~/.ssh/authorized_keys` trên VPS.
 2. GitHub repo → **Settings → Secrets and variables → Actions**:
    - `VPS_HOST` = IP VPS · `VPS_USER` = user SSH · `VPS_SSH_KEY` = nội dung private key `vhd_deploy` · `VPS_PORT` = 22.
-3. Xong — mỗi lần **merge/push vào `main`**, workflow `.github/workflows/deploy.yml` SSH vào VPS chạy `scripts/deploy.sh` (pull → build BE/FE → uv sync → PM2 reload → health check). Build fail thì PM2 giữ bản cũ đang chạy (không sập trang). Theo dõi ở tab Actions; deploy tay: Actions → "Deploy to VPS" → Run workflow.
+3. Xong — mỗi lần **merge/push vào `main`**, workflow `.github/workflows/deploy.yml` SSH vào VPS chạy `DEPLOY_BRANCH=main bash scripts/deploy.sh` (backup build → pull → BE install/migrate/build → FE build → `uv sync --frozen` → PM2 reload → smoke test). Smoke fail thì script **tự rollback** về code + build cũ (không sập trang). Theo dõi ở tab Actions; deploy tay: Actions → workflow **CI/CD** → Run workflow.
+
+**2 điểm cần biết về `scripts/deploy.sh`:**
+
+- Nhận biến **`DEPLOY_BRANCH`** (mặc định `main`) → deploy được nhánh khác để thử trên VPS:
+  `DEPLOY_BRANCH=develop bash scripts/deploy.sh`.
+- Tự thêm `~/.local/bin` (và `~/.cargo/bin`, `/usr/local/bin`) vào `PATH` để tìm **`uv`** —
+  shell SSH không-đăng-nhập không có sẵn đường dẫn đó nên trước đây deploy chết ở bước
+  `uv sync` với `uv: command not found` rồi rollback.
+- Khi GitHub Actions hết quota: dùng `bash scripts/ship.sh --deploy` từ máy local (test đủ
+  rồi mới deploy) — xem `docs/VANHANH.md` §1b.
 
 ## 4. Vận hành hằng ngày
 

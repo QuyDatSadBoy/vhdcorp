@@ -6,6 +6,7 @@
 
 1. [`docs/PRD.md`](docs/PRD.md) — routes, tính năng, auth flow, builder spec, dependencies
 2. [`docs/DATABASE.md`](docs/DATABASE.md) — **9 models đầy đủ**, schema Prisma, index strategy, design decisions
+3. Nếu việc liên quan đến `agent/`: [`docs/AGENT_PLAN.md`](docs/AGENT_PLAN.md) **mục 12** — hiện trạng lõi DeepAgents, chuỗi model, SKILL, subagent, AG-UI, bảng biến môi trường. Mục 1–11 là lịch sử, có chỗ đã lạc hậu.
 
 Dùng **skill** phù hợp + tra **Context7 MCP** cho docs thư viện. Để đảm bảo đáp ứng yêu cầu Web chuẩn SEO + Admin có toàn quyền tùy chỉnh mọi thứ từ ui cho đến tất cả. Web thật nhiều animation 3d để tạo ấn tượng.
 
@@ -15,7 +16,8 @@ Dùng **skill** phù hợp + tra **Context7 MCP** cho docs thư viện. Để đ
 
 - **FE**: Next.js 16 App Router · React 19 · shadcn/ui · Tailwind CSS v4 · TypeScript
 - **BE**: NestJS · Prisma · PostgreSQL
-- **Package manager: `yarn`** — KHÔNG dùng npm, pnpm, hay bun
+- **AGENT** (`agent/`): Python 3.13 · FastAPI · LangGraph · **DeepAgents** · uv — model chính DeepSeek, dự phòng Gemini/Groq/MiniMax/OpenRouter
+- **Package manager: `yarn`** (FE/BE) · **`uv`** (agent) — KHÔNG dùng npm, pnpm, bun, pip
 
 ---
 
@@ -90,6 +92,32 @@ be/src/
 ├── prisma/                     # PrismaService
 └── providers/                  # jwt.provider.ts, throttle.provider.ts
 ```
+
+### AI Agent (`agent/`)
+
+```text
+agent/
+├── app/
+│   ├── core/       # config.py (NGUỒN CHÂN LÝ của env), security, rate_limit, reply_cache, usage
+│   ├── deep/       # LÕI DeepAgents: builder (middleware/subagent/skills), admin_agent,
+│   │               #   default_skills (đọc skills/ từ đĩa), skills_store, mcp_store
+│   ├── graph/      # state + builder (chuỗi model) + nodes/ (guardrail, context, deep_agent)
+│   ├── tools/      # 17 tool VHD — products, site, knowledge, contact, web_search, ui (gen-UI)
+│   ├── services/   # chat_service (SSE), memory_service, knowledge, product_sync, vision
+│   └── api/        # chat, conversations, tts, a2a, admin, admin_ai, admin_deep, agui
+├── skills/         # SKILL bán hàng — 1 thư mục = 1 SKILL.md (frontmatter name/description)
+├── skills-admin/   # SKILL cho trợ lý điều hành admin
+└── tests/          # pytest — 122 test
+```
+
+**Rules riêng cho agent:**
+
+- Thêm biến môi trường → **phải** khai trong `app/core/config.py` (không đọc `os.environ` rải rác).
+- Thêm tool → khai trong `app/graph/builder.py`; nếu tool đẩy giao diện thì dùng hàng đợi UI ở `app/tools/ui.py`.
+- Thêm quy trình nghiệp vụ → **tạo file SKILL.md**, KHÔNG nhồi thêm vào persona ở `context_node.py`.
+- SKILL **không được** chứa giá / tồn kho / bậc chiết khấu — số liệu phải tra bằng tool.
+- Endpoint admin mới → bọc `require_admin` (fail-closed) và thêm proxy ở `be/src/services/agent/`.
+- Comment tiếng Việt như phần còn lại của repo.
 
 ---
 

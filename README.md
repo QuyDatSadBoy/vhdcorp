@@ -72,7 +72,7 @@ yarn dev:log                # dev + ghi log → fe/logs/app.log
 cd agent
 cp .env.example .env        # ⚠️ .env.example đang LẠC HẬU — dùng bảng env ở docs/AGENT_PLAN.md §12.9
 ./run.sh                    # FastAPI + LangGraph — cổng 8001
-rtk pytest                  # 113 test
+rtk pytest                  # 122 test (118 tất định + 4 'live' gọi LLM thật)
 python3 ../scripts/e2e-agent.py    # 20 phép thử qua HTTP thật (agent phải đang chạy)
 ```
 
@@ -93,7 +93,7 @@ Trợ lý AI phủ **đủ mọi module của web**: sản phẩm/giá/tồn kho
 ```bash
 # Chạy khi cả 3 service đang bật (BE 8080, FE 3001, Agent 8001)
 S=/tmp/vhd-test BELOG=<đường_dẫn_log_be> bash scripts/round-full.sh   # PASS khi in ROUND_RESULT=0
-cd agent && rtk pytest                                                # 113 test
+cd agent && rtk pytest                                                # 122 test
 python3 scripts/e2e-agent.py                                          # 20 phép thử qua HTTP thật
 python3 scripts/e2e-agent.py --url https://vhdcorp.com/agent          # kiểm thẳng production
 cd fe && yarn tsc --noEmit && cd ../be && yarn tsc --noEmit           # typecheck

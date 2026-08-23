@@ -104,18 +104,18 @@ _Lưu ý cấu hình:_ deep agent chỉ nhận `DEEP_AGENT_MAX_FALLBACKS` model 
 
 **17 tools** (chưa tính tool hệ thống của DeepAgents: `write_todos`, `task`, `read_file`, `ls`, `glob`, `grep`, và tool từ MCP server admin thêm):
 
-| Nhóm      | Tool                                                                                       | Việc                                                                        |
-| --------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| Tra cứu   | `search_products` / `get_product_detail`                                                   | Tìm/chi tiết SP fuzzy không dấu — giá KM chính xác                          |
-|           | `search_posts`                                                                             | Tin tức → thẻ bài viết bấm được                                             |
-|           | `list_categories`                                                                          | Danh mục + số SP → chip bấm được                                            |
-|           | `get_recommendations`                                                                      | "Khách xem X cũng xem Y" (tracking thật) → carousel                         |
-|           | `get_company_info`                                                                         | Địa chỉ/hotline/social chính thức từ config                                 |
-|           | `search_knowledge` / `web_search`                                                          | Tài liệu công ty / tìm web                                                  |
-|           | `get_current_time`                                                                         | Ngày/giờ thật để đối chiếu giờ mở cửa (không tự đoán)                       |
-| Hành động | `send_contact_request` / `create_quote_request`                                            | Gửi liên hệ / yêu cầu báo giá vào hệ thống                                  |
-|           | `add_to_cart`                                                                              | **Thêm vào giỏ hàng thật hộ khách** (idempotent, thẻ xác nhận + nút mở giỏ) |
-| Gen-UI    | `show_product_carousel` `show_contact_form` `show_quote_form` `show_comparison` `show_faq` | Model chủ động render giao diện trong chat                                  |
+| Nhóm      | Tool                                                                                       | Việc                                                                                                                                |
+| --------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Tra cứu   | `search_products` / `get_product_detail`                                                   | Tìm/chi tiết SP fuzzy không dấu — giá KM chính xác; hàng **chưa niêm yết giá** đọc thành "Liên hệ báo giá" (không bao giờ nói "0đ") |
+|           | `search_posts`                                                                             | Tin tức → thẻ bài viết bấm được                                                                                                     |
+|           | `list_categories`                                                                          | Danh mục + số SP → chip bấm được                                                                                                    |
+|           | `get_recommendations`                                                                      | "Khách xem X cũng xem Y" (tracking thật) → carousel                                                                                 |
+|           | `get_company_info`                                                                         | Địa chỉ/hotline/social chính thức từ config                                                                                         |
+|           | `search_knowledge` / `web_search`                                                          | Tài liệu công ty / tìm web                                                                                                          |
+|           | `get_current_time`                                                                         | Ngày/giờ thật để đối chiếu giờ mở cửa (không tự đoán)                                                                               |
+| Hành động | `send_contact_request` / `create_quote_request`                                            | Gửi liên hệ / yêu cầu báo giá vào hệ thống                                                                                          |
+|           | `add_to_cart`                                                                              | **Thêm vào giỏ hàng thật hộ khách** (idempotent, thẻ xác nhận + nút mở giỏ)                                                         |
+| Gen-UI    | `show_product_carousel` `show_contact_form` `show_quote_form` `show_comparison` `show_faq` | Model chủ động render giao diện trong chat                                                                                          |
 
 **Gen-UI** (giao thức AG-UI-style tự viết — SSE event `ui {component, props}` → registry React): product-carousel (kèm giá gạch khi KM), post-list, category-list, contact-form, quote-request, comparison-table, faq, image-search-result. Form gen-UI submit → gửi ngược lại agent (human-in-the-loop). Reload trang **giữ nguyên** UI đã render.
 
@@ -127,7 +127,43 @@ _Lưu ý cấu hình:_ deep agent chỉ nhận `DEEP_AGENT_MAX_FALLBACKS` model 
 
 **Khác**: voice input (Web Speech) + TTS đọc câu trả lời (`POST /api/tts`: **MiniMax chính → PTIT holobox dự phòng**, cache 2 lớp server + client), tìm sản phẩm bằng ảnh (vision của model chính), memory dài hạn theo khách, đọc Gmail (endpoint admin, secret), guardrail chống lộ system prompt, chống spam theo IP + trần chi phí/ngày.
 
-**Kiểm thử**: `cd agent && rtk pytest` — **113 test**; `python3 scripts/e2e-agent.py` — **20 phép thử qua HTTP thật** (chạy được cả với `--url https://vhdcorp.com/agent`).
+**Kiểm thử**: `cd agent && rtk pytest` — **122 test** (118 tất định + 4 test gọi LLM thật, gắn mark `live`); `python3 scripts/e2e-agent.py` — **20 phép thử qua HTTP thật** (chạy được cả với `--url https://vhdcorp.com/agent`).
+
+### 4.1 Hướng dẫn cho người vận hành — dạy thêm nghiệp vụ cho trợ lý (không cần lập trình)
+
+Trợ lý đã biết tra sản phẩm, giá, tồn kho, chính sách. Khi muốn nó **làm đúng cách bán hàng
+của mình** (hỏi gì trước, hỏi gì sau), bạn thêm một **kỹ năng**:
+
+1. Vào **Quản trị → Kỹ năng & công cụ AI**.
+2. Bấm thêm kỹ năng, điền:
+   - **Tên**: ngắn, dễ hiểu — vd _"Báo giá sỉ theo số lượng"_.
+   - **Mô tả**: **khi nào** trợ lý nên dùng — vd _"Dùng khi khách hỏi giá từ 10 cái trở lên"_.
+     Trợ lý đọc đúng dòng này để quyết định có mở kỹ năng ra hay không, nên viết rõ.
+   - **Nội dung**: các bước cần làm, viết như hướng dẫn cho nhân viên mới:
+
+     ```
+     ## Khi nào dùng
+     Khách hỏi giá số lượng lớn, hỏi làm đại lý.
+
+     ## Các bước
+     1. Hỏi khách cần mặt hàng nào, quy cách nào, số lượng bao nhiêu.
+     2. Tra sản phẩm trong hệ thống để chắc chắn có hàng.
+     3. Xin tên + số điện thoại + email rồi lập yêu cầu báo giá.
+     ```
+
+3. Bấm lưu → **lượt chat tiếp theo là trợ lý đã dùng**, không cần khởi động lại gì.
+4. Muốn tạm ngưng một kỹ năng: bật/tắt bằng công tắc trong danh sách.
+
+⚠️ **Tuyệt đối không viết giá, tồn kho, bậc chiết khấu, thời gian giao vào kỹ năng.** Những số
+này thay đổi liên tục và trợ lý phải tra từ hệ thống. Viết cứng vào kỹ năng thì trợ lý sẽ đọc
+số cũ cho khách một cách rất tự tin. Kỹ năng chỉ nên chứa **cách làm**, không chứa **số liệu**.
+
+Sửa **thông tin công ty** (giờ mở cửa, địa chỉ, chính sách đổi trả…) thì vào
+**Quản trị → Kiến thức AI**, không phải kỹ năng.
+
+Mục **MCP server** trong cùng trang dành cho kỹ thuật: khai báo thêm công cụ ngoài cho trợ lý.
+Sau khi thêm/xoá phải **khởi động lại agent** (giao diện sẽ báo) — làm được ở
+**Quản trị → Server → restart `vhd-agent`**.
 
 ## 5. Page Builder — WYSIWYG toàn site
 

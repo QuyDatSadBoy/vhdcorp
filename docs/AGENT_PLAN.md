@@ -103,7 +103,7 @@ agent/
 │       ├── admin_deep.py     # /api/admin/deep/{skills,mcp}
 │       └── agui.py           # /agui/chat — endpoint AG-UI cho CopilotKit
 ├── scripts/sync_products.py
-└── tests/                    # 17 module, 113 test (pytest)
+└── tests/                    # 16 module, 122 test (pytest)
 ```
 
 ### Luồng graph (LangGraph `StateGraph`)
@@ -388,7 +388,25 @@ lời bằng dữ liệu đã có — khách luôn nhận được câu trả l�
 `web_search` · `send_contact_request` · `create_quote_request` · `search_posts` ·
 `list_categories` · `get_recommendations` · `get_company_info` · `add_to_cart` ·
 `show_product_carousel` · `show_contact_form` · `show_quote_form` · `show_comparison` ·
-`show_faq` (+ tool từ MCP server admin cấu hình, nạp lúc khởi động).
+`show_faq` · `ask_user_question` (+ tool từ MCP server admin cấu hình, nạp lúc khởi động).
+
+`ask_user_question(question, options, allow_other)` cho trợ lý **hỏi lại khách bằng nút
+bấm** thay vì bắt khách gõ — dùng khi thiếu đúng một thông tin mà câu trả lời nằm trong
+tập hữu hạn (chất liệu, nhóm quy cách, khoảng số lượng). Tối đa 5 lựa chọn; dưới 2 lựa
+chọn thì tool tự từ chối và nhắc model hỏi bằng lời.
+
+> Đang làm dở trong cây làm việc (chưa commit lúc viết tài liệu này): tool thứ 18
+> `ask_user_question` — hỏi lại khách bằng các lựa chọn bấm được, đẩy gen-UI `user-question`
+> (tối đa 5 lựa chọn). Khi nó được commit thì sửa mọi chỗ ghi "17 tool" thành 18.
+
+**Deep agent riêng cho ADMIN** (`agent/app/deep/admin_agent.py`): cùng lõi, khác 3 điểm —
+persona `ADMIN_PERSONA` (nói thẳng số liệu kho, không bán hàng, KHÔNG tự ghi DB), bộ tool
+gọn còn **8 tool tra cứu** (`ADMIN_TOOL_NAMES`: `search_products`, `get_product_detail`,
+`list_categories`, `search_knowledge`, `get_company_info`, `search_posts`, `web_search`,
+`get_recommendations` — bỏ hết tool giao diện khách và `add_to_cart`), và SKILL lấy từ
+`skills-admin/`. Agent này được **cache 1 lần cho cả tiến trình** (`get_admin_agent()`,
+`reset_admin_agent()` để xoá cache trong test) và chạy với `recursion_limit = 100` — mức mặc
+định 25 của LangGraph hết sạch sau 3–4 lần gọi tool vì mỗi vòng model⇄tool đi qua ~8 node.
 
 ### 12.3 SKILL — quy trình nghiệp vụ dạng file
 
@@ -428,8 +446,13 @@ description: Một dòng mô tả khi nào dùng skill này — model đọc dò
 1. Hỏi khách ...
 2. Tra bằng tool search_products ...
 MD
-# rồi restart agent (skill đọc lại mỗi lượt chat, nhưng file mới cần process đọc lại thư mục)
 ```
+
+`DeepAgentNode.run` gọi `default_skills.to_files()` + `skills_store.to_files()` **ở MỖI lượt
+chat**, và cả hai đều đọc lại từ đĩa/JSON (không cache) → thêm/sửa skill có hiệu lực ngay ở
+lượt chat kế tiếp, **không cần restart agent**. (Docstring `default_skills.py` còn ghi "sửa
+file rồi khởi động lại agent" — thận trọng quá, code không cần vậy. Chỉ **MCP server** mới
+phải restart vì nạp ở lifespan.)
 
 Quy tắc viết skill (ghi trong docstring `default_skills.py`): **chỉ mô tả QUY TRÌNH** (hỏi gì,
 tra tool nào, thứ tự nào). **KHÔNG nhúng dữ liệu kinh doanh** (giá, bậc chiết khấu, tồn kho,
@@ -452,10 +475,11 @@ không phải trả tiền cho dữ liệu thô ở mọi lượt sau.
 
 ### 12.5 AG-UI + CopilotKit (chạy SONG SONG với `/api/chat`)
 
-- **Agent**: `agent/app/api/agui.py` gắn endpoint AG-UI tại **`/agui/chat`** (tên agent
-  `vhd_chat`) bằng `ag-ui-langgraph 0.0.43` + `copilotkit 0.1.95`. Hằng `ADMIN_PATH =
-"/agui/admin"` (agent `vhd_admin`) đã có trong code nhưng **hiện chưa được mount** —
-  `main.py` chỉ truyền `chat_graph`. Thiếu 2 thư viện → không bật endpoint, service vẫn chạy.
+- **Agent**: `agent/app/api/agui.py` gắn **2 endpoint** AG-UI bằng `ag-ui-langgraph 0.0.43` +
+  `copilotkit 0.1.95`: **`/agui/chat`** (agent `vhd_chat`, graph chat khách) và
+  **`/agui/admin`** (agent `vhd_admin`, deep agent của trợ lý điều hành). `main.py` dựng
+  admin agent ngay trong lifespan để lỗi cấu hình lộ ra lúc khởi động; dựng lỗi thì chỉ bỏ
+  AG-UI admin, chat khách vẫn chạy. Thiếu 2 thư viện → không bật endpoint nào, service vẫn chạy.
 - Có bản vá `_AguiAgent.clone()`: `LangGraphAgent.clone()` truyền 3 tham số mà
   `LangGraphAGUIAgent.__init__` không nhận → nếu không vá thì **mọi request AG-UI trả 500**.
   Không thể bỏ clone vì adapter giữ trạng thái run trong instance.
@@ -491,8 +515,10 @@ không phải trả tiền cho dữ liệu thô ở mọi lượt sau.
 | `done`          | `{message_id, cached?}`       | `cached: true` khi trả từ cache câu lặp                                                                                                                                                                   |
 | `error`         | `{message}`                   |                                                                                                                                                                                                           |
 
-`/api/admin/ai/assistant/stream` dùng **đúng bộ event này** (`message.delta`, `tool.start`,
-`tool.end`, `todo`, `done`, `error`) để giao diện admin hiện kế hoạch + log tool.
+`/api/admin/ai/assistant/stream` dùng **cùng tên event** (`message.delta`, `tool.start`,
+`tool.end`, `todo`, `error`) để giao diện admin hiện kế hoạch + log tool; khác duy nhất ở
+`done` — trả `{reply: <toàn bộ văn bản>}` thay vì `{message_id}` (trợ lý admin không lưu
+hội thoại), và không có event `conversation`/`ui`.
 
 ### 12.7 Cache câu hỏi lặp (`agent/app/core/reply_cache.py`)
 
@@ -522,7 +548,7 @@ không phải trả tiền cho dữ liệu thô ở mọi lượt sau.
 | GET              | `/api/health`                                                                         | —                                         |
 | GET/POST         | `/.well-known/agent-card.json`, `/a2a`                                                | A2A (có rate-limit)                       |
 | —                | `/mcp` (streamable-http)                                                              | mount MCP server                          |
-| POST             | `/agui/chat` (+ `/agui/chat/health`)                                                  | AG-UI (không có cache/anti-spam)          |
+| POST             | `/agui/chat`, `/agui/admin` (mỗi endpoint có `/health` kèm theo)                      | AG-UI (không có cache/anti-spam)          |
 | POST             | `/api/admin/resync-products`                                                          | `X-Resync-Secret`                         |
 | GET/PUT          | `/api/admin/knowledge`                                                                | `X-Admin-Secret`                          |
 | GET              | `/api/admin/emails`                                                                   | `X-Admin-Secret`                          |
@@ -593,8 +619,8 @@ vào agent bằng `X-Admin-Secret`; trang `/admin/ai-assistant` đang dùng bả
 ### 12.10 Kiểm thử & deploy
 
 ```bash
-cd agent && rtk pytest                 # 113 test (17 module)
-cd agent && rtk pytest -m "not live"   # bộ tất định — CI chạy lệnh này
+cd agent && rtk pytest                 # 122 test (16 module) — 118 tất định + 4 test 'live'
+cd agent && rtk pytest -m "not live"   # 118 test tất định — CI chạy đúng lệnh này
 
 python3 scripts/e2e-agent.py                              # 20 phép thử qua HTTP thật (localhost:8001)
 python3 scripts/e2e-agent.py --url https://vhdcorp.com/agent   # chạy thẳng trên production
@@ -604,6 +630,9 @@ python3 scripts/e2e-agent.py --url https://vhdcorp.com/agent   # chạy thẳng 
   lặp, tìm sản phẩm + slug, không bịa hàng không có, SKILL nghiệp vụ, AG-UI, chặn spam. Chỉ
   nhận cờ `--url` (mặc định `http://127.0.0.1:8001`); tự giãn nhịp 4s/lượt và chờ 20s + thử
   lại 2 lần khi bị anti-spam chặn.
+- 4 test gắn `@pytest.mark.live` (gọi LLM/dịch vụ thật) nằm ở `test_a2a.py`, `test_api.py`,
+  `test_image.py`, `test_ui_tools.py`. Marker `live` **chưa khai báo** trong `pyproject.toml`
+  (chỉ có `integration`) → pytest in `PytestUnknownMarkWarning`, việc lọc vẫn đúng.
 - CI (`.github/workflows/deploy.yml`): 4 job song song `be` / `fe_build` / `fe_check` /
   `agent`, rồi job gate tên **`test`** (dùng cho branch protection), rồi `deploy` khi push `main`.
 - `scripts/deploy.sh`: nhận **`DEPLOY_BRANCH`** (mặc định `main`) nên deploy được nhánh khác;
