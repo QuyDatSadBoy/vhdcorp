@@ -35,10 +35,50 @@ class McpPayload(BaseModel):
     enabled: bool = True
 
 
+def _builtin_skills() -> list[dict]:
+    """5 SKILL bán hàng viết sẵn trong mã nguồn (agent/skills/*/SKILL.md).
+
+    Admin cần THẤY chúng để biết trợ lý đang có sẵn tri thức gì — trước đây trang
+    quản trị chỉ liệt kê skill do admin tự thêm nên trông như trợ lý chẳng có gì.
+    Đánh dấu `builtin` để giao diện hiện dạng chỉ-đọc: muốn đổi thì sửa file trong
+    mã nguồn rồi phát hành, không sửa qua web.
+    """
+    from app.deep import default_skills
+
+    out: list[dict] = []
+    for path, data in default_skills.to_files().items():
+        body = data.get("content", "")
+        # Frontmatter `name` buộc phải là slug (DeepAgents dùng nó làm khoá), nên tên
+        # đọc được cho người nằm ở heading `# ...` đầu tiên của phần nội dung.
+        title, description = "", ""
+        for line in body.splitlines():
+            line = line.strip()
+            if line.startswith("description:") and not description:
+                description = line[12:].strip().strip("\"'")
+            elif line.startswith("# ") and not title:
+                title = line[2:].strip()
+            if title and description:
+                break
+        name = title
+        slug = path.strip("/").split("/")[-2] if "/" in path.strip("/") else path
+        out.append({
+            "name": name or slug,
+            "description": description,
+            "content": body,
+            "enabled": True,
+            "slug": slug,
+            "builtin": True,
+        })
+    return out
+
+
 @router.get("/skills")
 async def get_skills(x_admin_secret: str = Header(None, alias="X-Admin-Secret")):
     require_admin(x_admin_secret)
-    return {"skills": skills_store.list_skills()}
+    custom = skills_store.list_skills()
+    custom_slugs = {s.get("slug") for s in custom}
+    builtin = [s for s in _builtin_skills() if s["slug"] not in custom_slugs]
+    return {"skills": [*builtin, *custom]}
 
 
 @router.post("/skills")

@@ -12,6 +12,8 @@ export interface DeepSkill {
   content: string;
   enabled: boolean;
   slug: string;
+  /** Kỹ năng viết sẵn trong mã nguồn: chỉ xem, không sửa/xoá qua web */
+  builtin?: boolean;
 }
 
 export type McpTransport = "streamable_http" | "sse";

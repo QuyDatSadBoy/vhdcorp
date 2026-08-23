@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { BookOpen, Loader2, Pencil, Plug, Plus, RefreshCw, Save, Trash2, TriangleAlert, X } from "lucide-react";
+import { BookOpen, Eye, Loader2, Pencil, Plug, Plus, RefreshCw, Save, Trash2, TriangleAlert, X } from "lucide-react";
 import {
   useDeepSkills,
   useSaveDeepSkill,
@@ -117,6 +117,8 @@ function SkillsCard() {
   const del = useDeleteDeepSkill();
   const confirm = useConfirm();
   const [form, setForm] = useState<SkillForm | null>(null);
+  // Kỹ năng viết sẵn chỉ để xem — giữ riêng khỏi `form` để không lẫn với luồng sửa
+  const [viewing, setViewing] = useState<DeepSkill | null>(null);
 
   const skills = data?.skills ?? [];
 
@@ -203,6 +205,11 @@ function SkillsCard() {
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-2 text-sm font-semibold">
                     <span className="truncate">{s.name}</span>
+                    {s.builtin && (
+                      <span className="shrink-0 rounded-full bg-brand-accent/15 px-2 py-0.5 text-[10px] font-semibold text-brand-accent">
+                        Có sẵn
+                      </span>
+                    )}
                     {!s.enabled && (
                       <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                         Đang tắt
@@ -214,42 +221,71 @@ function SkillsCard() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <Switch
-                    checked={s.enabled}
-                    onCheckedChange={(v) => void toggle(s, v)}
-                    aria-label={`Bật/tắt kỹ năng ${s.name}`}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="gap-1.5"
-                    onClick={() =>
-                      setForm({
-                        slug: s.slug,
-                        name: s.name,
-                        description: s.description,
-                        content: s.content,
-                        enabled: s.enabled,
-                      })
-                    }
-                  >
-                    <Pencil className="h-3.5 w-3.5" /> Sửa
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="text-(--vhd-color-danger) hover:bg-(--vhd-color-danger)/10 hover:text-(--vhd-color-danger)"
-                    aria-label={`Xoá kỹ năng ${s.name}`}
-                    onClick={() => void remove(s)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {s.builtin ? (
+                    // Kỹ năng viết sẵn: cho XEM nội dung để biết trợ lý đang dựa vào đâu,
+                    // nhưng không sửa/xoá qua web — nguồn của nó là file trong mã nguồn.
+                    <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => setViewing(s)}>
+                      <Eye className="h-3.5 w-3.5" /> Xem
+                    </Button>
+                  ) : (
+                    <>
+                      <Switch
+                        checked={s.enabled}
+                        onCheckedChange={(v) => void toggle(s, v)}
+                        aria-label={`Bật/tắt kỹ năng ${s.name}`}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={() =>
+                          setForm({
+                            slug: s.slug,
+                            name: s.name,
+                            description: s.description,
+                            content: s.content,
+                            enabled: s.enabled,
+                          })
+                        }
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> Sửa
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="text-(--vhd-color-danger) hover:bg-(--vhd-color-danger)/10 hover:text-(--vhd-color-danger)"
+                        aria-label={`Xoá kỹ năng ${s.name}`}
+                        onClick={() => void remove(s)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </li>
             ))}
           </ul>
+        )}
+
+        {viewing && (
+          <div className="space-y-3 rounded-2xl border border-brand-accent/25 bg-brand-accent/5 p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold">{viewing.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  Kỹ năng có sẵn trong mã nguồn — muốn đổi thì sửa file rồi phát hành lại
+                </p>
+              </div>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setViewing(null)} className="gap-1">
+                <X className="h-4 w-4" /> Đóng
+              </Button>
+            </div>
+            <pre className="max-h-80 overflow-auto rounded-xl border border-foreground/8 bg-card p-3 font-mono text-xs whitespace-pre-wrap text-foreground/80">
+              {viewing.content}
+            </pre>
+          </div>
         )}
 
         {form && (
