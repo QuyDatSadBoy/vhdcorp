@@ -491,10 +491,11 @@ export default function TtsButton({
       aria-label={label}
       title={label}
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium transition-colors",
+        // Cùng hình học với các nút khác trong hàng hành động: tròn 28, glyph 14
+        "grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full transition-colors",
         status === "playing"
-          ? "text-brand-accent"
-          : "text-muted-foreground/60 hover:text-brand-primary dark:hover:text-brand-accent"
+          ? "bg-muted text-brand-accent"
+          : "text-muted-foreground/70 hover:bg-muted hover:text-foreground"
       )}
     >
       {status === "loading" ? (
