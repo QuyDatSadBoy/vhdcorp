@@ -79,6 +79,19 @@ rồi gợi ý món gần nhất hoặc mời khách để lại liên hệ — 
 từ khoá khác nhau."""
 
 
+_DELEGATE_PROMPT = """## Giao việc cho trợ lý phụ (`task`)
+
+Khi khách hỏi về **3 mặt hàng trở lên** trong một câu (so sánh, báo giá gộp, liệt kê
+theo nhóm), hãy giao cho trợ lý phụ `tra-cuu-san-pham` thay vì tự tra từng món.
+Khi cần đối chiếu nhiều mục chính sách/tài liệu, giao cho `tra-cuu-tai-lieu`.
+
+Vì sao bắt buộc: tra 4 món trực tiếp là gần 10 lượt gọi tool, và toàn bộ dữ liệu thô
+đó nằm lại trong hội thoại — những lượt sau vẫn phải trả tiền cho nó mãi. Trợ lý phụ
+chạy riêng rồi trả về đúng phần kết luận.
+
+Hỏi 1–2 món thì tra trực tiếp, ĐỪNG giao việc (giao cho một món chỉ thêm một vòng chờ)."""
+
+
 # ── Subagent: việc nặng chạy trong context RIÊNG rồi trả về 1 bản tóm tắt ──────
 # Lợi ích thật: so sánh 4-5 sản phẩm cần tra rất nhiều lần; nếu chạy trong hội thoại
 # chính thì toàn bộ dữ liệu thô đó nằm lại trong context và những lượt sau phải trả tiền
@@ -190,7 +203,7 @@ def build_deep_agent(llms: list, tools: list, system_prompt: str = "", max_model
     return create_deep_agent(
         model=primary,
         tools=tools,
-        system_prompt=(system_prompt + "\n\n" + _SEARCH_DISCIPLINE).strip(),
+        system_prompt=(system_prompt + "\n\n" + _SEARCH_DISCIPLINE + "\n\n" + _DELEGATE_PROMPT).strip(),
         middleware=_middleware(fallbacks),
         subagents=_subagents(tools),
         skills=["/skills/"],
