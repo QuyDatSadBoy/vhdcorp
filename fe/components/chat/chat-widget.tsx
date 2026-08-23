@@ -8,6 +8,7 @@ import { useSiteConfigStore } from "@/store/site-config.store";
 import { cn } from "@/lib/utils";
 import AgentPlan from "./agent-plan";
 import ChatInput from "./chat-input";
+import SessionStats from "./session-stats";
 import ConversationSidebar from "./conversation-sidebar";
 import MessageList from "./message-list";
 import { useChat } from "./use-chat";
@@ -316,6 +317,7 @@ export default function ChatWidget() {
                   </div>
                 )}
                 <ChatInput streaming={chat.streaming} onSend={handleSend} onStop={chat.stop} />
+                <SessionStats messages={chat.messages} />
               </div>
             </div>
           </motion.div>
