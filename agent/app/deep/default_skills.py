@@ -66,9 +66,3 @@ def to_files() -> dict[str, dict[str, str]]:
 def admin_to_files() -> dict[str, dict[str, str]]:
     """SKILL viết sẵn cho trợ lý điều hành (trang admin)."""
     return _read_dir(ADMIN_SKILLS_DIR)
-
-
-def list_names(base: Path | None = None) -> list[str]:
-    """Tên thư mục các skill đang có trên đĩa — dùng cho trang admin/chẩn đoán."""
-    d = base or CLIENT_SKILLS_DIR
-    return sorted(p.parent.name for p in d.glob("*/SKILL.md")) if d.is_dir() else []

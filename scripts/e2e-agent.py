@@ -22,6 +22,10 @@ import urllib.request
 BASE = "http://127.0.0.1:8001"
 results: list[tuple[bool, str, str]] = []
 
+# Cloudflare (đứng trước vhdcorp.com) chặn User-Agent mặc định của urllib bằng 403,
+# nên phải khai báo UA như trình duyệt mới kiểm thử được môi trường production.
+_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36"
+
 
 def check(name: str, ok: bool, detail: str = "") -> None:
     results.append((ok, name, detail))
@@ -49,7 +53,7 @@ def post_sse(path: str, payload: dict, user: str = "e2e", timeout: int = 120, _r
     req = urllib.request.Request(
         f"{BASE}{path}",
         data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json", "X-Chat-User": user},
+        headers={"Content-Type": "application/json", "X-Chat-User": user, "User-Agent": _UA},
     )
     out = {"text": "", "tools": [], "ui": [], "todos": None, "cached": False, "error": None, "events": {}}
     t0 = time.time()
@@ -90,7 +94,7 @@ def post_sse(path: str, payload: dict, user: str = "e2e", timeout: int = 120, _r
 
 
 def get_json(path: str, headers: dict | None = None, timeout: int = 20):
-    req = urllib.request.Request(f"{BASE}{path}", headers=headers or {})
+    req = urllib.request.Request(f"{BASE}{path}", headers={"User-Agent": _UA, **(headers or {})})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read())
 
@@ -143,7 +147,9 @@ def test_skill_nghiep_vu():
 def test_agui():
     print("\n⑥ Endpoint AG-UI (CopilotKit)")
     try:
-        health = urllib.request.urlopen(f"{BASE}/agui/chat/health", timeout=10).status
+        health = urllib.request.urlopen(
+            urllib.request.Request(f"{BASE}/agui/chat/health", headers={"User-Agent": _UA}), timeout=10
+        ).status
     except Exception as exc:  # noqa: BLE001
         check("health 200", False, str(exc)[:60])
         return
@@ -155,7 +161,7 @@ def test_agui():
             "messages": [{"id": "m1", "role": "user", "content": "xin chào"}],
             "tools": [], "context": [], "forwardedProps": {},
         }).encode(),
-        headers={"Content-Type": "application/json", "Accept": "text/event-stream"},
+        headers={"Content-Type": "application/json", "Accept": "text/event-stream", "User-Agent": _UA},
     )
     kinds: dict[str, int] = {}
     with urllib.request.urlopen(req, timeout=120) as r:

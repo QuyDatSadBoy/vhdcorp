@@ -126,8 +126,16 @@ async def lifespan(app: FastAPI):
         # /api/chat, không thay thế. Gắn ở đây vì cần graph đã compile với checkpointer.
         if settings.use_deep_agent:
             from app.api.agui import mount_agui
+            from app.deep.admin_agent import get_admin_agent
 
-            app.state.agui_paths = mount_agui(app, chat_graph=graph)
+            # Trợ lý admin cũng nói AG-UI để trang quản trị dùng được CopilotKit.
+            # Dựng ở đây (thay vì lần gọi đầu) để lỗi cấu hình lộ ra lúc khởi động.
+            try:
+                admin_agent = get_admin_agent()
+            except Exception:  # noqa: BLE001 — thiếu key/cấu hình không được chặn chat khách
+                logger.exception("Không dựng được trợ lý admin → bỏ qua AG-UI admin")
+                admin_agent = None
+            app.state.agui_paths = mount_agui(app, chat_graph=graph, admin_graph=admin_agent)
 
         app.state.settings = settings
         app.state.db = db
