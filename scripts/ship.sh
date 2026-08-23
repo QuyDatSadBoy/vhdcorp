@@ -174,4 +174,13 @@ if [ ${#FAILED[@]} -gt 0 ]; then
   fail "production có vấn đề: ${FAILED[*]}"
   exit 1
 fi
-echo -e "\n${GREEN}${BOLD}✅ Đã phát hành: $(git -C "$ROOT" rev-parse --short HEAD)${OFF}"
+# Đọc commit THẬT trên server, không in commit ở máy local: nếu có commit nào được
+# push trong lúc deploy đang chạy thì server không có nó, mà dòng tổng kết lại bảo là
+# đã phát hành — báo cáo sai sự thật còn tệ hơn không báo.
+SERVER_SHA=$("${SSH[@]}" "cd /root/vhdcorp && git rev-parse --short HEAD" 2>/dev/null | tr -d '\r\n')
+LOCAL_SHA=$(git -C "$ROOT" rev-parse --short HEAD)
+echo -e "\n${GREEN}${BOLD}✅ Server đang chạy: ${SERVER_SHA:-không đọc được}${OFF}"
+if [ -n "$SERVER_SHA" ] && [ "$SERVER_SHA" != "$LOCAL_SHA" ]; then
+  fail "máy local đang ở $LOCAL_SHA — có commit push sau khi deploy đã kéo code, chạy lại để đưa nốt lên"
+  exit 1
+fi
