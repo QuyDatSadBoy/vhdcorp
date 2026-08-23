@@ -359,21 +359,24 @@
     content: "";
     position: absolute;
     inset-block: 0;
-    left: -240px;
-    width: 240px;
+    left: -300px;
+    width: 300px;
     pointer-events: none;
+    /* Dải sáng là MÀU NỀN ở 60% alpha, không phải màu nhấn: nó rửa mờ chữ về phía
+       nền khi đi qua chứ không loé lên — kiềm chế, đọc chữ vẫn thoải mái. */
     background: linear-gradient(
       90deg,
       transparent 0%,
-      color-mix(in srgb, var(--vhd-color-accent) 22%, transparent) 55%,
+      color-mix(in srgb, var(--background) 60%, transparent) 55%,
       transparent 100%
     );
     animation: agent-row-sweep 2.6s ease-out infinite;
   }
   @keyframes agent-row-sweep {
     0% {
-      left: -240px;
+      left: -300px;
     }
+    /* Dừng 10% chu kỳ ở cạnh phải → mỗi lượt quét có nhịp thở, không quay vòng liên tục */
     90%,
     100% {
       left: 100%;

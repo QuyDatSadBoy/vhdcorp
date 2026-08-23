@@ -108,15 +108,9 @@ export default function AgentPlan({ items }: { items: TodoItem[] }) {
               <span className="pt-0.5">
                 <StatusGlyph status={item.status} />
               </span>
-              <span
-                className={
-                  item.status === "completed"
-                    ? "text-muted-foreground line-through"
-                    : item.status === "in_progress"
-                      ? "font-medium text-foreground"
-                      : "text-muted-foreground"
-                }
-              >
+              {/* Việc xong KHÔNG gạch ngang: chữ giữ nguyên, chỉ đổi vòng trạng thái.
+                  Gạch ngang cả danh sách làm khung kế hoạch trông như bị bỏ đi. */}
+              <span className={item.status === "in_progress" ? "font-medium text-foreground" : "text-muted-foreground"}>
                 {item.content}
               </span>
             </li>
