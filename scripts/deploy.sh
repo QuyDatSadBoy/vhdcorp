@@ -46,21 +46,35 @@ rollback() {
 log "1/7 Kéo code mới nhất (nhánh $BRANCH)"
 git fetch origin "$BRANCH"
 
-# Trạng thái CHẠY của máy chủ (chế độ trợ lý, kỹ năng admin tự thêm, cấu hình MCP)
-# nằm trong agent/data. Nếu một file như vậy lỡ bị commit rồi sau đó gỡ khỏi git, thì
-# checkout ở đây chết vì "local changes would be overwritten" — đã xảy ra thật một lần.
-# Gỡ khỏi index nhưng GIỮ NGUYÊN nội dung trên đĩa: cấu hình admin đặt trên máy chủ
-# không được phép bị bản ở máy lập trình ghi đè.
-for runtime in agent/data/agent_mode.local.json agent/data/skills.local.json                agent/data/mcp_servers.local.json agent/data/chat_limits.local.json; do
-  if git ls-files --error-unmatch "$runtime" >/dev/null 2>&1; then
-    log "  ↻ gỡ $runtime khỏi git (giữ nội dung trên máy chủ)"
-    git rm --cached -q "$runtime" || true
-  fi
+# Trạng thái CHẠY của máy chủ (chế độ trợ lý, kỹ năng admin tự thêm, cấu hình MCP,
+# hạn mức chat) nằm trong agent/data. Đây là thiết lập của người vận hành, KHÔNG được
+# để bản ở máy lập trình ghi đè.
+#
+# Cách làm: chuyển ra ngoài repo → kéo code → đưa về. Không dùng `git rm --cached` vì
+# chỉ gỡ khỏi index thì git vẫn kẹt ở bước checkout (đã gặp cả hai kiểu lỗi thật:
+# "local changes would be overwritten" khi file còn track, rồi "untracked files would
+# be removed" sau khi gỡ). Đưa hẳn ra ngoài thì git không còn gì để tranh chấp.
+RUNTIME_FILES="agent_mode.local.json skills.local.json mcp_servers.local.json chat_limits.local.json knowledge.local.md reply_cache.local.json usage_stats.local.json"
+RUNTIME_STASH=$(mktemp -d)
+for rf in $RUNTIME_FILES; do
+  [ -f "agent/data/$rf" ] && cp -p "agent/data/$rf" "$RUNTIME_STASH/$rf"
+done
+
+restore_runtime() {
+  for rf in $RUNTIME_FILES; do
+    [ -f "$RUNTIME_STASH/$rf" ] && cp -p "$RUNTIME_STASH/$rf" "agent/data/$rf"
+  done
+  rm -rf "$RUNTIME_STASH"
+}
+
+for rf in $RUNTIME_FILES; do
+  rm -f "agent/data/$rf"
 done
 
 git checkout -B "$BRANCH" "origin/$BRANCH"
-# reset --hard KHÔNG chạm file đã gỡ khỏi index ở trên, nên cấu hình vẫn còn
+# Lúc này agent/data đã trống các file thiết lập nên git không vướng gì
 git reset --hard "origin/$BRANCH"
+restore_runtime  # đưa thiết lập của máy chủ về đúng chỗ
 
 # Từ đây nếu bất kỳ bước nào lỗi → rollback
 trap rollback ERR
