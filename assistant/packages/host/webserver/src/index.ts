@@ -15,7 +15,6 @@ import type { Duplex } from 'node:stream'
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { renderIndexInjections, type IndexInjection } from './injections.ts'
-import { createAuthGate, type AuthGate } from './vhd-auth.ts'
 
 export { renderIndexInjections } from './injections.ts'
 export type { IndexInjection, IndexInjectionPlacement } from './injections.ts'
@@ -83,8 +82,6 @@ export class WebServer extends Service {
   private readonly upgradedSockets = new Set<Duplex>()
   private readonly indexTaps: ((html: string) => string)[] = []
   private fallback: WebRoute['handler'] | undefined
-  /** Cổng đăng nhập bản nội bộ VHD; undefined = chạy như bản gốc (một mình, loopback). */
-  private readonly auth: AuthGate | undefined = createAuthGate(process.env['VHD_AUTH_USERS'])
   private server!: Server
   private listenedPort!: number
 
@@ -167,9 +164,6 @@ export class WebServer extends Service {
     const handle = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
       /* v8 ignore next -- `?? '/'` arm: node:http always sets url on server
       requests; the field is only optional on the client-side IncomingMessage type */
-      // Cổng đăng nhập đứng TRƯỚC mọi định tuyến: chưa đăng nhập thì không tới
-      // được route nào, kể cả tệp tĩnh của giao diện.
-      if (this.auth !== undefined && (await this.auth.handle(req, res))) return
       const rawPath = new URL(req.url ?? '/', 'http://x').pathname
       const route = this.match(rawPath)
       if (route !== undefined) {
@@ -200,13 +194,6 @@ export class WebServer extends Service {
       })
     })
     this.server.on('upgrade', (req, socket, head) => {
-      // WebSocket phải khoá y như HTTP: bỏ chỗ này là để lại cửa sau đi thẳng
-      // vào trợ lý mà không cần đăng nhập.
-      if (this.auth !== undefined && !this.auth.isAuthed(req)) {
-        socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n')
-        socket.destroy()
-        return
-      }
       const onError = (error: Error): void => {
         this.ctx.logger.warn(error)
         socket.destroy()

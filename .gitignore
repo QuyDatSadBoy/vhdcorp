@@ -145,3 +145,5 @@ assistant/**/dist/
 assistant/.turbo/
 # Người dùng + mật khẩu băm: KHÔNG commit, mỗi máy tự tạo bằng deploy-vhd/vhd-user.mjs
 assistant/vhd-users.json
+# Home của từng người dùng trợ lý nội bộ — dữ liệu chạy, không thuộc mã nguồn
+assistant/gate/homes/

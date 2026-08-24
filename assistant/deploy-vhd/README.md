@@ -1,6 +1,6 @@
 # Trợ lý nội bộ VHD Corp — cài đặt trên máy chủ
 
-Trợ lý này là bản DeepSeek Harness đã đổi thương hiệu VHD, dùng cho anh em trong công ty.
+Bản DeepSeek Harness đổi thương hiệu VHD, dùng cho anh em trong công ty.
 
 ## Đọc phần này trước khi cài
 
@@ -9,86 +9,143 @@ Tài liệu gốc của DeepSeek Harness ghi rõ:
 > *"there is no TLS, auth, or origin policy, so a non-loopback bind exposes the server to that network"*
 > — `docs/subsystems/web-server.md`
 
-Nghĩa là: **bản thân nó không có mật khẩu, không có HTTPS**. Mà trợ lý bên trong lại
-chạy được lệnh trên máy chủ (`bash`, `run_code`). Ghép hai điều đó lại:
+Nghĩa là **bản thân nó không có mật khẩu**. Mà trợ lý bên trong lại chạy được lệnh
+trên máy chủ (`bash`, `run_code`). Ghép hai điều đó lại: mở thẳng ra internet là
+**ai tìm thấy địa chỉ cũng chiếm được máy chủ**, không cần hack gì — chỉ cần mở
+trang rồi bảo trợ lý chạy lệnh.
 
-- Nếu mở thẳng ra internet → **ai tìm thấy địa chỉ là chiếm được máy chủ**, không cần
-  hack gì cả. Chỉ cần mở trang và bảo trợ lý chạy lệnh.
-- Đây không phải lỗ hổng của họ. Công cụ này thiết kế để chạy trên máy của chính người
-  dùng, một người một máy. Dùng cho nhiều người là mình đang dùng ngoài mục đích gốc,
-  nên phải tự dựng lớp bảo vệ.
+Đây không phải lỗi của họ. Công cụ này thiết kế cho một người trên máy của chính
+mình. Dùng cho nhiều người là mình đang dùng ngoài mục đích gốc, nên phải tự dựng
+lớp bảo vệ. **Mã của trợ lý giữ nguyên không sửa** — toàn bộ sức mạnh còn đủ; phần
+bảo vệ nằm ở một cổng vào đứng trước nó.
 
-Vì vậy cách cài dưới đây có bốn lớp, **không được bỏ lớp nào**:
+## Cách chạy
+
+```
+Người dùng ──HTTPS──▶ nginx ──▶ CỔNG VÀO (gate) ──▶ trợ lý riêng của người đó
+                                     │                (mỗi nick 1 tiến trình,
+                                     │                 1 thư mục home riêng)
+                                     └─ chưa đăng nhập thì chỉ thấy trang đăng nhập
+```
 
 | Lớp | Chặn điều gì |
 |---|---|
-| **Đăng nhập trong ứng dụng** | Cửa khoá nằm trong chính chương trình, không phụ thuộc nginx |
-| Chạy bằng người dùng riêng, không phải root | Bị chiếm cũng không có quyền root, không đọc được `.env` của web bán hàng |
-| Chỉ nghe ở 127.0.0.1 | Không ai vào trực tiếp được, buộc phải qua nginx |
-| nginx: HTTPS | Đường truyền được mã hoá |
-| Giới hạn bộ nhớ và số tiến trình | Một lệnh sai không làm sập cả máy chủ |
+| Cổng vào đòi đăng nhập | Chưa đăng nhập thì **không tải được tệp nào** của trợ lý |
+| Xác thực bằng tài khoản quản trị vhdcorp.com | Thêm/xoá người chỉ làm ở trang admin, một chỗ duy nhất |
+| Mỗi nick một tiến trình + home riêng | Anh em **không đọc được file của nhau** |
+| Mọi thứ chỉ nghe 127.0.0.1 | nginx là cửa duy nhất từ ngoài vào |
+| Chạy bằng người dùng hệ thống riêng, không phải root | Bị chiếm cũng không đọc được `.env` của web bán hàng |
+| Trần số người cùng lúc + tự tắt khi rảnh | Máy chủ 3.8GB RAM không bị tràn |
 
-Lớp đầu là phần mình tự viết thêm (`packages/host/webserver/src/vhd-auth.ts`) — bản
-gốc không có. Đặt trong ứng dụng chứ không chỉ ở nginx vì **nginx cấu hình sai một
-lần là mất luôn máy chủ**; có lớp này thì nginx sai vẫn còn cửa khoá.
+### Vì sao mỗi nick một tiến trình riêng
 
-## 1. Tạo người dùng riêng
+Sandbox của DeepSeek Harness chỉ chắn **ghi**, không chắn **đọc**
+(`FS_SANDBOX_DENIED` chỉ áp cho write/edit). Nếu để một tiến trình dùng chung thì
+khoá thư mục kiểu nào anh em vẫn đọc được file của nhau. Tiến trình riêng +
+`DSH_HOME` riêng là cách duy nhất để "chỉ làm việc trong thư mục của mình" đúng cả
+với việc đọc.
+
+Cái giá là RAM: mỗi người đang dùng chiếm một tiến trình. Nên cổng vào chỉ bật khi
+có người vào, **tự tắt sau 20 phút không ai dùng**, và có trần số người cùng lúc —
+người vào sau đẩy người rảnh lâu nhất ra.
+
+Lần đầu vào, người dùng thấy **trang chờ có thanh tiến trình** (~5s) rồi tự vào —
+không phải màn hình trắng.
+
+## 1. Tạo người dùng hệ thống riêng
 
 ```bash
 sudo adduser --system --group --home /opt/vhd-assistant vhdagent
-sudo mkdir -p /opt/vhd-assistant && sudo chown -R vhdagent:vhdagent /opt/vhd-assistant
+sudo mkdir -p /opt/vhd-assistant/homes
+sudo chown -R vhdagent:vhdagent /opt/vhd-assistant
+sudo chmod 700 /opt/vhd-assistant/homes
 ```
 
-Người dùng này **không đăng nhập được** (`--system`) và chỉ thấy thư mục của nó.
-Quan trọng: nó KHÔNG được nằm trong nhóm `sudo`, và không đọc được `/root/vhdcorp`
-(nơi chứa khoá API và mật khẩu cơ sở dữ liệu của web bán hàng).
+Người dùng này **không đăng nhập được** (`--system`), không ở trong nhóm `sudo`, và
+không đọc được `/root/vhdcorp` (nơi chứa khoá API, mật khẩu cơ sở dữ liệu của web
+bán hàng).
 
-## 2. Đưa mã nguồn lên và cài
+## 2. Đưa mã lên và cài
+
+Mã nằm trong repo chính, thư mục `assistant/`:
 
 ```bash
-sudo -u vhdagent git clone <repo-noi-bo> /opt/vhd-assistant/app
-cd /opt/vhd-assistant/app
+sudo -u vhdagent git clone <repo> /opt/vhd-assistant/repo
+cd /opt/vhd-assistant/repo/assistant
 sudo -u vhdagent corepack enable pnpm
-sudo -u vhdagent pnpm install
-sudo -u vhdagent pnpm build     # xem package.json để biết lệnh build đúng
+sudo -u vhdagent pnpm install --frozen-lockfile
+sudo -u vhdagent pnpm build
 ```
 
-Khoá API của mô hình đặt trong `/opt/vhd-assistant/.env`, quyền `600`, chủ là `vhdagent`:
+`--frozen-lockfile` để máy chủ cài ra **đúng phiên bản như máy lập trình**.
+
+Khoá API của mô hình đặt trong `/opt/vhd-assistant/.env`, quyền `600`:
 
 ```bash
 sudo -u vhdagent tee /opt/vhd-assistant/.env >/dev/null <<'EOF'
 DEEPSEEK_API_KEY=...
+
+# Cổng vào
+VHD_GATE_PORT=4400
+VHD_BE_URL=http://127.0.0.1:3001
+VHD_HOMES=/opt/vhd-assistant/homes
+VHD_MAX_ACTIVE=4
+VHD_IDLE_MINUTES=20
+VHD_DSH_COMMAND=node apps/cli/lib/bin.js web
+VHD_DSH_CWD=/opt/vhd-assistant/repo/assistant
 EOF
 sudo chmod 600 /opt/vhd-assistant/.env
 ```
 
-## 3. Chạy như dịch vụ, có giới hạn cứng
+**Số đo thật** (trên máy lập trình, một người đang dùng):
 
-Trợ lý chạy được lệnh nên một câu hỏi vô tình cũng có thể sinh tiến trình ăn hết bộ
-nhớ. `MemoryMax` là hàng rào cuối: vượt là bị nhân hệ thống dừng, **web bán hàng không
-bị ảnh hưởng**.
+| Cách chạy trợ lý | RAM/người | Bật lên mất |
+|---|---|---|
+| `node apps/cli/lib/bin.js web` ← đang dùng | **168MB** | **~5s** |
+| `pnpm dsh web` | 388MB | ~22s |
+
+Lớp bọc `pnpm` tốn thêm 150MB mỗi người và làm bật lên chậm gấp 4 lần, nên gọi
+thẳng bin đã build. Vì vậy **phải `pnpm build` trước** — thiếu `apps/cli/lib/bin.js`
+là trợ lý không bật được.
+
+`VHD_MAX_ACTIVE=4`: máy chủ 3.8GB, web bán hàng đang dùng ~1.1GB. Bốn người cùng
+lúc ≈ 670MB, còn dư nhiều. Tăng nữa chỉ khi đã thêm RAM.
+
+## 3. Cấp quyền dùng cho anh em
+
+**Không có danh sách người dùng riêng.** Ai đăng nhập được trang quản trị
+vhdcorp.com thì đăng nhập được trợ lý — cổng vào gọi thẳng
+`POST /api/auth/admin/login` của BE để kiểm tra.
+
+Thêm người: tạo tài khoản quản trị trong trang admin.
+Cắt quyền: khoá tài khoản đó trong trang admin, rồi
+`sudo systemctl restart vhd-gate` để cắt phiên đang mở.
+
+## 4. Chạy như dịch vụ, có giới hạn cứng
+
+Chỉ chạy **một** dịch vụ: cổng vào. Nó tự bật/tắt các tiến trình trợ lý con.
 
 ```ini
-# /etc/systemd/system/vhd-assistant.service
+# /etc/systemd/system/vhd-gate.service
 [Unit]
-Description=Tro ly noi bo VHD Corp
+Description=Cong vao tro ly noi bo VHD Corp
 After=network.target
 
 [Service]
 Type=simple
 User=vhdagent
 Group=vhdagent
-WorkingDirectory=/opt/vhd-assistant/app
+WorkingDirectory=/opt/vhd-assistant/repo/assistant/gate
 EnvironmentFile=/opt/vhd-assistant/.env
+ExecStart=/usr/bin/node gate.mjs
 
-# CHỈ nghe loopback — nginx là cửa duy nhất
-ExecStart=/usr/bin/pnpm dsh web --host 127.0.0.1 --port 3080
-
-# Hàng rào tài nguyên: server có 3.8GB, web bán hàng đang dùng ~1.1GB
-MemoryMax=900M
-MemoryHigh=700M
-TasksMax=256
-CPUQuota=150%
+# Hàng rào tài nguyên tính CẢ tiến trình con: trợ lý chạy được lệnh nên một câu
+# hỏi vô tình cũng có thể sinh tiến trình ăn hết bộ nhớ. Vượt là bị nhân hệ thống
+# dừng, web bán hàng KHÔNG bị ảnh hưởng.
+MemoryMax=1400M
+MemoryHigh=1100M
+TasksMax=512
+CPUQuota=200%
 
 # Bịt các lối leo thang quyền thường gặp
 NoNewPrivileges=true
@@ -104,6 +161,7 @@ RemoveIPC=true
 
 Restart=on-failure
 RestartSec=5
+KillMode=control-group
 
 [Install]
 WantedBy=multi-user.target
@@ -111,51 +169,15 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now vhd-assistant
-sudo systemctl status vhd-assistant
+sudo systemctl enable --now vhd-gate
+sudo systemctl status vhd-gate
 ```
 
-`ProtectSystem=strict` + `ReadWritePaths` nghĩa là dịch vụ chỉ ghi được vào thư mục của
-nó. Ngay cả khi ai đó bảo trợ lý xoá file hệ thống, nó cũng không có quyền.
-
-## 4. Cấp tài khoản cho anh em
-
-```bash
-export VHD_AUTH_USERS=/opt/vhd-assistant/vhd-users.json
-sudo -u vhdagent -E node /opt/vhd-assistant/app/deploy-vhd/vhd-user.mjs add quydat
-sudo -u vhdagent -E node .../vhd-user.mjs add nhanvien2
-sudo -u vhdagent -E node .../vhd-user.mjs list      # xem ai đang có quyền
-sudo -u vhdagent -E node .../vhd-user.mjs del cunhanvien   # người đã nghỉ
-```
-
-Mật khẩu nhập tại bàn phím, không hiện ra màn hình và không vào lịch sử lệnh.
-Tệp lưu mật khẩu **đã băm** (scrypt, muối riêng từng người) với quyền `600` — đọc
-được tệp cũng không suy ra mật khẩu. Yêu cầu tối thiểu 12 ký tự, vì tài khoản này
-mở được trợ lý chạy lệnh trên máy chủ.
-
-Thêm vào `/opt/vhd-assistant/.env`:
-
-```
-VHD_AUTH_USERS=/opt/vhd-assistant/vhd-users.json
-```
-
-> **Không đặt biến này thì ứng dụng chạy KHÔNG CÓ đăng nhập** (giữ đúng hành vi bản
-> gốc cho ai dùng một mình trên máy cá nhân). Trên máy chủ thì bắt buộc phải có.
-> Đặt biến mà tệp hỏng/rỗng thì dịch vụ **không khởi động** — thà không chạy còn hơn
-> chạy mà mở cửa.
-
-Xoá người dùng xong nhớ `sudo systemctl restart vhd-assistant` để cắt phiên đang mở.
-
-Những gì lớp đăng nhập này chặn (có bài kiểm tự động cho từng mục, 15 bài):
-
-- Chưa đăng nhập: mở trang bị đẩy về `/login`, **không tải được tệp nào** của giao diện
-- Chưa đăng nhập: gọi API trả 401 (không trộn HTML vào chỗ chờ JSON)
-- Chưa đăng nhập: **WebSocket cũng bị chặn** — bỏ sót chỗ này là để lại cửa sau
-- Cookie bịa, cookie sau khi đăng xuất: không dùng lại được
-- Sai 5 lần → khoá IP 15 phút (chặn dò mật khẩu)
-- Tên không tồn tại và sai mật khẩu trả **cùng một thông báo** (không tiết lộ tên nào có thật)
-- Không chuyển hướng sang tên miền lạ sau khi đăng nhập
-- Cookie `HttpOnly` + `SameSite=Strict` (JS của trang khác không đọc/gửi kèm được)
+- `ProtectSystem=strict` + `ReadWritePaths`: chỉ ghi được vào thư mục của nó. Ai bảo
+  trợ lý xoá file hệ thống cũng không có quyền.
+- `ProtectHome=true`: chặn `/root` và `/home` → không đọc được `.env` của web bán hàng.
+- `KillMode=control-group`: tắt dịch vụ là tắt sạch cả tiến trình trợ lý con, không
+  để tiến trình mồ côi giữ RAM.
 
 ## 5. Subdomain + HTTPS
 
@@ -179,11 +201,16 @@ server {
     # Không cho công cụ tìm kiếm ghi nhận trang này
     add_header X-Robots-Tag "noindex, nofollow" always;
 
+    # Tệp người dùng gửi lên cho trợ lý đọc
+    client_max_body_size 25m;
+
     location / {
-        proxy_pass http://127.0.0.1:3080;
+        # Toàn bộ subdomain vào CỔNG VÀO. Cổng vào tự quyết: chưa đăng nhập thì
+        # trả trang đăng nhập, đăng nhập rồi thì chuyển vào trợ lý của người đó.
+        proxy_pass http://127.0.0.1:4400;
         proxy_http_version 1.1;
 
-        # Trợ lý dùng WebSocket để đẩy tiến trình về — thiếu hai dòng này là mất kết nối
+        # Trợ lý đẩy tiến trình về bằng WebSocket — thiếu hai dòng này là mất kết nối
         proxy_set_header Upgrade    $http_upgrade;
         proxy_set_header Connection "upgrade";
 
@@ -192,9 +219,11 @@ server {
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # Trợ lý làm việc dài (đọc mã, chạy lệnh) — timeout ngắn sẽ cắt giữa việc
+        # Trợ lý làm việc dài (đọc mã, chạy lệnh) — timeout ngắn sẽ cắt giữa việc.
+        # Lần đầu một người vào còn phải chờ tiến trình riêng của họ bật lên.
         proxy_read_timeout  3600s;
         proxy_send_timeout  3600s;
+        proxy_connect_timeout 120s;
         proxy_buffering     off;   # tiến trình hiện dần, không dồn một cục
     }
 }
@@ -206,47 +235,89 @@ sudo nginx -t && sudo systemctl reload nginx
 sudo certbot --nginx -d assistant.vhdcorp.com
 ```
 
-> Lưu file sao lưu cấu hình nginx **ngoài** `sites-enabled/` — nginx nạp mọi file trong
-> đó, kể cả `.bak`, và hai file cùng `server_name` sẽ xung đột.
+> Lưu bản sao cấu hình nginx **ngoài** `sites-enabled/` — nginx nạp mọi tệp trong đó,
+> kể cả `.bak`, và hai tệp cùng `server_name` sẽ xung đột.
 
 ## 6. Kiểm tra sau khi cài
 
 ```bash
 # 1. Chỉ nghe loopback — PHẢI thấy 127.0.0.1, KHÔNG được thấy 0.0.0.0
-sudo ss -ltnp | grep 3080
+sudo ss -ltnp | grep 4400
 
 # 2. Chưa đăng nhập → phải bị đẩy về /login (302), KHÔNG được ra 200
-curl -o /dev/null -w '%{http_code}\n' https://assistant.vhdcorp.com
+curl -s -o /dev/null -w '%{http_code}\n' -H 'Accept: text/html' \
+  https://assistant.vhdcorp.com
 
 # 3. Đăng nhập sai → 401
 curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-  -d 'username=quydat&password=sai' https://assistant.vhdcorp.com/auth/login
+  -d 'email=admin@vhdcorp.com&password=sai' \
+  https://assistant.vhdcorp.com/auth/login
 
-# 4. Vào thẳng cổng 3080 từ ngoài → phải KHÔNG kết nối được
-curl --max-time 5 http://IP_MÁY_CHỦ:3080
+# 4. Vào thẳng cổng 4400 từ ngoài → phải KHÔNG kết nối được
+curl --max-time 5 http://IP_MÁY_CHỦ:4400
 
-# 5. Giới hạn bộ nhớ đã áp
-systemctl show vhd-assistant -p MemoryMax -p TasksMax
+# 5. Giới hạn tài nguyên đã áp
+systemctl show vhd-gate -p MemoryMax -p TasksMax -p KillMode
 ```
 
-Nếu bước 1 thấy `0.0.0.0` hoặc bước 4 kết nối được thì **dừng ngay** và sửa, vì lúc đó
-máy chủ đang mở cho bất kỳ ai.
+Bước 1 thấy `0.0.0.0`, hoặc bước 2 ra 200, hoặc bước 4 kết nối được thì **dừng ngay
+và sửa** — lúc đó máy chủ đang mở cho bất kỳ ai.
 
 ## Vận hành
 
 ```bash
-sudo systemctl restart vhd-assistant     # khởi động lại
-sudo journalctl -u vhd-assistant -f      # xem log
-systemctl show vhd-assistant -p MemoryCurrent   # đang dùng bao nhiêu bộ nhớ
-sudo -u vhdagent -E node /opt/vhd-assistant/app/deploy-vhd/vhd-user.mjs add tennguoimoi
-sudo -u vhdagent -E node /opt/vhd-assistant/app/deploy-vhd/vhd-user.mjs del tennghiviec
+sudo systemctl restart vhd-gate            # khởi động lại (cắt mọi phiên)
+sudo journalctl -u vhd-gate -f             # xem log: ai đăng nhập, tiến trình nào bật/tắt
+systemctl show vhd-gate -p MemoryCurrent   # đang dùng bao nhiêu RAM
+sudo du -sh /opt/vhd-assistant/homes/*     # thư mục của ai đang chiếm bao nhiêu đĩa
 ```
+
+## Dọn rác tự động
+
+Cổng vào tự dọn phần tốn RAM: mỗi phút kiểm một lượt, tiến trình rảnh quá
+`VHD_IDLE_MINUTES` là tắt.
+
+Phần tốn đĩa thì thêm một hẹn giờ. **Chỉ dọn rác của hệ thống, không xoá file của
+anh em** — file trong `workspace/` là việc của họ:
+
+```ini
+# /etc/systemd/system/vhd-assistant-gc.service
+[Unit]
+Description=Don rac tro ly noi bo VHD
+
+[Service]
+Type=oneshot
+User=vhdagent
+ExecStart=/usr/bin/find /opt/vhd-assistant/homes -mindepth 2 -maxdepth 3 \
+  \( -name 'logs' -o -name 'cache' -o -name 'tmp' \) -type d \
+  -exec find {} -type f -mtime +14 -delete \;
+```
+
+```ini
+# /etc/systemd/system/vhd-assistant-gc.timer
+[Unit]
+Description=Don rac tro ly noi bo VHD hang ngay
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+```bash
+sudo systemctl enable --now vhd-assistant-gc.timer
+sudo systemctl start vhd-assistant-gc.service   # chạy thử một lần
+```
+
+`PrivateTmp=true` ở dịch vụ chính đã lo phần `/tmp`: tắt dịch vụ là mất sạch.
 
 ## Điều cần biết khi cho nhiều người dùng chung
 
-Mỗi người đăng nhập bằng tài khoản riêng, nhưng **quyền thì chung**: ai cũng đọc/ghi được file
-trong `/opt/vhd-assistant`, và thấy được lịch sử của nhau. Đây không phải hệ thống nhiều
-người dùng tách biệt — nó là một máy làm việc dùng chung.
-
-Vì vậy: chỉ cấp mật khẩu cho người mình tin, và **đừng để dữ liệu riêng tư của khách
-hàng vào thư mục đó**.
+- **Trợ lý giữ đủ quyền của bản gốc** trong thư mục của từng người: chạy lệnh, đọc
+  ghi file, gọi mạng. Đó là chủ ý — anh em cần làm được việc.
+- Vì vậy **chỉ cấp tài khoản quản trị cho người mình tin**. Ai vào được trợ lý thì
+  chạy được lệnh dưới quyền `vhdagent`.
+- Đừng để dữ liệu riêng tư của khách hàng vào `homes/` — nó nằm trên cùng máy chủ
+  với web bán hàng.
