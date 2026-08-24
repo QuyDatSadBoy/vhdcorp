@@ -79,10 +79,21 @@ corepack enable pnpm >/dev/null 2>&1 || die "Không bật được pnpm qua core
 ok "pnpm đã bật qua corepack"
 
 cd "$APP"
-# -H để HOME trỏ về $ROOT: thiếu nó thì HOME vẫn là /root, corepack ghi cache vào
-# /root/.cache và bị từ chối quyền.
-sudo -u "$USER_NAME" -H pnpm install --frozen-lockfile
-sudo -u "$USER_NAME" -H pnpm build
+# Bỏ qua cài + build khi mã KHÔNG đổi: build mất ~5 phút, mà installer được thiết
+# kế để chạy lại nhiều lần (sửa nginx, đổi trần người dùng...). Mốc so sánh là
+# commit đang checkout.
+HEAD_SHA=$($GIT -C "$ROOT/repo" rev-parse HEAD)
+STAMP="$ROOT/.built-sha"
+if [ -f "$APP/apps/cli/lib/bin.js" ] && [ "$(cat "$STAMP" 2>/dev/null)" = "$HEAD_SHA" ]; then
+  ok "mã không đổi → bỏ qua cài lại và build (tiết kiệm ~5 phút)"
+else
+  # -H để HOME trỏ về $ROOT: thiếu nó thì HOME vẫn là /root, corepack ghi cache
+  # vào /root/.cache và bị từ chối quyền.
+  sudo -u "$USER_NAME" -H pnpm install --frozen-lockfile
+  sudo -u "$USER_NAME" -H pnpm build
+  echo "$HEAD_SHA" > "$STAMP"
+  chown "$USER_NAME:$USER_NAME" "$STAMP"
+fi
 [ -f "$APP/apps/cli/lib/bin.js" ] || die "Build xong mà thiếu apps/cli/lib/bin.js"
 ok "đã build"
 
@@ -237,8 +248,9 @@ server {
 }
 
 server {
-    listen 443 ssl;
-    http2 on;
+    # Dạng này chạy trên mọi phiên bản nginx. `http2 on;` chỉ có từ 1.25.1 —
+    # máy chủ đang dùng 1.24 và sẽ báo "unknown directive".
+    listen 443 ssl http2;
     server_name $DOMAIN;
 
     ssl_certificate     $CRT;
