@@ -22,14 +22,35 @@ export PATH
 
 log() { echo -e "\n\033[1;34m[deploy]\033[0m $*"; }
 
+# Chỉ cài lại thư viện khi lockfile thực sự đổi. Trước đây chạy mọi lần dù không thêm
+# gói nào, mà `yarn install` kể cả lúc đã đủ vẫn tốn hàng chục giây quét lại cây phụ thuộc.
+install_if_changed() {
+  local lock="$1" stamp="$2"
+  if [ -f "$stamp" ] && [ -f "$lock" ] && cmp -s "$lock" "$stamp"; then
+    log "  ⤳ bỏ qua cài lại thư viện (lockfile không đổi)"
+    return 1
+  fi
+  return 0
+}
+
 cd "$APP_DIR"
 PREV_SHA=$(git rev-parse HEAD)   # để rollback code nếu cần
 
 # Sao lưu build hiện tại (rollback nhanh không cần build lại)
 log "0/7 Sao lưu bản đang chạy (để rollback)"
 rm -rf be/dist.bak fe/.next.bak
-[ -d be/dist ] && cp -r be/dist be/dist.bak || true
-[ -d fe/.next ] && cp -r fe/.next fe/.next.bak || true
+# ĐỔI TÊN thay vì copy. Bản build frontend nặng 130MB nên copy tốn cả chục giây và
+# ngần ấy dung lượng mỗi lần phát hành; đổi tên trong cùng ổ đĩa thì tức thời.
+#
+# Đã thử liên kết cứng (cp -al) và BỎ: nó thất bại im lặng trên thư mục .next — kiểm
+# thấy số liên kết vẫn là 1 và bản dự phòng thiếu file, tức là rollback sẽ khôi phục
+# một bản build hỏng. Rollback là thứ duy nhất cứu máy chủ khi deploy lỗi, không đánh
+# cược nó để tiết kiệm mười giây.
+#
+# Không có .next trong lúc build cũng không sao: tiến trình đang chạy đã nạp code vào
+# bộ nhớ, và pm2 chỉ reload SAU khi build xong.
+[ -d be/dist ] && mv be/dist be/dist.bak || true
+[ -d fe/.next ] && mv fe/.next fe/.next.bak || true
 
 rollback() {
   log "⚠️  Lỗi — KHÔI PHỤC bản cũ (server tiếp tục chạy bản đang ổn định)"
@@ -81,7 +102,10 @@ trap rollback ERR
 
 log "2/7 Backend: cài deps + migrate + build"
 cd "$APP_DIR/be"
-yarn install --frozen-lockfile
+if install_if_changed yarn.lock node_modules/.deploy-lock; then
+  yarn install --frozen-lockfile
+  cp -f yarn.lock node_modules/.deploy-lock 2>/dev/null || true
+fi
 yarn prisma:generate
 # Tự phục hồi migration FAILED của lần deploy trước (Postgres chạy migration trong
 # transaction → fail là đã rollback vật lý; chỉ cần đánh dấu rolled-back rồi thử lại).
@@ -97,12 +121,18 @@ yarn build
 
 log "3/7 Frontend: cài deps + build production"
 cd "$APP_DIR/fe"
-yarn install --frozen-lockfile
+if install_if_changed yarn.lock node_modules/.deploy-lock; then
+  yarn install --frozen-lockfile
+  cp -f yarn.lock node_modules/.deploy-lock 2>/dev/null || true
+fi
 yarn build                    # cần ~2GB RAM — VPS bật swap (docs/DEPLOY.md)
 
 log "4/7 Agent: đồng bộ môi trường Python"
 cd "$APP_DIR/agent"
-uv sync --frozen
+if install_if_changed uv.lock .venv/.deploy-lock; then
+  uv sync --frozen
+  cp -f uv.lock .venv/.deploy-lock 2>/dev/null || true
+fi
 
 log "5/7 Reload services qua PM2"
 cd "$APP_DIR"
