@@ -60,9 +60,12 @@ chmod 700 "$ROOT/homes"
 step "3/8 Lấy mã và build"
 # Clone/pull bằng ROOT: khoá SSH của repo riêng tư nằm ở root, còn vhdagent là tài
 # khoản hệ thống không có khoá. Xong thì chuyển chủ cho vhdagent.
+# -c safe.directory: repo thuộc vhdagent nhưng git chạy bằng root, git 2.35+ từ
+# chối làm việc với repo của người khác nếu không khai báo ngoại lệ.
+GIT="git -c safe.directory=$ROOT/repo"
 if [ -d "$ROOT/repo/.git" ]; then
-  git -C "$ROOT/repo" fetch -q --depth 1 origin "$BRANCH"
-  git -C "$ROOT/repo" checkout -q -B "$BRANCH" FETCH_HEAD
+  $GIT -C "$ROOT/repo" fetch -q --depth 1 origin "$BRANCH"
+  $GIT -C "$ROOT/repo" checkout -q -B "$BRANCH" FETCH_HEAD
   ok "đã cập nhật mã ($BRANCH)"
 else
   git clone -q --depth 1 --branch "$BRANCH" "$REPO_URL" "$ROOT/repo"
