@@ -55,27 +55,33 @@ describe('ic_ds_ icon set', () => {
 })
 
 describe('FishLogo', () => {
-  it('renders the fish path in currentColor at the native ratio', () => {
+  it('hiện logo VHD vuông, không đổi màu theo giao diện', () => {
     const { container } = render(<primitives.FishLogo />)
-    const svg = container.querySelector('svg')!
-    expect(svg.getAttribute('width')).toBe('24')
-    expect(Number(svg.getAttribute('height'))).toBeCloseTo(17.66, 1)
-    expect(svg.getAttribute('viewBox')).toBe('0 0 23.16 17.04')
-    expect(container.querySelectorAll('path')).toHaveLength(1)
-    expect(container.innerHTML).toContain('currentColor')
-    expect(container.innerHTML).not.toContain('M0 0L23.16')
+    const img = container.querySelector('img')!
+    expect(img.getAttribute('width')).toBe('24')
+    expect(img.getAttribute('height')).toBe('24')
+    // Logo doanh nghiệp nhúng thẳng vào mã: không phụ thuộc tệp tĩnh nào, vì
+    // component này dùng ở cả sidebar và hero với gốc đường dẫn khác nhau.
+    expect(img.getAttribute('src')?.startsWith('data:image/png;base64,')).toBe(true)
+    // KHÔNG chạy theo currentColor như logo cá voi cũ — bản sắc phải giữ nguyên màu
+    expect(container.innerHTML).not.toContain('currentColor')
+  })
+
+  it('đổi kích thước thì logo vẫn vuông', () => {
+    const { container } = render(<primitives.FishLogo size={48} />)
+    const img = container.querySelector('img')!
+    expect(img.getAttribute('width')).toBe('48')
+    expect(img.getAttribute('height')).toBe('48')
   })
 })
 
 describe('BrandWordmark', () => {
-  it('can render the name artwork with or without its leading mark', () => {
+  it('hiện chữ VHD Corp, mực chạy theo currentColor để đọc được ở cả hai giao diện', () => {
     const view = render(<primitives.BrandWordmark />)
     const svg = view.container.querySelector('svg')!
-    expect(svg.getAttribute('width')).toBe('182')
-    expect(svg.getAttribute('viewBox')).toBe('0 0 182 24')
-
-    view.rerender(<primitives.BrandWordmark includeMark={false} />)
-    expect(svg.getAttribute('width')).toBe('156')
-    expect(svg.getAttribute('viewBox')).toBe('26 0 156 24')
+    expect(svg.getAttribute('viewBox')).toBe('0 0 96 24')
+    expect(view.container.textContent).toContain('VHD Corp')
+    expect(view.container.innerHTML).toContain('currentColor')
   })
 })
+
