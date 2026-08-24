@@ -86,12 +86,15 @@ function mount(
 }
 
 describe('WelcomeNotice', () => {
-  it('uses the exact owner copy in both GUI locales', () => {
-    expect(WELCOME_NOTICE_COPY.en).toEqual({
-      title: 'Internal Testing Notice',
-      body: "DeepSeek Harness 0.1 remains in testing for Harness developers. Many areas need further improvement, and we welcome feedback from the developer community. DeepSeek Harness's core plugins and foundational APIs will continue to evolve rapidly over the coming months.\n\nWe look forward to exploring the limits of intelligence with developers around the world, building on open-source, open, reusable, and composable infrastructure. We welcome Harness developers everywhere to join the DSH plugin ecosystem.",
-      continueLabel: 'Continue',
-    })
+  it('lời chào là nội dung VHD, giống nhau ở cả hai locale và khớp bản dịch', () => {
+    // Trợ lý này dùng nội bộ VHD nên lời chào của bản gốc (giới thiệu DeepSeek
+    // Harness đang thử nghiệm) không còn đúng — đã thay bằng nội dung VHD.
+    expect(WELCOME_NOTICE_COPY.en.title).toBe('Trợ lý nội bộ VHD Corp')
+    expect(WELCOME_NOTICE_COPY.en.continueLabel).toBe('Bắt đầu')
+    expect(WELCOME_NOTICE_COPY.en.body).not.toMatch(/DeepSeek|Harness/)
+    // Giữ đúng 2 đoạn: hộp thoại render mỗi đoạn thành một <p>
+    expect(WELCOME_NOTICE_COPY.en.body.split('\n\n')).toHaveLength(2)
+    expect(WELCOME_NOTICE_COPY.zh).toEqual(WELCOME_NOTICE_COPY.en)
     expect(en.welcomeBody).toBe(WELCOME_NOTICE_COPY.en.body)
     expect(zh.welcomeBody).toBe(WELCOME_NOTICE_COPY.zh.body)
   })
