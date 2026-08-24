@@ -83,6 +83,9 @@ const api = {
   systemServices: () => axios.get<{ data: { services: SystemService[] } }>("/server/system-services").then(unwrap),
   restartSystem: (name: string) =>
     axios.post<{ data: { message: string } }>(`/server/system-services/${name}/restart`).then(unwrap),
+  controlSystemService: (name: string, action: "start" | "stop" | "restart") =>
+    axios.post<{ data: { message: string } }>(`/server/system-services/${name}/${action}`).then(unwrap),
+  assistant: () => axios.get<{ data: AssistantStatus }>("/server/assistant").then(unwrap),
   ports: () => axios.get<{ data: { ports: ListeningPort[] } }>("/server/ports").then(unwrap),
 };
 
@@ -92,6 +95,19 @@ export interface TopProcess {
   cpu: number;
   mem: number;
   rssMb: number;
+}
+
+/** Trạng thái trợ lý nội bộ: systemd + ai đang dùng */
+export interface AssistantStatus {
+  unit: { active: string; sub: string; enabled: string; memoryMb: number | null };
+  gate: {
+    instances: { user: string; port: number; idleSeconds: number }[];
+    active: number;
+    maxActive: number;
+    idleMinutes: number;
+    sessions: number;
+  } | null;
+  stoppable: boolean;
 }
 
 export interface SystemService {
@@ -244,6 +260,22 @@ export function useBotTraffic() {
 
 export function useTopProcesses() {
   return useQuery({ queryKey: ["server", "processes"], queryFn: api.processes, refetchInterval: 15_000 });
+}
+
+export function useAssistant() {
+  return useQuery({ queryKey: ["server", "assistant"], queryFn: api.assistant, refetchInterval: 15_000 });
+}
+
+export function useControlSystemService() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, action }: { name: string; action: "start" | "stop" | "restart" }) =>
+      api.controlSystemService(name, action),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["server", "system-services"] });
+      void qc.invalidateQueries({ queryKey: ["server", "assistant"] });
+    },
+  });
 }
 
 export function useSystemServices() {

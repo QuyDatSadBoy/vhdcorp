@@ -67,6 +67,55 @@ người vào sau đẩy người rảnh lâu nhất ra.
 Lần đầu vào, người dùng thấy **trang chờ có thanh tiến trình** (~5s) rồi tự vào —
 không phải màn hình trắng.
 
+## Cài bằng MỘT lệnh (khuyến nghị)
+
+```bash
+sudo bash /opt/vhd-assistant/repo/assistant/deploy-vhd/install.sh assistant.vhdcorp.com
+```
+
+Script làm hết 8 bước: tạo người dùng hệ thống riêng, lấy mã, build, sinh cấu hình
+và token, dựng dịch vụ có giới hạn RAM/CPU, dựng nginx + xin HTTPS, ghi token vào
+`.env` của backend rồi khởi động lại backend, bật hẹn giờ dọn rác. Chạy lại được
+nhiều lần — bước nào xong thì bỏ qua, không phá cấu hình cũ.
+
+Sau khi chạy xong, **không cần nhớ lệnh nào nữa**: bật/tắt, xem ai đang dùng, xem
+RAM, dọn rác — tất cả ở trang **/admin/server**.
+
+Tuỳ chọn khi chạy script:
+
+| Biến | Mặc định | Ý nghĩa |
+|---|---|---|
+| `MAX_ACTIVE` | 4 | Trần số người cùng lúc |
+| `IDLE_MINUTES` | 20 | Rảnh bao lâu thì tự tắt |
+| `PRUNE_SUBAGENTS` | 1 | Xoá 2 gói binary Codex/Claude (~560MB) — VHD dùng DeepSeek nên không cần |
+| `GATE_PORT` | 4400 | Cổng nội bộ của cổng vào |
+
+Ví dụ máy chủ ít RAM: `sudo MAX_ACTIVE=2 bash install.sh assistant.vhdcorp.com`
+
+---
+
+## Quản lý ở trang /admin/server
+
+Thẻ **Trợ lý nội bộ VHD** cho biết và cho làm:
+
+- Đang chạy / đang tắt / chưa cài
+- RAM đang chiếm (**gồm cả tiến trình của từng người**)
+- Ai đang dùng, ai đang rảnh bao lâu, mấy/mấy người so với trần
+- **Bật** · **Tắt** · **Khởi động lại** — không cần SSH
+
+Nút **Tắt** chỉ có ở trợ lý nội bộ. nginx / ssh / postgresql cố tình **không** cho
+tắt từ web: tắt xong là mất luôn đường vào trang quản trị, muốn bật lại phải SSH —
+mà ssh có thể chính là thứ vừa bị tắt. Backend chặn cả ở phía server, không chỉ ẩn nút.
+
+Nút **Dọn rác trợ lý nội bộ** ở mục dọn dẹp: xoá log/cache/tmp cũ hơn 14 ngày,
+**không chạm** vào file làm việc của anh em.
+
+---
+
+## Cài từng bước bằng tay
+
+Chỉ cần đọc phần này nếu muốn hiểu script làm gì, hoặc phải sửa tay.
+
 ## 1. Tạo người dùng hệ thống riêng
 
 ```bash

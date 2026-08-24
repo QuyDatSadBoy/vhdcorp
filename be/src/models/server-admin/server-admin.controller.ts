@@ -7,6 +7,7 @@ import {
   Query,
   Res,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -175,6 +176,26 @@ export class ServerAdminController {
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   restartSystem(@Param('name') name: string, @CurrentUser() user: JwtPayload) {
     return this.service.restartSystemService(name, user.email);
+  }
+
+  /** Bật / tắt / khởi động lại service từ giao diện — không cần nhớ lệnh systemctl */
+  @Post('system-services/:name/:action')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  controlSystem(
+    @Param('name') name: string,
+    @Param('action') action: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (action !== 'start' && action !== 'stop' && action !== 'restart') {
+      throw new BadRequestException('Hành động chỉ có: start, stop, restart');
+    }
+    return this.service.controlSystemService(name, action, user.email);
+  }
+
+  /** Trạng thái trợ lý nội bộ: service sống/chết + đang có ai dùng + RAM */
+  @Get('assistant')
+  assistant() {
+    return this.service.getAssistantStatus();
   }
 
   @Get('ports')

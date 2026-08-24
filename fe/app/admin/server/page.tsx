@@ -19,6 +19,8 @@ import {
   Stethoscope,
   Wifi,
   ListTree,
+  Power,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +49,8 @@ import {
   useBotTraffic,
   useTopProcesses,
   useSystemServices,
+  useAssistant,
+  useControlSystemService,
   useRestartSystem,
   useListeningPorts,
   useClearLog,
@@ -164,6 +168,10 @@ const CLEANUP_LABELS: Record<string, { label: string; desc: string }> = {
   journal: { label: "Dọn log hệ điều hành", desc: "Giữ 7 ngày gần nhất (journalctl)" },
   "build-backups": { label: "Dọn build backup thừa", desc: "Xóa dist.bak/.next.bak sót lại sau deploy" },
   "ram-cache": { label: "Giải phóng RAM cache", desc: "Xả page-cache (an toàn) — RAM trống tăng lại" },
+  "assistant-junk": {
+    label: "Dọn rác trợ lý nội bộ",
+    desc: "Xóa log/cache/tmp cũ hơn 14 ngày — KHÔNG chạm file làm việc của anh em",
+  },
 };
 
 /** Cheatsheet lệnh SSH — hiện ngay trên trang để admin khỏi tìm lại */
@@ -181,6 +189,12 @@ const SSH_COMMANDS: { cmd: string; note: string }[] = [
   { cmd: "fail2ban-client status sshd", note: "IP đang bị chặn" },
   { cmd: "passwd", note: "đổi mật khẩu root (nên làm sau bàn giao)" },
 ];
+
+/**
+ * Service cho phép TẮT từ giao diện — phải khớp STOPPABLE_SERVICES ở backend.
+ * Backend vẫn là nơi chốt: đây chỉ để không hiện nút vô nghĩa.
+ */
+const STOPPABLE: string[] = ["vhd-gate"];
 
 export default function ServerAdminPage() {
   const metrics = useServerMetrics();
@@ -201,6 +215,8 @@ export default function ServerAdminPage() {
   const botTraffic = useBotTraffic();
   const topProcs = useTopProcesses();
   const systemServices = useSystemServices();
+  const assistant = useAssistant();
+  const controlSystem = useControlSystemService();
   const restartSystem = useRestartSystem();
   const ports = useListeningPorts();
   const clearLog = useClearLog();
@@ -574,6 +590,158 @@ export default function ServerAdminPage() {
         </CardContent>
       </Card>
 
+      {/* ── Trợ lý nội bộ VHD ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Bot className="h-4 w-4 text-brand-primary" /> Trợ lý nội bộ VHD
+            <span className="ml-auto text-[11px] font-normal text-muted-foreground">tự làm mới 15s</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {(() => {
+            const a = assistant.data;
+            if (!a) return <p className="text-sm text-muted-foreground">Đang lấy trạng thái…</p>;
+            const chua_cai = a.unit.active === "unknown";
+            const dang_chay = a.unit.active === "active";
+            return (
+              <>
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <span
+                    className={cn(
+                      "h-2 w-2 shrink-0 rounded-full",
+                      dang_chay ? "bg-emerald-500" : chua_cai ? "bg-muted-foreground/40" : "bg-red-500",
+                    )}
+                  />
+                  <span className="font-semibold">
+                    {dang_chay ? "Đang chạy" : chua_cai ? "Chưa cài trên máy chủ" : "Đang tắt"}
+                  </span>
+                  {a.unit.memoryMb != null && (
+                    <span className="text-xs text-muted-foreground">
+                      RAM {a.unit.memoryMb} MB <span className="opacity-60">(gồm cả tiến trình của từng người)</span>
+                    </span>
+                  )}
+                  {a.gate && (
+                    <span className="text-xs text-muted-foreground">
+                      {a.gate.active}/{a.gate.maxActive} người đang dùng · tự tắt sau {a.gate.idleMinutes} phút rảnh
+                    </span>
+                  )}
+
+                  {!chua_cai && (
+                    <div className="ml-auto flex items-center gap-2">
+                      {dang_chay ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 gap-1 text-xs text-red-600 hover:text-red-700"
+                          disabled={controlSystem.isPending}
+                          onClick={async () => {
+                            if (
+                              !(await confirm({
+                                title: "Tắt trợ lý nội bộ?",
+                                description:
+                                  "Mọi người đang dùng sẽ bị ngắt ngay. Đổi lại máy chủ được trả về toàn bộ RAM. Bấm Bật là chạy lại.",
+                              }))
+                            )
+                              return;
+                            try {
+                              const r = await controlSystem.mutateAsync({ name: "vhd-gate", action: "stop" });
+                              toast.success(r.message);
+                            } catch {
+                              toast.error("Không tắt được trợ lý");
+                            }
+                          }}
+                        >
+                          <Power className="h-3 w-3" /> Tắt
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="h-7 gap-1 text-xs"
+                          disabled={controlSystem.isPending}
+                          onClick={async () => {
+                            try {
+                              const r = await controlSystem.mutateAsync({ name: "vhd-gate", action: "start" });
+                              toast.success(r.message);
+                            } catch {
+                              toast.error("Không bật được trợ lý");
+                            }
+                          }}
+                        >
+                          <Power className="h-3 w-3" /> Bật
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 text-xs"
+                        disabled={controlSystem.isPending}
+                        onClick={async () => {
+                          if (
+                            !(await confirm({
+                              title: "Khởi động lại trợ lý nội bộ?",
+                              description: "Cắt mọi phiên đang mở — dùng khi vừa cắt quyền một tài khoản.",
+                            }))
+                          )
+                            return;
+                          try {
+                            const r = await controlSystem.mutateAsync({ name: "vhd-gate", action: "restart" });
+                            toast.success(r.message);
+                          } catch {
+                            toast.error("Không khởi động lại được trợ lý");
+                          }
+                        }}
+                      >
+                        <RefreshCcw className="h-3 w-3" /> Khởi động lại
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {chua_cai && (
+                  <p className="text-xs text-muted-foreground">
+                    Chưa có service <code>vhd-gate</code> trên máy chủ. Xem hướng dẫn cài ở{" "}
+                    <code>assistant/deploy-vhd/README.md</code>.
+                  </p>
+                )}
+
+                {a.gate && a.gate.instances.length > 0 && (
+                  <div className="space-y-1.5">
+                    {a.gate.instances.map((i) => (
+                      <div
+                        key={i.user}
+                        className="flex flex-wrap items-center gap-3 rounded-xl border p-2.5 text-xs"
+                      >
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+                        <span className="font-medium">{i.user}</span>
+                        <span className="text-muted-foreground">
+                          {i.idleSeconds < 60
+                            ? "đang làm việc"
+                            : `rảnh ${Math.round(i.idleSeconds / 60)} phút`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {dang_chay && a.gate && a.gate.instances.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Không có ai đang dùng — máy chủ không tốn RAM cho trợ lý lúc này.
+                  </p>
+                )}
+
+                {dang_chay && !a.gate && (
+                  <p className="text-xs text-muted-foreground">
+                    Chưa lấy được danh sách người dùng. Thiếu <code>VHD_ADMIN_TOKEN</code> trong .env của cả
+                    trợ lý và backend, hoặc cổng vào đang khởi động lại.
+                  </p>
+                )}
+              </>
+            );
+          })()}
+        </CardContent>
+      </Card>
+
       {/* ── Service hệ thống (systemd) ── */}
       <Card>
         <CardHeader className="pb-2">
@@ -598,29 +766,76 @@ export default function ServerAdminPage() {
                 </span>
                 {s.enabled && <span className="text-[11px] text-muted-foreground">{s.enabled}</span>}
                 {s.memoryMb != null && <span className="text-[11px] text-muted-foreground">{s.memoryMb} MB</span>}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="ml-auto h-7 gap-1 text-xs"
-                  disabled={restartSystem.isPending}
-                  onClick={async () => {
-                    if (
-                      !(await confirm({
-                        title: `Khởi động lại ${s.name}?`,
-                        description: "Dịch vụ sẽ gián đoạn vài giây.",
-                      }))
-                    )
-                      return;
-                    try {
-                      const r = await restartSystem.mutateAsync(s.name);
-                      toast.success(r.message);
-                    } catch {
-                      toast.error(`Không khởi động lại được ${s.name}`);
-                    }
-                  }}
-                >
-                  <RefreshCcw className="h-3 w-3" /> Khởi động lại
-                </Button>
+                <div className="ml-auto flex items-center gap-2">
+                  {/* Chỉ trợ lý nội bộ cho tắt: tắt nginx/ssh/postgres từ web là
+                      tự khoá mình ra ngoài, bật lại phải SSH. */}
+                  {STOPPABLE.includes(s.name) &&
+                    (ok ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 text-xs text-red-600 hover:text-red-700"
+                        disabled={controlSystem.isPending}
+                        onClick={async () => {
+                          if (
+                            !(await confirm({
+                              title: `Tắt ${s.name}?`,
+                              description:
+                                "Trợ lý nội bộ sẽ dừng, mọi người đang dùng bị ngắt. Giải phóng RAM cho máy chủ. Bật lại được bằng nút Bật.",
+                            }))
+                          )
+                            return;
+                          try {
+                            const r = await controlSystem.mutateAsync({ name: s.name, action: "stop" });
+                            toast.success(r.message);
+                          } catch {
+                            toast.error(`Không tắt được ${s.name}`);
+                          }
+                        }}
+                      >
+                        <Power className="h-3 w-3" /> Tắt
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="h-7 gap-1 text-xs"
+                        disabled={controlSystem.isPending}
+                        onClick={async () => {
+                          try {
+                            const r = await controlSystem.mutateAsync({ name: s.name, action: "start" });
+                            toast.success(r.message);
+                          } catch {
+                            toast.error(`Không bật được ${s.name}`);
+                          }
+                        }}
+                      >
+                        <Power className="h-3 w-3" /> Bật
+                      </Button>
+                    ))}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 gap-1 text-xs"
+                    disabled={restartSystem.isPending}
+                    onClick={async () => {
+                      if (
+                        !(await confirm({
+                          title: `Khởi động lại ${s.name}?`,
+                          description: "Dịch vụ sẽ gián đoạn vài giây.",
+                        }))
+                      )
+                        return;
+                      try {
+                        const r = await restartSystem.mutateAsync(s.name);
+                        toast.success(r.message);
+                      } catch {
+                        toast.error(`Không khởi động lại được ${s.name}`);
+                      }
+                    }}
+                  >
+                    <RefreshCcw className="h-3 w-3" /> Khởi động lại
+                  </Button>
+                </div>
               </div>
             );
           })}

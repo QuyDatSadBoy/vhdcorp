@@ -16,9 +16,11 @@
  *   VHD_HOMES         thư mục chứa home từng người  (mặc định ./homes)
  *   VHD_maxActive    trần số tiến trình cùng lúc   (mặc định 3)
  *   VHD_IDLE_MINUTES  rảnh bao lâu thì tắt          (mặc định 20)
+ *   VHD_ADMIN_TOKEN   token cho trang quản trị đọc trạng thái (không đặt = tắt)
  */
 
 import { createServer, request as httpRequest } from 'node:http'
+import { timingSafeEqual } from 'node:crypto'
 import { connect } from 'node:net'
 import { resolve } from 'node:path'
 import { createSessions, clientIp, safeNext, verifyWithAdminApi } from './auth.mjs'
@@ -38,6 +40,7 @@ export function configFromEnv(env = process.env) {
     // Gọi THẲNG bin đã build, không qua `pnpm dsh`: lớp bọc pnpm tốn thêm ~150MB
     // mỗi người và làm thời gian bật lên từ ~5s thành ~22s (đo trên máy lập trình).
     command: (env.VHD_DSH_COMMAND ?? 'node apps/cli/lib/bin.js web').split(' '),
+    adminToken: env.VHD_ADMIN_TOKEN ?? '',
     cwd: resolve(env.VHD_DSH_CWD ?? '..'),
   }
 }
@@ -48,7 +51,7 @@ export function configFromEnv(env = process.env) {
  */
 export function createGate(options) {
   const {
-    beUrl, homesRoot, maxActive, idleMs, command, cwd,
+    beUrl, homesRoot, maxActive, idleMs, command, cwd, adminToken = '',
     log = (msg) => process.stdout.write(`${new Date().toISOString()} ${msg}\n`),
   } = options
 
@@ -125,6 +128,32 @@ async function handle(req, res) {
   sessions.sweep()
   const url = new URL(req.url ?? '/', 'http://x')
   const path = url.pathname
+
+  // Trạng thái cho trang quản trị. Đứng TRƯỚC phần đăng nhập vì trang admin gọi
+  // bằng token máy-với-máy, không có phiên người dùng.
+  if (path === '/_gate/status') {
+    // Không đặt token = tắt hẳn đường này. So sánh theo thời gian hằng số để
+    // không dò được token qua độ trễ trả lời.
+    const given = req.headers['x-vhd-admin-token']
+    const ok = adminToken !== ''
+      && typeof given === 'string'
+      && given.length === adminToken.length
+      && timingSafeEqual(Buffer.from(given), Buffer.from(adminToken))
+    if (!ok) {
+      res.writeHead(404, { 'cache-control': 'no-store' })
+      res.end()
+      return
+    }
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
+    res.end(JSON.stringify({
+      instances: instances.list(),
+      active: instances.active,
+      maxActive,
+      idleMinutes: Math.round(idleMs / 60_000),
+      sessions: sessions.size,
+    }))
+    return
+  }
 
   if (path === '/auth/logout') {
     sessions.destroy(req)

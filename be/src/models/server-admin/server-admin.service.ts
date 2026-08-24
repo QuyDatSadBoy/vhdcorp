@@ -35,7 +35,23 @@ const PM2_SERVICES = ['vhd-be', 'vhd-fe', 'vhd-agent'] as const;
 type Pm2Name = (typeof PM2_SERVICES)[number];
 
 // Service hệ thống cho phép XEM + restart trên UI (whitelist — không cho tùy ý)
-const SYSTEM_SERVICES = ['nginx', 'postgresql', 'fail2ban', 'ssh'] as const;
+const SYSTEM_SERVICES = [
+  'nginx',
+  'postgresql',
+  'fail2ban',
+  'ssh',
+  'vhd-gate', // cổng vào trợ lý nội bộ
+] as const;
+
+/**
+ * Service được phép TẮT từ giao diện.
+ *
+ * Cố tình chỉ có trợ lý nội bộ. Tắt nginx / ssh / postgresql / BE từ web là tự
+ * khoá mình ra ngoài: response còn chưa kịp về thì đường vào đã đứt, và muốn bật
+ * lại phải SSH — mà ssh có thể chính là thứ vừa bị tắt. Restart thì an toàn vì
+ * service tự lên lại.
+ */
+const STOPPABLE_SERVICES = ['vhd-gate'] as const;
 
 /** Tác vụ dọn rác cố định — mỗi key là một lệnh viết sẵn, không có ô gõ lệnh */
 const CLEANUP_TASKS = [
@@ -44,6 +60,7 @@ const CLEANUP_TASKS = [
   'journal',
   'build-backups',
   'ram-cache',
+  'assistant-junk',
 ] as const;
 type CleanupTask = (typeof CLEANUP_TASKS)[number];
 
@@ -596,6 +613,20 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
             force: true,
           });
           break;
+        case 'assistant-junk':
+          // Log/cache/tmp cũ hơn 14 ngày trong home của từng người dùng trợ lý.
+          // KHÔNG chạm vào workspace/ — đó là file làm việc của anh em.
+          await execFileAsync(
+            'bash',
+            [
+              '-c',
+              "find /opt/vhd-assistant/homes -mindepth 2 -maxdepth 4 -type d " +
+                "\\( -name logs -o -name cache -o -name tmp \\) " +
+                "-exec find {} -type f -mtime +14 -delete \\; 2>/dev/null; true",
+            ],
+            { env: this.execEnv },
+          );
+          break;
         case 'ram-cache':
           // Giải phóng page-cache (an toàn, không mất dữ liệu) — RAM "available" tăng lại
           await execFileAsync(
@@ -917,13 +948,104 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
 
   /** Khởi động lại 1 service hệ thống (chỉ trong whitelist) */
   async restartSystemService(name: string, actor: string) {
+    return this.controlSystemService(name, 'restart', actor);
+  }
+
+  /**
+   * Bật / tắt / khởi động lại 1 service hệ thống từ giao diện quản trị.
+   *
+   * `stop` bị giới hạn trong {@link STOPPABLE_SERVICES} — xem lý do ở đó.
+   */
+  async controlSystemService(
+    name: string,
+    action: 'start' | 'stop' | 'restart',
+    actor: string,
+  ) {
     if (!(SYSTEM_SERVICES as readonly string[]).includes(name))
       throw new BadRequestException(
         'Service không nằm trong danh sách cho phép',
       );
-    await this.audit(actor, `system-restart:${name}`);
-    await execFileAsync('systemctl', ['restart', name], { env: this.execEnv });
-    return { message: `Đã khởi động lại ${name}` };
+    if (
+      action === 'stop' &&
+      !(STOPPABLE_SERVICES as readonly string[]).includes(name)
+    ) {
+      throw new BadRequestException(
+        `Không cho tắt ${name} từ giao diện: tắt xong là mất luôn đường vào ` +
+          'trang quản trị, muốn bật lại phải SSH. Dùng "Khởi động lại" nếu cần.',
+      );
+    }
+    await this.audit(actor, `system-${action}:${name}`);
+    await execFileAsync('systemctl', [action, name], { env: this.execEnv });
+    const done = { start: 'Đã bật', stop: 'Đã tắt', restart: 'Đã khởi động lại' };
+    return { message: `${done[action]} ${name}` };
+  }
+
+  /**
+   * Trạng thái trợ lý nội bộ: systemd nói service sống hay chết, còn cổng vào nói
+   * đang có ai dùng và chiếm bao nhiêu RAM.
+   *
+   * Gộp hai nguồn vào một endpoint để giao diện chỉ gọi một lần.
+   */
+  async getAssistantStatus() {
+    const unit = { active: 'unknown', sub: '', enabled: '', memoryMb: null as number | null };
+    try {
+      const { stdout } = await execFileAsync(
+        'systemctl',
+        [
+          'show',
+          'vhd-gate',
+          '--property=ActiveState,SubState,UnitFileState,MemoryCurrent',
+        ],
+        { env: this.execEnv },
+      );
+      const kv: Record<string, string> = {};
+      stdout
+        .trim()
+        .split('\n')
+        .forEach((l) => {
+          const i = l.indexOf('=');
+          if (i > 0) kv[l.slice(0, i)] = l.slice(i + 1);
+        });
+      unit.active = kv.ActiveState || 'unknown';
+      unit.sub = kv.SubState || '';
+      unit.enabled = kv.UnitFileState || '';
+      const mem = Number(kv.MemoryCurrent);
+      // MemoryCurrent của cgroup gồm CẢ tiến trình trợ lý con — đúng thứ cần biết
+      unit.memoryMb =
+        Number.isFinite(mem) && mem > 0 ? Math.round(mem / 1024 / 1024) : null;
+    } catch {
+      // systemd không có unit này (chưa cài) → cứ trả unknown, đừng làm hỏng trang
+    }
+
+    // Ai đang dùng: hỏi chính cổng vào. Không có token thì bỏ qua phần này.
+    let gate: {
+      instances: { user: string; port: number; idleSeconds: number }[];
+      active: number;
+      maxActive: number;
+      idleMinutes: number;
+      sessions: number;
+    } | null = null;
+    const token = process.env.VHD_ADMIN_TOKEN;
+    const gateUrl = process.env.VHD_GATE_URL || 'http://127.0.0.1:4400';
+    if (token && unit.active === 'active') {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 3000);
+        try {
+          const res = await fetch(`${gateUrl}/_gate/status`, {
+            headers: { 'x-vhd-admin-token': token },
+            signal: controller.signal,
+          });
+          if (res.ok) gate = await res.json();
+        } finally {
+          clearTimeout(timer);
+        }
+      } catch {
+        // Cổng vào đang khởi động lại → để null, giao diện hiện "chưa lấy được"
+      }
+    }
+
+    return { unit, gate, stoppable: true };
   }
 
   /** Các cổng đang lắng nghe (ss -tlnp) — soi dịch vụ nào mở cổng nào */

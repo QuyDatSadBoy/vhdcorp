@@ -281,6 +281,44 @@ describe('workspace riêng theo từng nick', () => {
   })
 })
 
+describe('trang quản trị đọc trạng thái', () => {
+  it('không đặt token → đường này không tồn tại (404)', async () => {
+    const { base } = await startGate()
+    const res = await fetch(`${base}/_gate/status`, { headers: { 'x-vhd-admin-token': 'bat-ky' } })
+    assert.equal(res.status, 404)
+  })
+
+  it('sai token → 404, không nói là có đường này', async () => {
+    const { base } = await startGate({ adminToken: 'token-that-dai-32-ky-tu-abcdef' })
+    const res = await fetch(`${base}/_gate/status`, { headers: { 'x-vhd-admin-token': 'sai' } })
+    assert.equal(res.status, 404)
+  })
+
+  it('không kèm token → 404 (không lộ ra cho người đang đăng nhập)', async () => {
+    const { base } = await startGate({ adminToken: 'token-that-dai-32-ky-tu-abcdef' })
+    const cookie = cookieOf(await login(base, GOOD.email, GOOD.password))
+    const res = await fetch(`${base}/_gate/status`, { headers: { cookie } })
+    assert.equal(res.status, 404)
+  })
+
+  it('đúng token → trả ai đang dùng, trần, thời gian rảnh', async () => {
+    const token = 'token-that-dai-32-ky-tu-abcdef'
+    const { base } = await startGate({ adminToken: token, maxActive: 3, idleMs: 20 * 60_000 })
+    const cookie = cookieOf(await login(base, GOOD.email, GOOD.password))
+    await fetch(`${base}/x`, { headers: { cookie } })
+
+    const res = await fetch(`${base}/_gate/status`, { headers: { 'x-vhd-admin-token': token } })
+    assert.equal(res.status, 200)
+    const body = await res.json()
+    assert.equal(body.active, 1)
+    assert.equal(body.maxActive, 3)
+    assert.equal(body.idleMinutes, 20)
+    assert.equal(body.sessions, 1)
+    assert.equal(body.instances[0].user, GOOD.email)
+    assert.equal(typeof body.instances[0].idleSeconds, 'number')
+  })
+})
+
 describe('giữ RAM cho máy chủ', () => {
   it('nhiều request cùng lúc của MỘT người → chỉ một tiến trình, không mồ côi', async () => {
     const before = countFakeDsh()
