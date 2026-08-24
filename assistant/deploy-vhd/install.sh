@@ -139,6 +139,19 @@ chown "$USER_NAME:$USER_NAME" "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 ok "$ENV_FILE (quyền 600)"
 
+# Thiếu khoá mô hình thì trợ lý vẫn bật lên và đăng nhập được, nhưng mọi câu hỏi
+# đều trả lỗi MISSING_CREDENTIAL — người dùng tưởng hỏng hệ thống. Báo ngay.
+if ! grep -qE '^(DEEPSEEK|OPENAI|ANTHROPIC)_API_KEY=.' "$ENV_FILE"; then
+  echo
+  echo "   ⚠️  CHƯA CÓ KHOÁ MÔ HÌNH trong $ENV_FILE."
+  echo "      Trợ lý sẽ đăng nhập được nhưng mọi câu hỏi đều lỗi. Thêm rồi khởi"
+  echo "      động lại (hoặc bấm Khởi động lại ở trang /admin/server):"
+  echo
+  echo "        echo 'DEEPSEEK_API_KEY=sk-...' >> $ENV_FILE"
+  echo "        systemctl restart vhd-gate"
+  echo
+fi
+
 step "5/8 Dịch vụ systemd (có giới hạn RAM/CPU cứng)"
 cat > /etc/systemd/system/vhd-gate.service <<EOF
 [Unit]
