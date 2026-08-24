@@ -1,12 +1,12 @@
 {
   "id": "/",
   "name": "Trợ lý nội bộ VHD Corp",
-  "short_name": "VHD Trợ lý",
+  "short_name": "VHD Corp",
   "start_url": "/",
   "scope": "/",
   "display": "fullscreen",
-  "theme_color": "#1B3A8C",
-  "background_color": "#ffffff",
+  "theme_color": "#1b3a8c",
+  "background_color": "#eef1f6",
   "icons": [
     {
       "src": "/favicon.svg",
