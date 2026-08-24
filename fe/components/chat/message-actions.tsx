@@ -56,13 +56,15 @@ function MetricsText({ time, m }: { time: string; m?: ChatMetrics }) {
       </span>
     );
   }
-  const cps = m.total > 0 ? Math.round(m.chars / m.total) : 0;
+  // Ước lượng token: tiếng Việt trung bình ~3.5 ký tự/token với các bộ tách hiện nay.
+  // Không có số token thật từ trình duyệt, nên quy đổi rồi ghi rõ là ước lượng.
+  const tps = m.total > 0 ? Math.round(m.chars / 3.5 / m.total) : 0;
   return (
     <span
       className="text-[13px] tabular-nums text-muted-foreground/70"
-      title={`Chữ đầu sau ${m.ttft.toFixed(2)}s · cả lượt ${m.total.toFixed(2)}s · ${m.chars} ký tự`}
+      title={`Chữ đầu sau ${m.ttft.toFixed(2)}s · cả lượt ${m.total.toFixed(2)}s · ${m.chars} ký tự (token là số ước lượng)`}
     >
-      {time} · chạy {m.total.toFixed(1)}s · chữ đầu {m.ttft.toFixed(1)}s{cps > 0 ? ` · ${cps} chữ/s` : ""}
+      {time} · chạy {m.total.toFixed(1)}s · chữ đầu {m.ttft.toFixed(1)}s{tps > 0 ? ` · ${tps} token/s` : ""}
     </span>
   );
 }

@@ -50,9 +50,12 @@ export default function CodeBlock({ language, code }: { language: string | null;
           {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
       </div>
-      {/* Mã dài phải cuộn TRONG khối, không được đẩy cả khung chat rộng ra */}
-      <pre className="m-0 overflow-x-auto bg-card p-2.5 text-[12px] leading-relaxed">
-        <code className="font-mono">{code}</code>
+      {/* Mã dài phải cuộn TRONG khối, không được đẩy cả khung chat rộng ra.
+          Màu chữ phải đặt TƯỜNG MINH: lớp `prose` của Tailwind gán cho thẻ code một
+          màu dành cho nền tối, đặt lên nền sáng của khối này thì chữ mờ tới mức không
+          đọc được. */}
+      <pre className="m-0 overflow-x-auto bg-card p-2.5 text-[12px] leading-relaxed !text-foreground">
+        <code className="font-mono !text-foreground">{code}</code>
       </pre>
     </div>
   );
