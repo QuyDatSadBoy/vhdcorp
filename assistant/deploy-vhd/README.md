@@ -123,8 +123,18 @@ Lớp bọc `pnpm` tốn thêm 150MB mỗi người và làm bật lên chậm g
 thẳng bin đã build. Vì vậy **phải `pnpm build` trước** — thiếu `apps/cli/lib/bin.js`
 là trợ lý không bật được.
 
-`VHD_MAX_ACTIVE=4`: máy chủ 3.8GB, web bán hàng đang dùng ~1.1GB. Bốn người cùng
-lúc ≈ 670MB, còn dư nhiều. Tăng nữa chỉ khi đã thêm RAM.
+**Đo với 4 người vào cùng lúc** (`VHD_MAX_ACTIVE=4`):
+
+| Chỉ số | Kết quả |
+|---|---|
+| Số tiến trình | đúng 4, khớp bảng theo dõi |
+| RAM cả 4 cộng lại | **659MB** (~165MB/người) |
+| Bốn người cùng bật lên | 23s (một người: ~5s) |
+| Người thứ 5 vào | vẫn 4 tiến trình — người rảnh lâu nhất nhường chỗ |
+| Sau khi tắt cổng vào | **0 tiến trình còn sót** |
+
+Máy chủ 3.8GB, web bán hàng đang dùng ~1.1GB → 4 người ≈ 660MB, còn dư nhiều.
+Tăng trần chỉ khi đã thêm RAM.
 
 ## 3. Cấp quyền dùng cho anh em
 

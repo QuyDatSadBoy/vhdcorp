@@ -115,6 +115,10 @@ export function createInstances(options) {
 
   const live = new Map() // user -> { port, child, lastSeen, starting }
   const usedPorts = new Set()
+  // Tiến trình đã bị bỏ khỏi `live` nhưng CHƯA chết (đang nhường chỗ, đang rảnh
+  // bị tắt). Không theo dõi thì lúc tắt cổng vào không ai chờ chúng, và chúng
+  // thành mồ côi giữ RAM — đo được 1 tiến trình sót sau mỗi lần nhường chỗ.
+  const dying = new Set()
 
 
   const stop = (user, why) => {
@@ -123,9 +127,13 @@ export function createInstances(options) {
     live.delete(user)
     usedPorts.delete(it.port)
     log(`tắt trợ lý của ${user} (${why})`)
-    it.child.kill('SIGTERM')
-    // Không chịu thoát thì cắt hẳn, đừng để tiến trình treo giữ RAM
     const child = it.child
+    if (child === undefined) return
+    if (child.exitCode !== null || child.signalCode !== null) return
+    dying.add(child)
+    child.once('exit', () => dying.delete(child))
+    child.kill('SIGTERM')
+    // Không chịu thoát thì cắt hẳn, đừng để tiến trình treo giữ RAM
     setTimeout(() => {
       if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
     }, 10_000).unref()
@@ -292,8 +300,32 @@ export function createInstances(options) {
 
     stop,
 
-    stopAll() {
+    /**
+     * Tắt mọi tiến trình và CHỜ chúng chết thật.
+     *
+     * Không chờ là để lại tiến trình mồ côi: DSH không thoát ngay khi nhận
+     * SIGTERM, mà hẹn giờ SIGKILL dự phòng thì unref (để không giữ event loop) —
+     * nên nếu cổng vào thoát trước, SIGKILL không bao giờ chạy và tiến trình con
+     * sống mãi giữ RAM. Đo được: 3 tiến trình mồ côi sau một lần tắt.
+     */
+    async stopAll(graceMs = 6000) {
       for (const user of [...live.keys()]) stop(user, 'cổng vào đang tắt')
+      // Gồm CẢ tiến trình đang chết dở từ trước (nhường chỗ, hết giờ rảnh)
+      const children = [...dying]
+      await Promise.all(children.map((child) => new Promise((done) => {
+        if (child.exitCode !== null || child.signalCode !== null) {
+          done()
+          return
+        }
+        const killer = setTimeout(() => {
+          log('tiến trình không tự thoát — buộc phải cắt')
+          child.kill('SIGKILL')
+        }, graceMs)
+        child.once('exit', () => {
+          clearTimeout(killer)
+          done()
+        })
+      })))
     },
   }
 }

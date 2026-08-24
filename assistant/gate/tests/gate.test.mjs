@@ -275,6 +275,26 @@ describe('giữ RAM cho máy chủ', () => {
     assert.equal(gate.instances.active, 0)
   })
 
+  it('tắt cổng vào → KHÔNG còn tiến trình mồ côi nào', async () => {
+    const before = countFakeDsh()
+    const gate = createGate({
+      beUrl: be.url, homesRoot: homes, maxActive: 3, idleMs: 10 * 60_000,
+      command: [process.execPath, FAKE_DSH], cwd: import.meta.dirname, log: () => {},
+    })
+    await new Promise((done) => gate.server.listen(0, '127.0.0.1', done))
+    const base = `http://127.0.0.1:${gate.server.address().port}`
+    for (const who of ['x@v.com', 'y@v.com']) {
+      const t = gate.sessions.create(who)
+      await fetch(`${base}/x`, { headers: { cookie: `vhd_gate=${t}` } })
+    }
+    assert.equal(countFakeDsh() - before, 2)
+
+    // close() phải CHỜ tiến trình con chết thật. Thoát sớm là để lại tiến trình
+    // mồ côi giữ RAM mãi — không ai tắt hộ.
+    await gate.close()
+    assert.equal(countFakeDsh() - before, 0)
+  })
+
   it('rảnh quá lâu → tự tắt, trả RAM', async () => {
     const { base, gate } = await startGate({ idleMs: 1 })
     const cookie = cookieOf(await login(base, GOOD.email, GOOD.password))

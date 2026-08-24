@@ -312,9 +312,11 @@ server.on('upgrade', async (req, clientSocket, head) => {
   }, 60_000)
   sweeper.unref()
 
-  const close = () => {
+  const close = async () => {
     clearInterval(sweeper)
-    instances.stopAll()
+    // Chờ tiến trình con chết THẬT trước khi đóng server: thoát sớm là để lại
+    // tiến trình mồ côi giữ RAM.
+    await instances.stopAll()
     return new Promise((done) => {
       server.close(done)
       // close() một mình sẽ chờ VÔ HẠN: trình duyệt giữ kết nối keep-alive, và
@@ -331,10 +333,15 @@ server.on('upgrade', async (req, clientSocket, head) => {
 if (process.argv[1] !== undefined && import.meta.url === `file://${process.argv[1]}`) {
   const cfg = configFromEnv()
   const gate = createGate(cfg)
+  let shuttingDown = false
   const shutdown = (signal) => {
+    // Nhấn Ctrl+C hai lần / systemd gửi lại SIGTERM: đừng chạy hai lần chồng nhau
+    if (shuttingDown) return
+    shuttingDown = true
     process.stdout.write(`nhận ${signal} — tắt cổng vào và mọi tiến trình trợ lý\n`)
-    gate.close().then(() => process.exit(0))
-    setTimeout(() => process.exit(0), 15_000).unref()
+    gate.close().then(() => process.exit(0), () => process.exit(1))
+    // Chốt chặn cuối: có gì treo thì vẫn thoát, đừng để systemd phải cắt.
+    setTimeout(() => process.exit(0), 20_000).unref()
   }
   process.on('SIGTERM', () => shutdown('SIGTERM'))
   process.on('SIGINT', () => shutdown('SIGINT'))
