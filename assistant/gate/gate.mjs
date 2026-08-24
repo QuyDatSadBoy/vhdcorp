@@ -12,7 +12,7 @@
  *
  * Biến môi trường:
  *   VHD_GATE_PORT     cổng của chính cổng vào       (mặc định 4400)
- *   VHD_beUrl        địa chỉ BE để xác thực        (mặc định http://127.0.0.1:3001)
+ *   VHD_beUrl        địa chỉ BE để xác thực        (mặc định http://127.0.0.1:8080)
  *   VHD_HOMES         thư mục chứa home từng người  (mặc định ./homes)
  *   VHD_maxActive    trần số tiến trình cùng lúc   (mặc định 3)
  *   VHD_IDLE_MINUTES  rảnh bao lâu thì tắt          (mặc định 20)
@@ -31,7 +31,7 @@ const MAX_LOGIN_BODY = 4096
 export function configFromEnv(env = process.env) {
   return {
     port: Number(env.VHD_GATE_PORT ?? 4400),
-    beUrl: (env.VHD_beUrl ?? 'http://127.0.0.1:3001').replace(/\/+$/, ''),
+    beUrl: (env.VHD_beUrl ?? 'http://127.0.0.1:8080').replace(/\/+$/, ''),
     homesRoot: resolve(env.VHD_HOMES ?? './homes'),
     maxActive: Number(env.VHD_maxActive ?? 3),
     idleMs: Number(env.VHD_IDLE_MINUTES ?? 20) * 60_000,
