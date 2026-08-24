@@ -30,8 +30,22 @@ export function readCookie(req, name) {
   return undefined
 }
 
-/** IP thật khi đứng sau nginx — dùng để đếm lần đăng nhập sai. */
+/**
+ * IP thật của người dùng — dùng để đếm lần đăng nhập sai.
+ *
+ * Ưu tiên `X-Real-IP` vì nginx tự GHI ĐÈ header này, khách không giả được. Còn
+ * `X-Forwarded-For` thì khách gửi được một phần, nên chỉ dùng khi không có
+ * X-Real-IP.
+ *
+ * Rất quan trọng khi đứng sau Cloudflare: nếu nginx không được cấu hình
+ * `real_ip_header CF-Connecting-IP`, mọi người sẽ mang CÙNG một IP của
+ * Cloudflare — một người nhập sai 5 lần là khoá cả công ty.
+ */
 export function clientIp(req) {
+  const real = req.headers['x-real-ip']
+  const realFirst = Array.isArray(real) ? real[0] : real
+  if (typeof realFirst === 'string' && realFirst.trim()) return realFirst.trim()
+
   const fwd = req.headers['x-forwarded-for']
   const first = Array.isArray(fwd) ? fwd[0] : fwd
   if (typeof first === 'string' && first.length > 0) {

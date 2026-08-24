@@ -170,44 +170,19 @@ ok "vhd-gate đang chạy"
 
 step "6/8 nginx + HTTPS cho $DOMAIN"
 SITE=/etc/nginx/sites-available/vhd-assistant
-cat > "$SITE" <<EOF
-server {
-    listen 80;
-    server_name $DOMAIN;
-    return 301 https://\$host\$request_uri;
-}
 
-server {
-    listen 443 ssl http2;
-    server_name $DOMAIN;
-
-    ssl_certificate     /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
-
-    add_header X-Robots-Tag "noindex, nofollow" always;
-    client_max_body_size 25m;
-
-    location / {
-        proxy_pass http://127.0.0.1:$GATE_PORT;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade    \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host              \$host;
-        proxy_set_header X-Real-IP         \$remote_addr;
-        proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_read_timeout  3600s;
-        proxy_send_timeout  3600s;
-        proxy_connect_timeout 120s;
-        proxy_buffering     off;
-    }
-}
-EOF
-ln -sf "$SITE" /etc/nginx/sites-enabled/vhd-assistant
-
-if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
-  echo "Chưa có chứng chỉ HTTPS — xin certbot (cần DNS đã trỏ về máy này)"
-  # Tạm bỏ khối 443 để nginx nạp được, certbot sẽ tự thêm lại
+# TLS: chọn theo hạ tầng đang có, KHÔNG mặc định certbot.
+# Máy chủ này đứng sau Cloudflare với chứng chỉ origin sẵn — xin thêm Let's Encrypt
+# là vô ích vì khách chỉ nói chuyện với Cloudflare, không nói chuyện với origin.
+ORIGIN_CRT=/etc/nginx/ssl/origin.crt
+ORIGIN_KEY=/etc/nginx/ssl/origin.key
+if [ -f "$ORIGIN_CRT" ] && [ -f "$ORIGIN_KEY" ]; then
+  CRT="$ORIGIN_CRT"; KEY="$ORIGIN_KEY"; TLS_KIND="chứng chỉ origin (Cloudflare)"
+elif [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+  CRT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+  KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"; TLS_KIND="Let's Encrypt đã có"
+else
+  command -v certbot >/dev/null || die "Không có chứng chỉ origin lẫn certbot. Cài certbot hoặc đặt cert vào $ORIGIN_CRT"
   cat > "$SITE" <<EOF
 server {
     listen 80;
@@ -215,15 +190,91 @@ server {
     location / { proxy_pass http://127.0.0.1:$GATE_PORT; }
 }
 EOF
+  ln -sf "$SITE" /etc/nginx/sites-enabled/vhd-assistant
   nginx -t && systemctl reload nginx
   certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos \
     -m "${CERTBOT_EMAIL:-vhdcorp.contact@gmail.com}" --redirect \
-    || die "certbot thất bại — kiểm tra DNS của $DOMAIN đã trỏ về máy chủ chưa"
-  ok "đã có HTTPS"
-else
-  nginx -t && systemctl reload nginx
-  ok "chứng chỉ đã có, nginx đã nạp"
+    || die "certbot thất bại — kiểm tra DNS của $DOMAIN đã trỏ TRỰC TIẾP về máy chủ chưa (tắt proxy Cloudflare)"
+  CRT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+  KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"; TLS_KIND="Let's Encrypt vừa xin"
 fi
+ok "TLS: $TLS_KIND"
+
+# IP thật của khách khi đứng sau Cloudflare. Không có phần này thì mọi người mang
+# CÙNG một IP của Cloudflare — một người nhập sai mật khẩu 5 lần là KHOÁ CẢ CÔNG TY.
+CF_SNIPPET=/etc/nginx/snippets/vhd-cloudflare-realip.conf
+mkdir -p /etc/nginx/snippets
+if curl -fsS --max-time 20 https://www.cloudflare.com/ips-v4 -o /tmp/cf4 \
+   && curl -fsS --max-time 20 https://www.cloudflare.com/ips-v6 -o /tmp/cf6; then
+  {
+    echo "# Sinh tự động bởi install.sh — dải IP của Cloudflare"
+    sed 's/^/set_real_ip_from /; s/$/;/' /tmp/cf4
+    sed 's/^/set_real_ip_from /; s/$/;/' /tmp/cf6
+    echo "real_ip_header CF-Connecting-IP;"
+    echo "real_ip_recursive on;"
+  } > "$CF_SNIPPET"
+  CF_INCLUDE="include $CF_SNIPPET;"
+  ok "đã lấy $(grep -c set_real_ip_from "$CF_SNIPPET") dải IP Cloudflare"
+else
+  CF_INCLUDE="# không lấy được dải IP Cloudflare — chống dò mật khẩu sẽ tính theo IP của Cloudflare"
+  echo "   ⚠ Không tải được dải IP Cloudflare. Chống dò mật khẩu vẫn chạy nhưng tính chung theo IP Cloudflare."
+fi
+
+cat > "$SITE" <<EOF
+# Trợ lý nội bộ VHD — sinh bởi deploy-vhd/install.sh
+server {
+    listen 80;
+    server_name $DOMAIN;
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name $DOMAIN;
+
+    ssl_certificate     $CRT;
+    ssl_certificate_key $KEY;
+
+    $CF_INCLUDE
+
+    # Không cho công cụ tìm kiếm ghi nhận trang nội bộ
+    add_header X-Robots-Tag "noindex, nofollow" always;
+    # Tệp anh em gửi lên cho trợ lý đọc
+    client_max_body_size 25m;
+
+    location / {
+        proxy_pass http://127.0.0.1:$GATE_PORT;
+        proxy_http_version 1.1;
+
+        # Trợ lý đẩy tiến trình về bằng WebSocket — thiếu hai dòng này là mất kết nối
+        proxy_set_header Upgrade    \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_set_header Host              \$host;
+        # \$remote_addr đã là IP THẬT nhờ khối real_ip ở trên
+        proxy_set_header X-Real-IP         \$remote_addr;
+        proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+
+        # Trợ lý làm việc dài (đọc mã, chạy lệnh) — timeout ngắn cắt giữa việc.
+        # Lần đầu một người vào còn phải chờ tiến trình riêng của họ bật lên.
+        proxy_read_timeout  3600s;
+        proxy_send_timeout  3600s;
+        proxy_connect_timeout 120s;
+        proxy_buffering     off;   # tiến trình hiện dần, không dồn một cục
+    }
+}
+EOF
+ln -sf "$SITE" /etc/nginx/sites-enabled/vhd-assistant
+# nginx -t hỏng thì BỎ symlink ra: để lại là lần reload sau của người khác cũng chết
+if ! nginx -t 2>/tmp/nginx-test.log; then
+  rm -f /etc/nginx/sites-enabled/vhd-assistant
+  cat /tmp/nginx-test.log
+  die "Cấu hình nginx không hợp lệ — đã bỏ site ra, nginx đang chạy không bị ảnh hưởng"
+fi
+systemctl reload nginx
+ok "nginx đã nạp site $DOMAIN"
 
 step "7/8 Nối trang quản trị với trợ lý"
 # Trang quản trị cần token này để đọc được ai đang dùng. Tự ghi vào .env của

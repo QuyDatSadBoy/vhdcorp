@@ -180,6 +180,37 @@ describe('đăng nhập bằng tài khoản quản trị', () => {
     assert.equal((await login(base, GOOD.email, GOOD.password)).status, 429)
   })
 
+  it('khoá theo IP THẬT của từng người, không khoá chung cả công ty', async () => {
+    const { base } = await startGate()
+    const sai = (ip) =>
+      fetch(`${base}/auth/login`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-real-ip': ip },
+        body: new URLSearchParams({ email: GOOD.email, password: 'saibetnhe999' }).toString(),
+        redirect: 'manual',
+      })
+
+    // Người A nhập sai 5 lần → chỉ A bị khoá
+    for (let i = 0; i < 5; i += 1) assert.equal((await sai('1.2.3.4')).status, 401)
+    const aBiKhoa = await fetch(`${base}/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-real-ip': '1.2.3.4' },
+      body: new URLSearchParams({ email: GOOD.email, password: GOOD.password }).toString(),
+      redirect: 'manual',
+    })
+    assert.equal(aBiKhoa.status, 429)
+
+    // Người B vẫn đăng nhập được bình thường — đứng sau Cloudflare mà lấy sai IP
+    // thì cả công ty bị khoá theo A.
+    const bVaoDuoc = await fetch(`${base}/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-real-ip': '5.6.7.8' },
+      body: new URLSearchParams({ email: GOOD.email, password: GOOD.password }).toString(),
+      redirect: 'manual',
+    })
+    assert.equal(bVaoDuoc.status, 302)
+  })
+
   it('không chuyển hướng sang tên miền lạ sau khi đăng nhập', async () => {
     const { base } = await startGate()
     const res = await login(base, GOOD.email, GOOD.password, { next: 'https://ke-xau.example.com/x' })
