@@ -63,7 +63,7 @@ echo "${BOLD}VHD Corp — kiểm thử trước khi phát hành${OFF}"
 echo "${DIM}nhánh: $(git -C "$ROOT" rev-parse --abbrev-ref HEAD) · commit: $(git -C "$ROOT" rev-parse --short HEAD)${OFF}"
 
 # ── 0. Cây làm việc phải sạch (deploy lấy code từ remote, không lấy file chưa commit)
-step "0/5 Kiểm tra cây làm việc"
+step "0/3 Kiểm tra cây làm việc"
 if [ -n "$(git -C "$ROOT" status --porcelain)" ]; then
   fail "còn thay đổi chưa commit — deploy kéo code từ remote nên những thay đổi này sẽ KHÔNG lên server"
   git -C "$ROOT" status --short | head -10
@@ -72,26 +72,43 @@ else
   ok "sạch"
 fi
 
-# ── 1. Agent (Python)
-step "1/5 Agent — pytest"
-run "pytest" bash -c "cd '$ROOT/agent' && .venv/bin/python -m pytest -q"
+# ── 1-3. Ba nhóm kiểm thử chạy SONG SONG
+#
+# Chúng độc lập hoàn toàn (pytest của agent, tsc+build của backend, tsc+lint+build của
+# frontend) nên chạy tuần tự chỉ để cộng thời gian lại. Máy có nhiều lõi, và chỗ chờ
+# lâu nhất là frontend build — cho hai nhóm kia chạy cùng lúc thì gần như miễn phí.
+#
+# Log của mỗi nhóm ghi ra file riêng rồi in sau, tránh ba tiến trình trộn chữ vào nhau.
+step "1/3 Kiểm thử agent · backend · frontend (song song)"
 
-# ── 2. Backend (NestJS)
-step "2/5 Backend — tsc + build"
-run "tsc" bash -c "cd '$ROOT/be' && npx tsc --noEmit"
-run "build" bash -c "cd '$ROOT/be' && yarn build"
+AGENT_LOG=$(mktemp); BE_LOG=$(mktemp); FE_LOG=$(mktemp)
+( cd "$ROOT/agent" && .venv/bin/python -m pytest -q ) >"$AGENT_LOG" 2>&1 &
+PID_AGENT=$!
+( cd "$ROOT/be" && npx tsc --noEmit && yarn build ) >"$BE_LOG" 2>&1 &
+PID_BE=$!
+( cd "$ROOT/fe" && npx tsc --noEmit && yarn lint && yarn build ) >"$FE_LOG" 2>&1 &
+PID_FE=$!
 
-# ── 3. Frontend (Next.js)
-step "3/5 Frontend — tsc + lint + build"
-run "tsc" bash -c "cd '$ROOT/fe' && npx tsc --noEmit"
-run "lint" bash -c "cd '$ROOT/fe' && yarn lint"
-run "build" bash -c "cd '$ROOT/fe' && yarn build"
+report() {
+  local name="$1" pid="$2" logf="$3"
+  if wait "$pid"; then
+    ok "$name"
+  else
+    fail "$name"
+    echo "${DIM}$(tail -20 "$logf")${OFF}"
+    FAILED+=("$name")
+  fi
+  rm -f "$logf"
+}
+report "agent (pytest)" "$PID_AGENT" "$AGENT_LOG"
+report "backend (tsc + build)" "$PID_BE" "$BE_LOG"
+report "frontend (tsc + lint + build)" "$PID_FE" "$FE_LOG"
 
 # ── 4. Kiểm thử đầu-cuối: dựng agent thật rồi gọi qua HTTP (model thật, catalog thật)
 if [ "$SKIP_E2E" = "1" ]; then
-  step "4/5 Kiểm thử đầu-cuối — BỎ QUA (--skip-e2e)"
+  step "2/3 Kiểm thử đầu-cuối — BỎ QUA (--skip-e2e)"
 else
-  step "4/5 Kiểm thử đầu-cuối trên agent thật (cổng $AGENT_PORT)"
+  step "2/3 Kiểm thử đầu-cuối trên agent thật (cổng $AGENT_PORT)"
   ( cd "$ROOT/agent" && .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port "$AGENT_PORT" >/tmp/ship-agent.log 2>&1 ) &
   AGENT_PID=$!
   UP=0
@@ -111,7 +128,7 @@ else
 fi
 
 # ── 5. Kết luận + deploy
-step "5/5 Kết luận"
+step "3/3 Kết luận"
 if [ ${#FAILED[@]} -gt 0 ]; then
   fail "${#FAILED[@]} bước HỎNG: ${FAILED[*]}"
   echo -e "\n${RED}${BOLD}KHÔNG deploy.${OFF} Sửa xong rồi chạy lại."
