@@ -45,7 +45,21 @@ rollback() {
 
 log "1/7 Kéo code mới nhất (nhánh $BRANCH)"
 git fetch origin "$BRANCH"
+
+# Trạng thái CHẠY của máy chủ (chế độ trợ lý, kỹ năng admin tự thêm, cấu hình MCP)
+# nằm trong agent/data. Nếu một file như vậy lỡ bị commit rồi sau đó gỡ khỏi git, thì
+# checkout ở đây chết vì "local changes would be overwritten" — đã xảy ra thật một lần.
+# Gỡ khỏi index nhưng GIỮ NGUYÊN nội dung trên đĩa: cấu hình admin đặt trên máy chủ
+# không được phép bị bản ở máy lập trình ghi đè.
+for runtime in agent/data/agent_mode.local.json agent/data/skills.local.json                agent/data/mcp_servers.local.json agent/data/chat_limits.local.json; do
+  if git ls-files --error-unmatch "$runtime" >/dev/null 2>&1; then
+    log "  ↻ gỡ $runtime khỏi git (giữ nội dung trên máy chủ)"
+    git rm --cached -q "$runtime" || true
+  fi
+done
+
 git checkout -B "$BRANCH" "origin/$BRANCH"
+# reset --hard KHÔNG chạm file đã gỡ khỏi index ở trên, nên cấu hình vẫn còn
 git reset --hard "origin/$BRANCH"
 
 # Từ đây nếu bất kỳ bước nào lỗi → rollback
