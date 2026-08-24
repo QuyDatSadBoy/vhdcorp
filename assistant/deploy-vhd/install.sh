@@ -133,6 +133,7 @@ VHD_IDLE_MINUTES=$IDLE_MINUTES
 VHD_DSH_COMMAND=node apps/cli/lib/bin.js web
 VHD_DSH_CWD=$APP
 VHD_ADMIN_TOKEN=$TOKEN
+VHD_PUBLIC_HOST=$DOMAIN
 EOF
 chown "$USER_NAME:$USER_NAME" "$ENV_FILE"
 chmod 600 "$ENV_FILE"
@@ -342,7 +343,10 @@ ok "nginx đã nạp site $DOMAIN"
 API_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$DOMAIN/api/host.listDirectory" 2>/dev/null || echo 000)
 if [ "$API_CODE" = "403" ]; then
   echo
-  echo "   ⚠️  CLOUDFLARE ĐANG CHẶN /api — trợ lý sẽ KHÔNG tạo được thư mục làm việc."
+  echo "   ⚠️  /api trả 403 — trợ lý sẽ KHÔNG tạo được thư mục làm việc."
+  echo "      Nguyên nhân thường gặp: thiếu VHD_PUBLIC_HOST trong $ENV_FILE (DSH từ"
+  echo "      chối Host không phải loopback nếu không được khai báo). Đã đặt sẵn ở"
+  echo "      bước 4; nếu vẫn 403 thì mới xét tới Cloudflare:"
   echo "      Chọn MỘT trong hai cách (mỗi cách một lần bấm):"
   echo
   echo "      A) Tắt proxy Cloudflare cho subdomain này (khuyến nghị):"

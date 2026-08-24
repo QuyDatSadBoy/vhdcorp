@@ -98,6 +98,7 @@ async function waitForReady(port, timeoutMs, isAlive) {
  * @param options.maxActive   trần số tiến trình chạy cùng lúc (giữ RAM)
  * @param options.idleMs      không ai dùng bao lâu thì tắt
  * @param options.bootMs      chờ tiến trình mở cổng tối đa bao lâu
+ * @param options.trustedHost tên miền công khai người dùng truy cập (cho --trusted-host)
  * @param options.env         biến môi trường thêm cho tiến trình con
  * @param options.log         hàm ghi log
  */
@@ -109,6 +110,7 @@ export function createInstances(options) {
     maxActive = 3,
     idleMs = 20 * 60_000,
     bootMs = 120_000,
+    trustedHost = '',
     env = {},
     log = () => {},
   } = options
@@ -214,7 +216,14 @@ export function createInstances(options) {
 
         const [bin, ...rest] = command
         // --no-open: máy chủ không có trình duyệt để mở, mà DSH mặc định vẫn thử.
+        //
+        // --trusted-host: DSH TỪ CHỐI mọi request có Host không phải loopback và
+        // không được khai báo — trả 403 'forbidden'. Đứng sau nginx thì Host là
+        // tên miền công khai, nên thiếu cờ này là mọi lệnh gọi API đều 403 và
+        // người dùng không tạo được thư mục làm việc. Đây là cơ chế có sẵn của
+        // DSH cho trường hợp chạy sau proxy, không phải chỗ cần vá.
         const args = [...rest, '--host', '127.0.0.1', '--port', String(port), '--no-open']
+        if (trustedHost !== '') args.push('--trusted-host', trustedHost)
         // Bật tiến trình NGAY TRONG workspace của người này: DSH lấy thư mục làm
         // việc mặc định (và cả biên giới ghi của sandbox) từ process.cwd(). Nhờ vậy
         // họ mở trợ lý lên là đã ở đúng thư mục của mình, không phải tự chọn.

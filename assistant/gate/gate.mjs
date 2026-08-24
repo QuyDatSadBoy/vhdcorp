@@ -17,6 +17,7 @@
  *   VHD_maxActive    trần số tiến trình cùng lúc   (mặc định 3)
  *   VHD_IDLE_MINUTES  rảnh bao lâu thì tắt          (mặc định 20)
  *   VHD_ADMIN_TOKEN   token cho trang quản trị đọc trạng thái (không đặt = tắt)
+ *   VHD_PUBLIC_HOST   tên miền công khai (bắt buộc khi đứng sau nginx)
  */
 
 import { createServer, request as httpRequest } from 'node:http'
@@ -41,6 +42,7 @@ export function configFromEnv(env = process.env) {
     // mỗi người và làm thời gian bật lên từ ~5s thành ~22s (đo trên máy lập trình).
     command: (env.VHD_DSH_COMMAND ?? 'node apps/cli/lib/bin.js web').split(' '),
     adminToken: env.VHD_ADMIN_TOKEN ?? '',
+    trustedHost: env.VHD_PUBLIC_HOST ?? '',
     cwd: resolve(env.VHD_DSH_CWD ?? '..'),
   }
 }
@@ -51,12 +53,12 @@ export function configFromEnv(env = process.env) {
  */
 export function createGate(options) {
   const {
-    beUrl, homesRoot, maxActive, idleMs, command, cwd, adminToken = '',
+    beUrl, homesRoot, maxActive, idleMs, command, cwd, adminToken = '', trustedHost = '',
     log = (msg) => process.stdout.write(`${new Date().toISOString()} ${msg}\n`),
   } = options
 
   const sessions = createSessions()
-  const instances = createInstances({ homesRoot, command, cwd, maxActive, idleMs, log })
+  const instances = createInstances({ homesRoot, command, cwd, maxActive, idleMs, trustedHost, log })
 
 /** Header an toàn cho mọi trang cổng tự trả. */
 const PAGE_HEADERS = {

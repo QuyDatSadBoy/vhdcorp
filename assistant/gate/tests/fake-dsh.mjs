@@ -14,6 +14,7 @@ const server = createServer((req, res) => {
     user: req.headers['x-vhd-user'] ?? null,
     cookie: req.headers.cookie ?? null,
     path: req.url,
+    args: args.join(' '),
   }))
 })
 server.on('upgrade', (req, socket) => {

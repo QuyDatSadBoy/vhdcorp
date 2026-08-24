@@ -277,6 +277,24 @@ describe('workspace riêng theo từng nick', () => {
     assert.equal(gate.instances.active, 2)
   })
 
+  it('truyền --trusted-host cho trợ lý khi có tên miền công khai', async () => {
+    // DSH TỪ CHỐI (403 'forbidden') mọi request có Host không phải loopback và
+    // không được khai báo. Đứng sau nginx thì Host là tên miền công khai, nên
+    // thiếu cờ này là mọi lệnh gọi API đều 403 — đúng lỗi 'không tạo được thư
+    // mục làm việc' đã gặp trên máy chủ thật.
+    const { base } = await startGate({ trustedHost: 'assistant.vhdcorp.com' })
+    const cookie = cookieOf(await login(base, GOOD.email, GOOD.password))
+    const body = await (await fetch(`${base}/x`, { headers: { cookie } })).json()
+    assert.match(body.args, /--trusted-host assistant\.vhdcorp\.com/)
+  })
+
+  it('không có tên miền công khai thì không thêm cờ (chạy một mình ở loopback)', async () => {
+    const { base } = await startGate()
+    const cookie = cookieOf(await login(base, GOOD.email, GOOD.password))
+    const body = await (await fetch(`${base}/y`, { headers: { cookie } })).json()
+    assert.doesNotMatch(body.args, /--trusted-host/)
+  })
+
   it('tên có ký tự lạ vẫn ra thư mục an toàn (không thoát ra ngoài)', () => {
     assert.equal(slugFor('../../etc/passwd'), 'etc_passwd')
     assert.ok(!slugFor('../../etc/passwd').includes('..'))
