@@ -43,28 +43,51 @@ function IconButton({
   );
 }
 
-/** Số đo: giờ · thời gian chạy · chữ đầu · tốc độ (cùng thứ tự như harness). */
+/**
+ * Số đo của lượt trả lời.
+ *
+ * Nhãn viết rõ ("Thời gian chạy", "Token đầu") thay vì gộp thành một dãy số dính nhau —
+ * người vận hành đọc để biết nhanh chậm, mà "8.6s · 2.9s · 47" thì phải đoán số nào là gì.
+ *
+ * Token là số THẬT do nhà cung cấp báo, không phải quy đổi ở trình duyệt. Không có số
+ * đó (câu lấy từ bộ đệm, hoặc lịch sử cũ trước khi lưu) thì bỏ hẳn phần token chứ
+ * không hiện số ước lượng — thà thiếu hơn là đưa con số không đúng.
+ */
 function MetricsText({ time, m }: { time: string; m?: ChatMetrics }) {
-  if (!m) return <span className="text-[13px] text-muted-foreground/70 tabular-nums">{time}</span>;
+  if (!m) return <span className="text-[13px] tabular-nums text-muted-foreground/70">{time}</span>;
+
   if (m.cached) {
     return (
       <span
         className="text-[13px] tabular-nums text-muted-foreground/70"
-        title="Câu này có sẵn trong bộ nhớ đệm nên không phải gọi mô hình"
+        title="Câu này có sẵn trong bộ nhớ đệm nên không gọi mô hình — không tốn token"
       >
-        {time} · trả từ bộ đệm · {m.total.toFixed(2)}s
+        {time} · Trả từ bộ đệm {m.total.toFixed(2)}s
       </span>
     );
   }
-  // Ước lượng token: tiếng Việt trung bình ~3.5 ký tự/token với các bộ tách hiện nay.
-  // Không có số token thật từ trình duyệt, nên quy đổi rồi ghi rõ là ước lượng.
-  const tps = m.total > 0 ? Math.round(m.chars / 3.5 / m.total) : 0;
+
+  const parts = [`Thời gian chạy ${m.total.toFixed(1)}s`];
+  // Lịch sử cũ không có mốc "token đầu" (đó là số đo ở trình duyệt lúc chạy) — bỏ hẳn
+  // thay vì hiện "Token đầu 0.0s" khiến người đọc tưởng nhanh bất thường.
+  if (m.ttft > 0) parts.push(`Token đầu ${m.ttft.toFixed(1)}s`);
+  if (m.totalTokens) {
+    const speed = m.outTokens && m.total > 0 ? Math.round(m.outTokens / m.total) : 0;
+    parts.push(`${m.totalTokens.toLocaleString("vi-VN")} token${speed > 0 ? ` · ${speed} token/s` : ""}`);
+  }
+
+  const detail = [
+    m.inTokens != null && `vào ${m.inTokens.toLocaleString("vi-VN")} token`,
+    m.outTokens != null && `ra ${m.outTokens.toLocaleString("vi-VN")} token`,
+    m.model && `model ${m.model}`,
+    `${m.chars} ký tự`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <span
-      className="text-[13px] tabular-nums text-muted-foreground/70"
-      title={`Chữ đầu sau ${m.ttft.toFixed(2)}s · cả lượt ${m.total.toFixed(2)}s · ${m.chars} ký tự (token là số ước lượng)`}
-    >
-      {time} · chạy {m.total.toFixed(1)}s · chữ đầu {m.ttft.toFixed(1)}s{tps > 0 ? ` · ${tps} token/s` : ""}
+    <span className="text-[13px] tabular-nums text-muted-foreground/70" title={detail}>
+      {time} · {parts.join(" · ")}
     </span>
   );
 }

@@ -3,6 +3,7 @@ stream sự kiện SSE, lưu message, kích hoạt background memory task."""
 
 import asyncio
 import logging
+import time
 import uuid
 from collections.abc import AsyncGenerator
 
@@ -142,6 +143,7 @@ class ChatService:
     ) -> AsyncGenerator[dict, None]:
         """Yield các event dict: conversation / message.delta / tool.start / tool.end / ui / done / error."""
         first_turn = False
+        turn_started = time.monotonic()
         try:
             if conversation_id:
                 conv = await self.conversation_repo.get(conversation_id, user_id)
@@ -293,8 +295,18 @@ class ChatService:
                 if final_text:
                     yield {"type": "message.delta", "content": final_text}
 
+            # Số đo của lượt này. Token là số THẬT do nhà cung cấp báo (usage_metadata),
+            # không phải ước lượng ở trình duyệt — nên lưu luôn vào tin nhắn để mở lại
+            # lịch sử vẫn còn, thay vì mất sạch khi tải lại trang.
+            metrics = {
+                "in_tokens": in_tokens,
+                "out_tokens": out_tokens,
+                "total_tokens": in_tokens + out_tokens,
+                "model": used_model or "",
+                "elapsed": round(time.monotonic() - turn_started, 2),
+            }
             message_id = await self.message_repo.add(
-                conversation_id, "assistant", final_text, ui_blocks=emitted_ui
+                conversation_id, "assistant", final_text, ui_blocks=emitted_ui, metrics=metrics
             )
             await self.conversation_repo.touch(conversation_id)
             usage.record_request(used_model, in_tokens, out_tokens)  # thống kê chi phí theo model (token thật)
@@ -305,7 +317,7 @@ class ChatService:
                     reply_cache.store(message, final_text, tools_used=tools_used, had_ui=bool(emitted_ui), page=page)
                 except Exception:  # noqa: BLE001 — lỗi cache không được ảnh hưởng trả lời
                     pass
-            yield {"type": "done", "message_id": message_id}
+            yield {"type": "done", "message_id": message_id, "metrics": metrics}
 
             self._spawn_background(
                 self.memory_service.post_turn(conversation_id, first_turn=first_turn)

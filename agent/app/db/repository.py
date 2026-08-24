@@ -98,20 +98,33 @@ class MessageRepo:
         self.db = db
 
     async def add(
-        self, conversation_id: str, role: str, content: str, ui_blocks: list | None = None
+        self,
+        conversation_id: str,
+        role: str,
+        content: str,
+        ui_blocks: list | None = None,
+        metrics: dict | None = None,
     ) -> str:
         message_id = _new_id()
         await self.db.conn.execute(
-            "INSERT INTO messages (id, conversation_id, role, content, ui_blocks, created_at)"
-            " VALUES (?, ?, ?, ?, ?, ?)",
-            (message_id, conversation_id, role, content, json.dumps(ui_blocks or [], ensure_ascii=False), _now()),
+            "INSERT INTO messages (id, conversation_id, role, content, ui_blocks, metrics, created_at)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                message_id,
+                conversation_id,
+                role,
+                content,
+                json.dumps(ui_blocks or [], ensure_ascii=False),
+                json.dumps(metrics or {}, ensure_ascii=False),
+                _now(),
+            ),
         )
         await self.db.conn.commit()
         return message_id
 
     async def list(self, conversation_id: str) -> list[dict[str, Any]]:
         cur = await self.db.conn.execute(
-            "SELECT id, role, content, ui_blocks, created_at FROM messages"
+            "SELECT id, role, content, ui_blocks, metrics, created_at FROM messages"
             " WHERE conversation_id = ? ORDER BY created_at ASC",
             (conversation_id,),
         )
@@ -123,6 +136,10 @@ class MessageRepo:
                 d["ui_blocks"] = json.loads(d.get("ui_blocks") or "[]")
             except (TypeError, ValueError):
                 d["ui_blocks"] = []
+            try:
+                d["metrics"] = json.loads(d.get("metrics") or "{}")
+            except (TypeError, ValueError):
+                d["metrics"] = {}
             out.append(d)
         return out
 

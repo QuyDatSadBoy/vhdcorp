@@ -38,6 +38,14 @@ export interface ConversationMessage {
   created_at: string;
   /** Gen-UI blocks đã persist kèm message assistant — reload không mất (§9.2) */
   ui_blocks?: { component: string; props: Record<string, unknown> }[];
+  /** Số đo lượt trả lời do máy chủ lưu — mở lại lịch sử vẫn thấy */
+  metrics?: {
+    in_tokens?: number;
+    out_tokens?: number;
+    total_tokens?: number;
+    model?: string;
+    elapsed?: number;
+  };
 }
 
 /* ─── SSE events từ POST /api/chat ─────────────────────────── */
@@ -177,4 +185,10 @@ export interface ChatMetrics {
   chars: number;
   /** Trả từ bộ nhớ đệm, không gọi mô hình */
   cached?: boolean;
+  /** Token THẬT do nhà cung cấp báo (không phải ước lượng ở trình duyệt) */
+  inTokens?: number;
+  outTokens?: number;
+  totalTokens?: number;
+  /** Model thực chạy lượt đó — hữu ích khi chuỗi dự phòng đổi model giữa đường */
+  model?: string;
 }

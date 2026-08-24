@@ -68,6 +68,22 @@ export function useChat() {
                 })),
               }
             : {}),
+          // Số đo do máy chủ lưu: mở lại hội thoại cũ vẫn thấy thời gian và token.
+          // Không có `ttft` trong lịch sử (đó là số đo ở trình duyệt lúc chạy), nên
+          // dùng chính thời gian máy chủ ghi cho cả hai chỗ thay vì bỏ trống.
+          ...(m.metrics?.total_tokens || m.metrics?.elapsed
+            ? {
+                metrics: {
+                  ttft: 0,
+                  total: m.metrics.elapsed ?? 0,
+                  chars: m.content.length,
+                  inTokens: m.metrics.in_tokens,
+                  outTokens: m.metrics.out_tokens,
+                  totalTokens: m.metrics.total_tokens,
+                  model: m.metrics.model,
+                },
+              }
+            : {}),
         }))
       );
     } catch {
@@ -154,6 +170,8 @@ export function useChat() {
       const startedAt = performance.now();
       let firstTokenAt: number | null = null;
       let cachedAnswer = false;
+      // Token THẬT + model thực chạy do máy chủ báo trong sự kiện done
+      let serverMetrics: Record<string, unknown> | null = null;
       let typewriterResolve: (() => void) | null = null;
 
       const finalize = () => {
@@ -172,6 +190,10 @@ export function useChat() {
             total: (performance.now() - startedAt) / 1000,
             chars: content.length,
             cached: cachedAnswer,
+            inTokens: Number(serverMetrics?.in_tokens) || undefined,
+            outTokens: Number(serverMetrics?.out_tokens) || undefined,
+            totalTokens: Number(serverMetrics?.total_tokens) || undefined,
+            model: (serverMetrics?.model as string) || undefined,
           },
         });
         typewriterResolve?.();
@@ -274,6 +296,7 @@ export function useChat() {
               case "done":
                 finalMessageId = event.message_id;
                 cachedAnswer = Boolean((event as { cached?: boolean }).cached);
+                serverMetrics = (event as { metrics?: Record<string, unknown> }).metrics ?? null;
                 serverDone = true;
                 // Không có chữ (vd guardrail) → chốt luôn; có chữ → typewriter chảy nốt rồi tự finalize
                 if (content.length === 0 || shownChars >= content.length) finalize();
