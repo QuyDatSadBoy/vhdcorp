@@ -10,6 +10,7 @@ const server = createServer((req, res) => {
   res.end(JSON.stringify({
     home: process.env.DSH_HOME ?? null,
     workspace: process.env.VHD_WORKSPACE ?? null,
+    cwd: process.cwd(),
     user: req.headers['x-vhd-user'] ?? null,
     cookie: req.headers.cookie ?? null,
     path: req.url,

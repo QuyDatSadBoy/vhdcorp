@@ -186,6 +186,10 @@ describe('workspace riêng theo từng nick', () => {
     const slug = slugFor(GOOD.email)
     assert.equal(body.home, join(homes, slug))
     assert.equal(body.workspace, join(homes, slug, 'workspace'))
+    // Thư mục làm việc MẶC ĐỊNH phải là của chính họ: DSH lấy workspace và biên
+    // giới ghi của sandbox từ process.cwd(), nên bật sai chỗ là họ mở lên thấy
+    // thư mục cài đặt của trợ lý chứ không phải thư mục của mình.
+    assert.equal(body.cwd, join(homes, slug, 'workspace'))
     assert.equal(body.user, GOOD.email)
     assert.equal(body.path, '/api/hello')
     // Cookie của cổng KHÔNG được chuyển vào trợ lý

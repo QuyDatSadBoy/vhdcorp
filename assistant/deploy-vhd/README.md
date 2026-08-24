@@ -39,11 +39,26 @@ Người dùng ──HTTPS──▶ nginx ──▶ CỔNG VÀO (gate) ──▶
 
 ### Vì sao mỗi nick một tiến trình riêng
 
-Sandbox của DeepSeek Harness chỉ chắn **ghi**, không chắn **đọc**
-(`FS_SANDBOX_DENIED` chỉ áp cho write/edit). Nếu để một tiến trình dùng chung thì
-khoá thư mục kiểu nào anh em vẫn đọc được file của nhau. Tiến trình riêng +
-`DSH_HOME` riêng là cách duy nhất để "chỉ làm việc trong thư mục của mình" đúng cả
-với việc đọc.
+Mỗi người có tiến trình riêng, `DSH_HOME` riêng (lịch sử chat, cấu hình, hồ sơ
+không lẫn nhau), và tiến trình được bật **ngay trong thư mục workspace của họ** —
+DSH lấy thư mục làm việc mặc định và biên giới ghi của sandbox từ `process.cwd()`,
+nên mở trợ lý lên là đã ở đúng chỗ, không phải tự chọn.
+
+**Điều còn lại phải nói thật:** các tiến trình đều chạy dưới cùng một người dùng hệ
+thống (`vhdagent`), nên nếu ai chủ động gõ đường dẫn sang `homes/<người khác>/` thì
+**vẫn đọc được file của đồng nghiệp**. Sandbox của DeepSeek Harness chỉ chắn **ghi**,
+không chắn **đọc** (`FS_SANDBOX_DENIED` chỉ áp cho write/edit).
+
+Với anh em trong cùng công ty thì mức này thường là đủ. Nếu cần chặn hẳn cả việc
+đọc chéo, có hai đường:
+
+1. **Landlock** — DeepSeek Harness có sẵn launcher `landlock-run` (tự khoá rồi
+   `exec`, ruleset kế thừa qua `execve` nên khoá cả tiến trình con, fail-closed).
+   Gói nền tảng không được cài mặc định; cài
+   `@deepseek-ai/node-addon-landlock-run-linux-x64` rồi bọc lệnh spawn trong
+   `gate/instances.mjs` bằng `landlock-run --rw <workspace của người đó> -- <lệnh>`.
+2. **Mỗi người một người dùng hệ thống** — cách chắc nhất, nhưng cổng vào phải có
+   quyền spawn dưới uid khác (một unit systemd theo mẫu `@user`), phức tạp hơn.
 
 Cái giá là RAM: mỗi người đang dùng chiếm một tiến trình. Nên cổng vào chỉ bật khi
 có người vào, **tự tắt sau 20 phút không ai dùng**, và có trần số người cùng lúc —
@@ -319,5 +334,23 @@ sudo systemctl start vhd-assistant-gc.service   # chạy thử một lần
   ghi file, gọi mạng. Đó là chủ ý — anh em cần làm được việc.
 - Vì vậy **chỉ cấp tài khoản quản trị cho người mình tin**. Ai vào được trợ lý thì
   chạy được lệnh dưới quyền `vhdagent`.
-- Đừng để dữ liệu riêng tư của khách hàng vào `homes/` — nó nằm trên cùng máy chủ
-  với web bán hàng.
+- Anh em **đọc được file của nhau** nếu chủ động đi tìm (xem mục trên). Đừng để dữ
+  liệu riêng tư của khách hàng vào `homes/`.
+
+## Những gì có bài kiểm tự động
+
+20 bài trong `gate/tests/gate.test.mjs`, bật cổng vào thật và gọi HTTP/WebSocket
+thật (`node --test gate/tests/gate.test.mjs`):
+
+- Chưa đăng nhập: trang bị đẩy về `/login`, API trả 401, **WebSocket bị chặn**
+- Trang đăng nhập tự chứa — chưa đăng nhập không tải được tệp nào của trợ lý
+- Sai mật khẩu 401; sai 5 lần khoá IP 15 phút; lần 6 đúng mật khẩu vẫn 429
+- BE chết → 503 báo hệ thống lỗi, **không** tính là đăng nhập sai
+- Cookie bịa, cookie sau khi đăng xuất: không dùng lại được
+- Không chuyển hướng ra tên miền lạ; `GET /auth/login` trả 405
+- Mỗi người vào đúng `DSH_HOME`, workspace, và `cwd` của mình
+- Tên có ký tự lạ (`../../etc/passwd`) không thoát ra khỏi thư mục home
+- Nhiều request cùng lúc của một người chỉ sinh **một** tiến trình (đếm bằng
+  `pgrep`, không tin bảng theo dõi)
+- Bật không lên thì không để lại tiến trình mồ côi, và thử lại được
+- Rảnh quá lâu tự tắt; quá trần thì người rảnh lâu nhất nhường chỗ

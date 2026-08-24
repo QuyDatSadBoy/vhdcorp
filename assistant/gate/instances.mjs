@@ -14,7 +14,7 @@ import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { request as httpGet } from 'node:http'
 import { mkdirSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { isAbsolute, join, resolve } from 'node:path'
 
 /**
  * Tên người dùng (email) → tên thư mục an toàn.
@@ -93,7 +93,8 @@ async function waitForReady(port, timeoutMs, isAlive) {
 /**
  * @param options.homesRoot   thư mục chứa home của từng người
  * @param options.command     lệnh chạy trợ lý, ví dụ ['pnpm','dsh','web']
- * @param options.cwd         thư mục chạy lệnh (nơi cài trợ lý)
+ * @param options.cwd         thư mục CÀI trợ lý (để tìm bin); tiến trình con
+ *                            được bật trong workspace của từng người, không ở đây
  * @param options.maxActive   trần số tiến trình chạy cùng lúc (giữ RAM)
  * @param options.idleMs      không ai dùng bao lâu thì tắt
  * @param options.bootMs      chờ tiến trình mở cổng tối đa bao lâu
@@ -206,8 +207,13 @@ export function createInstances(options) {
         const [bin, ...rest] = command
         // --no-open: máy chủ không có trình duyệt để mở, mà DSH mặc định vẫn thử.
         const args = [...rest, '--host', '127.0.0.1', '--port', String(port), '--no-open']
-        const child = spawn(bin, args, {
-          cwd,
+        // Bật tiến trình NGAY TRONG workspace của người này: DSH lấy thư mục làm
+        // việc mặc định (và cả biên giới ghi của sandbox) từ process.cwd(). Nhờ vậy
+        // họ mở trợ lý lên là đã ở đúng thư mục của mình, không phải tự chọn.
+        // Đường dẫn tới bin vì thế phải tuyệt đối — cwd không còn là nơi cài.
+        const argv = args.map((a) => (a.endsWith('.js') && !isAbsolute(a) ? resolve(cwd, a) : a))
+        const child = spawn(bin, argv, {
+          cwd: workspace,
           env: {
             ...process.env,
             ...env,
