@@ -122,6 +122,9 @@ agent/data/knowledge.local.md
 agent/data/chat_limits.local.json
 agent/data/usage_stats.local.json
 agent/data/reply_cache.local.json
+# Chế độ trợ lý là thiết lập RIÊNG của từng môi trường: admin đặt "chỉ việc VHD" trên
+# máy chủ mà file này bị commit thì lần deploy sau ghi đè bằng cấu hình ở máy lập trình.
+agent/data/agent_mode.local.json
 agent/data/skills.local.json
 agent/data/mcp_servers.local.json
 
