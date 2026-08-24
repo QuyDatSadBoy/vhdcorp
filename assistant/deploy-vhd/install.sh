@@ -263,9 +263,8 @@ server {
 }
 
 server {
-    # Dạng này chạy trên mọi phiên bản nginx. `http2 on;` chỉ có từ 1.25.1 —
-    # máy chủ đang dùng 1.24 và sẽ báo "unknown directive".
-    listen 443 ssl http2;
+    $LISTEN_443
+    $HTTP2_LINE
     server_name $DOMAIN;
 
     ssl_certificate     $CRT;

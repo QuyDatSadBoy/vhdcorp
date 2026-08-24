@@ -4,7 +4,7 @@
 
 Đọc **cả hai file** trước khi code. Đây là source of truth. Không suy diễn nếu đã định nghĩa ở đây.
 
-1. Làm xong thì phải clean lại code file thừa test các thứ phải loại bỏ trước commit
+1. Trong lúc làm tránh bật thừa hoặc dùng xong không tắt làm tràn ram và Làm xong thì phải clean lại code file thừa test các thứ phải loại bỏ trước commit
 2. [`docs/PRD.md`](docs/PRD.md) — routes, tính năng, auth flow, builder spec, dependencies
 3. [`docs/DATABASE.md`](docs/DATABASE.md) — **9 models đầy đủ**, schema Prisma, index strategy, design decisions
 4. Nếu việc liên quan đến `agent/`: [`docs/AGENT_PLAN.md`](docs/AGENT_PLAN.md) **mục 12** — hiện trạng lõi DeepAgents, chuỗi model, SKILL, subagent, AG-UI, bảng biến môi trường. Mục 1–11 là lịch sử, có chỗ đã lạc hậu.
