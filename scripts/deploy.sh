@@ -24,8 +24,20 @@ log() { echo -e "\n\033[1;34m[deploy]\033[0m $*"; }
 
 # Chỉ cài lại thư viện khi lockfile thực sự đổi. Trước đây chạy mọi lần dù không thêm
 # gói nào, mà `yarn install` kể cả lúc đã đủ vẫn tốn hàng chục giây quét lại cây phụ thuộc.
+# Bỏ qua cài lại khi lockfile không đổi — NHƯNG phải kiểm công cụ build có thật
+# không. Đã hỏng thật vì chỗ này: node_modules thiếu devDependencies mà file dấu
+# vẫn nói "không đổi", nên deploy bỏ qua cài rồi chết ở `nest: not found`. Tệ hơn:
+# lúc đó dist đã bị xoá nên rollback không có gì để phục hồi và web sập.
+# $3 trở đi: các file BẮT BUỘC phải tồn tại (đường dẫn tương đối thư mục hiện tại).
 install_if_changed() {
-  local lock="$1" stamp="$2"
+  local lock="$1" stamp="$2"; shift 2
+  local required
+  for required in "$@"; do
+    if [ ! -e "$required" ]; then
+      log "  ⚠ thiếu $required → cài lại thư viện dù lockfile không đổi"
+      return 0
+    fi
+  done
   if [ -f "$stamp" ] && [ -f "$lock" ] && cmp -s "$lock" "$stamp"; then
     log "  ⤳ bỏ qua cài lại thư viện (lockfile không đổi)"
     return 1
@@ -83,6 +95,24 @@ rollback() {
   rm -rf be/dist fe/.next
   [ -d be/dist.bak ] && mv be/dist.bak be/dist || true
   [ -d fe/.next.bak ] && mv fe/.next.bak fe/.next || true
+
+  # Không có backup để phục hồi (lần deploy trước đã hỏng dở) thì PHẢI build lại,
+  # không thì pm2 chạy vào dist rỗng và web sập luôn — đã xảy ra thật: vhd-be
+  # errored với MODULE_NOT_FOUND vì thiếu be/dist/main.js.
+  if [ ! -f be/dist/main.js ]; then
+    log "  ⚠ không có bản backup của backend — build lại bản cũ để web không sập"
+    ( cd be \
+      && { [ -e node_modules/.bin/nest ] || yarn install --frozen-lockfile; } \
+      && yarn prisma:generate \
+      && yarn build ) || log "  ❌ build lại backend THẤT BẠI — phải vào máy chủ xử lý tay"
+  fi
+  if [ ! -f fe/.next/BUILD_ID ]; then
+    log "  ⚠ không có bản backup của frontend — build lại bản cũ"
+    ( cd fe \
+      && { [ -e node_modules/.bin/next ] || yarn install --frozen-lockfile; } \
+      && yarn build ) || log "  ❌ build lại frontend THẤT BẠI — phải vào máy chủ xử lý tay"
+  fi
+
   pm2 startOrReload ecosystem.config.js --update-env || true
   log "↩️  Đã rollback về $(git rev-parse --short HEAD). Bản mới KHÔNG được áp dụng."
   exit 1
@@ -128,10 +158,11 @@ stop_assistant_for_build
 
 log "2/7 Backend: cài deps + migrate + build"
 cd "$APP_DIR/be"
-if install_if_changed yarn.lock node_modules/.deploy-lock; then
+if install_if_changed yarn.lock node_modules/.deploy-lock node_modules/.bin/nest; then
   yarn install --frozen-lockfile
   cp -f yarn.lock node_modules/.deploy-lock 2>/dev/null || true
 fi
+# Phải generate SAU install: yarn install xoá cả client đã sinh trong node_modules
 yarn prisma:generate
 # Tự phục hồi migration FAILED của lần deploy trước (Postgres chạy migration trong
 # transaction → fail là đã rollback vật lý; chỉ cần đánh dấu rolled-back rồi thử lại).
@@ -147,7 +178,7 @@ yarn build
 
 log "3/7 Frontend: cài deps + build production"
 cd "$APP_DIR/fe"
-if install_if_changed yarn.lock node_modules/.deploy-lock; then
+if install_if_changed yarn.lock node_modules/.deploy-lock node_modules/.bin/next; then
   yarn install --frozen-lockfile
   cp -f yarn.lock node_modules/.deploy-lock 2>/dev/null || true
 fi
