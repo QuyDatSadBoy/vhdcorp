@@ -14,7 +14,7 @@ import { join } from 'node:path'
 import { connect } from 'node:net'
 import { once } from 'node:events'
 import { execFileSync } from 'node:child_process'
-import { createGate } from '../gate.mjs'
+import { configFromEnv, createGate } from '../gate.mjs'
 import { slugFor } from '../instances.mjs'
 import { GOOD, startFakeBe } from './fake-be.mjs'
 
@@ -70,6 +70,40 @@ function countFakeDsh() {
 }
 
 const cookieOf = (res) => (res.headers.get('set-cookie') ?? '').split(';')[0]
+
+describe('đọc cấu hình từ biến môi trường', () => {
+  // Đặt biến trong .env mà mã đọc sai TÊN thì im lặng dùng mặc định: cổng vào
+  // gọi sai địa chỉ BE và không ai đăng nhập được, mà log không báo gì.
+  it('mọi biến VHD_* đều có tác dụng', () => {
+    const c = configFromEnv({
+      VHD_GATE_PORT: '4411',
+      VHD_BE_URL: 'http://be.test:9000/',
+      VHD_HOMES: '/tmp/nha-rieng',
+      VHD_MAX_ACTIVE: '7',
+      VHD_IDLE_MINUTES: '5',
+      VHD_DSH_COMMAND: 'node lenh-rieng.js web',
+      VHD_DSH_CWD: '/tmp/noi-cai',
+    })
+    assert.equal(c.port, 4411)
+    assert.equal(c.beUrl, 'http://be.test:9000') // cắt dấu / cuối
+    assert.equal(c.homesRoot, '/tmp/nha-rieng')
+    assert.equal(c.maxActive, 7)
+    assert.equal(c.idleMs, 5 * 60_000)
+    assert.deepEqual(c.command, ['node', 'lenh-rieng.js', 'web'])
+    assert.equal(c.cwd, '/tmp/noi-cai')
+  })
+
+  it('không đặt gì → mặc định an toàn cho máy chủ', () => {
+    const c = configFromEnv({})
+    assert.equal(c.port, 4400)
+    assert.equal(c.beUrl, 'http://127.0.0.1:8080') // đúng PORT trong be/.env
+    assert.equal(c.maxActive, 3)
+    assert.equal(c.idleMs, 20 * 60_000)
+    // Gọi thẳng bin đã build, KHÔNG qua pnpm (tốn thêm ~150MB mỗi người)
+    assert.ok(!c.command.includes('pnpm'))
+    assert.ok(c.command.join(' ').includes('apps/cli/lib/bin.js'))
+  })
+})
 
 describe('chặn người chưa đăng nhập', () => {
   it('mở trang → đẩy về /login, không lộ tệp nào của trợ lý', async () => {

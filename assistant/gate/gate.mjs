@@ -12,7 +12,7 @@
  *
  * Biến môi trường:
  *   VHD_GATE_PORT     cổng của chính cổng vào       (mặc định 4400)
- *   VHD_beUrl        địa chỉ BE để xác thực        (mặc định http://127.0.0.1:8080)
+ *   VHD_BE_URL        địa chỉ BE để xác thực        (mặc định http://127.0.0.1:8080)
  *   VHD_HOMES         thư mục chứa home từng người  (mặc định ./homes)
  *   VHD_maxActive    trần số tiến trình cùng lúc   (mặc định 3)
  *   VHD_IDLE_MINUTES  rảnh bao lâu thì tắt          (mặc định 20)
@@ -31,9 +31,9 @@ const MAX_LOGIN_BODY = 4096
 export function configFromEnv(env = process.env) {
   return {
     port: Number(env.VHD_GATE_PORT ?? 4400),
-    beUrl: (env.VHD_beUrl ?? 'http://127.0.0.1:8080').replace(/\/+$/, ''),
+    beUrl: (env.VHD_BE_URL ?? 'http://127.0.0.1:8080').replace(/\/+$/, ''),
     homesRoot: resolve(env.VHD_HOMES ?? './homes'),
-    maxActive: Number(env.VHD_maxActive ?? 3),
+    maxActive: Number(env.VHD_MAX_ACTIVE ?? 3),
     idleMs: Number(env.VHD_IDLE_MINUTES ?? 20) * 60_000,
     // Gọi THẲNG bin đã build, không qua `pnpm dsh`: lớp bọc pnpm tốn thêm ~150MB
     // mỗi người và làm thời gian bật lên từ ~5s thành ~22s (đo trên máy lập trình).
