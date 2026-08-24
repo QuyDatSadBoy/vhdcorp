@@ -10,6 +10,9 @@ set -euo pipefail
 
 DOMAIN="${1:-}"
 REPO_URL="${REPO_URL:-git@github.com:QuyDatSadBoy/vhdcorp.git}"
+# Nhánh chứa mã trợ lý. Mặc định develop vì assistant/ nằm ở đó; clone nhánh
+# mặc định (main) sẽ ra một repo KHÔNG có thư mục assistant.
+BRANCH="${BRANCH:-develop}"
 ROOT=/opt/vhd-assistant
 APP="$ROOT/repo/assistant"
 USER_NAME=vhdagent
@@ -58,17 +61,19 @@ step "3/8 Lấy mã và build"
 # Clone/pull bằng ROOT: khoá SSH của repo riêng tư nằm ở root, còn vhdagent là tài
 # khoản hệ thống không có khoá. Xong thì chuyển chủ cho vhdagent.
 if [ -d "$ROOT/repo/.git" ]; then
-  git -C "$ROOT/repo" pull --ff-only
-  ok "đã cập nhật mã"
+  git -C "$ROOT/repo" fetch -q --depth 1 origin "$BRANCH"
+  git -C "$ROOT/repo" checkout -q -B "$BRANCH" FETCH_HEAD
+  ok "đã cập nhật mã ($BRANCH)"
 else
-  git clone --depth 1 "$REPO_URL" "$ROOT/repo"
-  ok "đã tải mã"
+  git clone -q --depth 1 --branch "$BRANCH" "$REPO_URL" "$ROOT/repo"
+  ok "đã tải mã ($BRANCH)"
 fi
+[ -d "$APP" ] || die "Nhánh $BRANCH không có thư mục assistant/ — kiểm tra lại BRANCH"
 chown -R "$USER_NAME:$USER_NAME" "$ROOT/repo"
 
 # corepack enable ghi shim vào /usr/bin nên phải chạy bằng root, không phải vhdagent.
 corepack enable pnpm >/dev/null 2>&1 || die "Không bật được pnpm qua corepack"
-ok "pnpm $(pnpm -v 2>/dev/null || echo '?') sẵn sàng"
+ok "pnpm đã bật qua corepack"
 
 cd "$APP"
 # -H để HOME trỏ về $ROOT: thiếu nó thì HOME vẫn là /root, corepack ghi cache vào
