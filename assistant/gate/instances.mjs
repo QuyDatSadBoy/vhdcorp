@@ -235,6 +235,11 @@ export function createInstances(options) {
             ...process.env,
             ...env,
             DSH_HOME: home,
+            // HOME phải là thư mục của CHÍNH người này. Nếu để nguyên HOME của
+            // tài khoản hệ thống (/opt/vhd-assistant) thì bộ chọn thư mục mở ra
+            // ở đó và họ thấy cả homes/ của người khác lẫn repo/ mã nguồn — đo
+            // được trên máy chủ thật. Đặt lại thì "Home" chính là chỗ của họ.
+            HOME: home,
             // Thư mục làm việc của người này — trợ lý mở lên là ở đây.
             VHD_WORKSPACE: workspace,
           },

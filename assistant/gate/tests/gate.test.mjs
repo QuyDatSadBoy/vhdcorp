@@ -255,6 +255,9 @@ describe('workspace riêng theo từng nick', () => {
     // giới ghi của sandbox từ process.cwd(), nên bật sai chỗ là họ mở lên thấy
     // thư mục cài đặt của trợ lý chứ không phải thư mục của mình.
     assert.equal(body.cwd, join(homes, slug, 'workspace'))
+    // HOME phải là thư mục của chính họ: để nguyên HOME của tài khoản hệ thống
+    // thì bộ chọn thư mục mở ra ở gốc và họ thấy thư mục của người khác.
+    assert.equal(body.home, join(homes, slug))
     assert.equal(body.user, GOOD.email)
     assert.equal(body.path, '/api/hello')
     // Cookie của cổng KHÔNG được chuyển vào trợ lý

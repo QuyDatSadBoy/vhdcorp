@@ -11,6 +11,7 @@ const server = createServer((req, res) => {
     home: process.env.DSH_HOME ?? null,
     workspace: process.env.VHD_WORKSPACE ?? null,
     cwd: process.cwd(),
+    home: process.env.HOME ?? null,
     user: req.headers['x-vhd-user'] ?? null,
     cookie: req.headers.cookie ?? null,
     path: req.url,
