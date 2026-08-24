@@ -20,3 +20,7 @@ be/prisma/migrations
 .env
 .env.local
 .env.*.local
+
+# Trợ lý nội bộ VHD: có bộ lint/format riêng (oxlint) — prettier của repo chính
+# chạy vào đây sẽ định dạng lại hàng nghìn file mã của bên khác.
+assistant/

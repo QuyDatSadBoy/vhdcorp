@@ -131,3 +131,17 @@ agent/data/mcp_servers.local.json
 # File đo lường tạm do công cụ kiểm thử trình duyệt sinh ra (sandbox chỉ ghi được
 # vào thư mục repo) — không thuộc mã nguồn
 dsh-*.json
+
+# ============================================================
+# assistant/ — Trợ lý nội bộ VHD (bản DeepSeek Harness đổi thương hiệu)
+# ============================================================
+# Lockfile của assistant PHẢI theo repo: dòng `pnpm-lock.yaml` ở mục Logs
+# chặn mọi lockfile, mà cài lại không có nó thì máy chủ ra phiên bản khác local.
+!assistant/pnpm-lock.yaml
+assistant/node_modules/
+assistant/**/node_modules/
+assistant/**/lib/
+assistant/**/dist/
+assistant/.turbo/
+# Người dùng + mật khẩu băm: KHÔNG commit, mỗi máy tự tạo bằng deploy-vhd/vhd-user.mjs
+assistant/vhd-users.json

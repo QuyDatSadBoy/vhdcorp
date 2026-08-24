@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50" fill="none">
+  <!-- Trợ lý nội bộ VHD Corp — xanh thương hiệu #1B3A8C, sắc nhấn #4FB8E7 -->
+  <rect width="50" height="50" rx="11" fill="#1B3A8C"/>
+  <path d="M11 15.5 L19.5 34.5 L24.5 34.5 L16 15.5 Z" fill="#4FB8E7"/>
+  <path d="M22 15.5 L30.5 34.5 L35.5 34.5 L27 15.5 Z" fill="#ffffff"/>
+  <rect x="36" y="15.5" width="3.6" height="19" rx="1.2" fill="#4FB8E7"/>
+</svg>

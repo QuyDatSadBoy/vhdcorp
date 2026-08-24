@@ -24,7 +24,10 @@
     "be/**/*.ts": [
       "prettier --write"
     ],
-    "**/*.{json,md,css}": [
+    "{fe,be,docs,scripts,agent}/**/*.{json,md,css}": [
+      "prettier --write"
+    ],
+    "*.{json,md}": [
       "prettier --write"
     ]
   }
