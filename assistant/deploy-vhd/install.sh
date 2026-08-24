@@ -195,6 +195,31 @@ SITE=/etc/nginx/sites-available/vhd-assistant
 # là vô ích vì khách chỉ nói chuyện với Cloudflare, không nói chuyện với origin.
 ORIGIN_CRT=/etc/nginx/ssl/origin.crt
 ORIGIN_KEY=/etc/nginx/ssl/origin.key
+
+# Tên miền đang trỏ trực tiếp về máy này, hay đi qua Cloudflare?
+SERVER_IP=$(curl -fsS --max-time 10 https://api.ipify.org 2>/dev/null || echo '')
+DOMAIN_IPS=$(getent ahostsv4 "$DOMAIN" 2>/dev/null | awk '{print $1}' | sort -u | tr '\n' ' ')
+BEHIND_CF=1
+if [ -n "$SERVER_IP" ] && echo "$DOMAIN_IPS" | grep -qw "$SERVER_IP"; then
+  BEHIND_CF=0
+  ok "$DOMAIN trỏ TRỰC TIẾP về máy này ($SERVER_IP) — sẽ dùng Let's Encrypt"
+else
+  echo "   ℹ $DOMAIN đang đi qua Cloudflare (trỏ tới $DOMAIN_IPS)"
+fi
+
+# Đứng sau Cloudflare thì ưu tiên cert origin; trỏ trực tiếp thì phải có cert
+# công cộng, vì trình duyệt nói chuyện thẳng với máy này.
+if [ "$BEHIND_CF" = 0 ]; then
+  if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+    command -v certbot >/dev/null || {
+      log_apt=$(apt-get install -y certbot python3-certbot-nginx 2>&1 | tail -2) || true
+      command -v certbot >/dev/null || die "Không cài được certbot: $log_apt"
+      ok "đã cài certbot"
+    }
+  fi
+  ORIGIN_CRT=/khong-dung-cert-origin
+fi
+
 if [ -f "$ORIGIN_CRT" ] && [ -f "$ORIGIN_KEY" ]; then
   CRT="$ORIGIN_CRT"; KEY="$ORIGIN_KEY"; TLS_KIND="chứng chỉ origin (Cloudflare)"
 elif [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
@@ -309,6 +334,28 @@ if ! nginx -t 2>/tmp/nginx-test.log; then
 fi
 systemctl reload nginx
 ok "nginx đã nạp site $DOMAIN"
+
+# Trợ lý gọi mọi thứ qua /api. Cloudflare của vhdcorp.com có luật chặn /api* để
+# bảo vệ API web bán hàng, và luật đó áp cho CẢ subdomain — trợ lý sẽ không tạo
+# được thư mục làm việc, báo "transport failure ... HTTP 403". Kiểm ngay ở đây,
+# đừng để người dùng tự phát hiện.
+API_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$DOMAIN/api/host.listDirectory" 2>/dev/null || echo 000)
+if [ "$API_CODE" = "403" ]; then
+  echo
+  echo "   ⚠️  CLOUDFLARE ĐANG CHẶN /api — trợ lý sẽ KHÔNG tạo được thư mục làm việc."
+  echo "      Chọn MỘT trong hai cách (mỗi cách một lần bấm):"
+  echo
+  echo "      A) Tắt proxy Cloudflare cho subdomain này (khuyến nghị):"
+  echo "         Cloudflare → DNS → bản ghi A 'assistant' → đổi mây CAM sang mây XÁM."
+  echo "         Rồi chạy lại script này: nó sẽ tự xin chứng chỉ Let's Encrypt."
+  echo "         Cách này còn cho chống-dò-mật-khẩu tính đúng theo từng người."
+  echo
+  echo "      B) Giữ Cloudflare, thêm luật bỏ qua WAF:"
+  echo "         Security → WAF → Custom rules → Skip khi Hostname = $DOMAIN."
+  echo
+else
+  ok "Cloudflare không chặn /api (HTTP $API_CODE) — trợ lý gọi API được"
+fi
 
 step "7/8 Nối trang quản trị với trợ lý"
 # Trang quản trị cần token này để đọc được ai đang dùng. Tự ghi vào .env của
