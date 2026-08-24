@@ -27,13 +27,21 @@ step(){ echo; echo "── $* ──"; }
 
 step "1/8 Kiểm tra máy chủ"
 command -v node >/dev/null || die "Chưa có node"
+# systemd chạy service với PATH tối giản. node cài bằng nvm sẽ KHÔNG có trong đó,
+# service sẽ chết ngay với "node: command not found" — bắt lỗi ngay từ đây.
+NODE_BIN=$(command -v node)
+case "$NODE_BIN" in
+  /usr/bin/node|/usr/local/bin/node|/bin/node) : ;;
+  *) die "node đang ở $NODE_BIN — systemd không thấy được. Cài node hệ thống: apt install nodejs" ;;
+esac
+command -v corepack >/dev/null || die "Chưa có corepack (đi kèm node)"
 NODE_MAJOR=$(node -p 'process.versions.node.split(".")[0]')
 [ "$NODE_MAJOR" -ge 22 ] || die "Cần node >= 22, đang có $(node -v)"
 command -v nginx >/dev/null || die "Chưa có nginx"
 command -v git >/dev/null || die "Chưa có git"
 FREE_MB=$(free -m | awk 'NR==2{print $7}')
 [ "$FREE_MB" -ge 900 ] || echo "⚠ RAM trống chỉ ${FREE_MB}MB — nên giảm MAX_ACTIVE"
-ok "node $(node -v), nginx, git, RAM trống ${FREE_MB}MB"
+ok "node $(node -v) tại $NODE_BIN, nginx, git, RAM trống ${FREE_MB}MB"
 
 step "2/8 Người dùng hệ thống riêng ($USER_NAME)"
 if id "$USER_NAME" >/dev/null 2>&1; then
@@ -47,17 +55,26 @@ chown -R "$USER_NAME:$USER_NAME" "$ROOT"
 chmod 700 "$ROOT/homes"
 
 step "3/8 Lấy mã và build"
+# Clone/pull bằng ROOT: khoá SSH của repo riêng tư nằm ở root, còn vhdagent là tài
+# khoản hệ thống không có khoá. Xong thì chuyển chủ cho vhdagent.
 if [ -d "$ROOT/repo/.git" ]; then
-  sudo -u "$USER_NAME" git -C "$ROOT/repo" pull --ff-only
+  git -C "$ROOT/repo" pull --ff-only
   ok "đã cập nhật mã"
 else
-  sudo -u "$USER_NAME" git clone --depth 1 "$REPO_URL" "$ROOT/repo"
+  git clone --depth 1 "$REPO_URL" "$ROOT/repo"
   ok "đã tải mã"
 fi
+chown -R "$USER_NAME:$USER_NAME" "$ROOT/repo"
+
+# corepack enable ghi shim vào /usr/bin nên phải chạy bằng root, không phải vhdagent.
+corepack enable pnpm >/dev/null 2>&1 || die "Không bật được pnpm qua corepack"
+ok "pnpm $(pnpm -v 2>/dev/null || echo '?') sẵn sàng"
+
 cd "$APP"
-sudo -u "$USER_NAME" corepack enable pnpm >/dev/null 2>&1 || true
-sudo -u "$USER_NAME" pnpm install --frozen-lockfile
-sudo -u "$USER_NAME" pnpm build
+# -H để HOME trỏ về $ROOT: thiếu nó thì HOME vẫn là /root, corepack ghi cache vào
+# /root/.cache và bị từ chối quyền.
+sudo -u "$USER_NAME" -H pnpm install --frozen-lockfile
+sudo -u "$USER_NAME" -H pnpm build
 [ -f "$APP/apps/cli/lib/bin.js" ] || die "Build xong mà thiếu apps/cli/lib/bin.js"
 ok "đã build"
 
@@ -68,7 +85,7 @@ if [ "${PRUNE_SUBAGENTS:-1}" = 1 ]; then
   FREE_BEFORE=$(df --output=avail -BM / | tail -1 | tr -dc '0-9')
   rm -rf "$APP"/node_modules/.pnpm/@openai+codex@*-linux-* \
          "$APP"/node_modules/.pnpm/@anthropic-ai+claude-agent-sdk-linux-* 2>/dev/null || true
-  sudo -u "$USER_NAME" pnpm store prune >/dev/null 2>&1 || true
+  sudo -u "$USER_NAME" -H pnpm store prune >/dev/null 2>&1 || true
   FREE_AFTER=$(df --output=avail -BM / | tail -1 | tr -dc '0-9')
   ok "dọn gói không dùng: giải phóng $((FREE_AFTER - FREE_BEFORE))MB (còn trống ${FREE_AFTER}MB)"
   echo "   (subagent Codex/Claude Code sẽ không chạy được — VHD dùng DeepSeek nên không cần)"
@@ -114,7 +131,7 @@ User=$USER_NAME
 Group=$USER_NAME
 WorkingDirectory=$APP/gate
 EnvironmentFile=$ENV_FILE
-ExecStart=/usr/bin/env node gate.mjs
+ExecStart=$NODE_BIN gate.mjs
 
 # Hàng rào tài nguyên tính CẢ tiến trình trợ lý con: vượt là nhân hệ thống dừng,
 # web ban hang KHONG bi anh huong.

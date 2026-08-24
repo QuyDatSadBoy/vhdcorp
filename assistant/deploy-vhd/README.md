@@ -312,6 +312,19 @@ sudo certbot --nginx -d assistant.vhdcorp.com
 > Lưu bản sao cấu hình nginx **ngoài** `sites-enabled/` — nginx nạp mọi tệp trong đó,
 > kể cả `.bak`, và hai tệp cùng `server_name` sẽ xung đột.
 
+## Chứng minh máy chủ không thể bị làm sập
+
+Giới hạn RAM đặt ở cgroup của systemd nên áp cho **cả tiến trình con**. Đã kiểm
+bằng một tiến trình cố ăn 600MB:
+
+| Môi trường | Kết quả |
+|---|---|
+| Trong cgroup `MemoryMax=250M` | bị **Killed** (mã 137) ở ~200MB |
+| Không giới hạn | ăn trọn 600MB, không ai chặn |
+
+Nghĩa là một câu hỏi làm trợ lý nạp file khổng lồ chỉ giết chính nó, **web bán
+hàng không bị ảnh hưởng**. `CPUQuota=200%` chặn tương tự với CPU.
+
 ## 6. Kiểm tra sau khi cài
 
 ```bash
