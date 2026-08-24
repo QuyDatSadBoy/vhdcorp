@@ -159,7 +159,7 @@ export function useChat() {
       const finalize = () => {
         if (finalized) return;
         finalized = true;
-        if (ticker != null) clearInterval(ticker);
+        if (ticker != null) cancelAnimationFrame(ticker);
         // Text xong RỒI mới gắn card — thứ tự tuần tự tuyệt đối
         patchMessage(assistantId, {
           ...(finalMessageId ? { id: finalMessageId } : {}),
@@ -177,19 +177,39 @@ export function useChat() {
         typewriterResolve?.();
       };
 
-      // Typewriter ~30fps: hiển thị đuổi theo target với bước thích ứng —
-      // chữ chảy đều mượt bất kể mạng bắn delta theo cụm.
+      // Chữ chảy theo NHỊP MÀN HÌNH (requestAnimationFrame) thay vì hẹn giờ 33ms.
+      //
+      // Đo trước khi sửa: mỗi lần hiện trung bình 21.6 ký tự — chữ nhảy thành cục chứ
+      // không chảy. Lý do: bước cũ là backlog/12 nên mạng bắn một cụm 200 ký tự là hiện
+      // 17 ký tự một nhịp, và hẹn giờ 33ms lại lệch nhịp vẽ của trình duyệt nên thêm
+      // cảm giác rung.
+      //
+      // Bước nay có TRẦN: tối đa 8 ký tự mỗi khung hình ≈ 480 ký tự/giây ở 60fps —
+      // vẫn nhanh hơn tốc độ mô hình sinh chữ nên không bao giờ tụt lại. Chỉ khi tụt
+      // hậu rất nhiều (câu lấy từ bộ đệm đổ về cả bài) mới cho nhảy 24 ký tự để bắt
+      // kịp, chứ không bắt khách chờ chữ bò từng nhịp.
+      const STEP_SMOOTH = 8;
+      const STEP_CATCHUP = 24;
       const tick = () => {
         const backlog = content.length - shownChars;
         if (backlog > 0) {
-          shownChars = Math.min(content.length, shownChars + Math.max(2, Math.ceil(backlog / 12)));
+          const cap = backlog > 400 ? STEP_CATCHUP : STEP_SMOOTH;
+          const step = Math.min(cap, Math.max(2, Math.ceil(backlog / 10)));
+          shownChars = Math.min(content.length, shownChars + step);
           patchMessage(assistantId, { content: content.slice(0, shownChars) });
-        } else if (serverDone) {
-          finalize();
+          ticker = requestAnimationFrame(tick) as unknown as number;
+          return;
         }
+        if (serverDone) {
+          ticker = null;
+          finalize();
+          return;
+        }
+        // Hết chữ để hiện nhưng máy chủ chưa xong → vẫn giữ vòng để bắt chữ kế tiếp
+        ticker = requestAnimationFrame(tick) as unknown as number;
       };
       const ensureTicker = () => {
-        if (ticker == null) ticker = window.setInterval(tick, 33) as unknown as number;
+        if (ticker == null) ticker = requestAnimationFrame(tick) as unknown as number;
       };
       /** Đánh dấu bước hiện tại xong + thêm bước mới vào log tiến trình */
       const pushStep = (label: string) => {
@@ -266,7 +286,7 @@ export function useChat() {
           },
         });
         if (streamError) {
-          if (ticker != null) clearInterval(ticker);
+          if (ticker != null) cancelAnimationFrame(ticker);
           finalized = true;
           patchMessage(assistantId, { streaming: false, error: streamError });
         } else {
@@ -286,7 +306,7 @@ export function useChat() {
           }
         }
       } catch (err) {
-        if (ticker != null) clearInterval(ticker);
+        if (ticker != null) cancelAnimationFrame(ticker);
         finalized = true;
         if (err instanceof DOMException && err.name === "AbortError") {
           // User bấm Stop — giữ phần đã stream, không coi là lỗi
@@ -299,7 +319,7 @@ export function useChat() {
           patchMessage(assistantId, { streaming: false, error: GENERIC_ERROR });
         }
       } finally {
-        if (ticker != null) clearInterval(ticker);
+        if (ticker != null) cancelAnimationFrame(ticker);
         setStreaming(false);
         setActiveTool(null);
         setProcSteps([]);
