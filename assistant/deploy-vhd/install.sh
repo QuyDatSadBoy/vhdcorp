@@ -219,6 +219,21 @@ EOF
 fi
 ok "TLS: $TLS_KIND"
 
+# `http2 on;` chỉ có từ nginx 1.25.1. Trên 1.24 nó là "unknown directive" và làm
+# nginx -t thất bại, còn `listen ... http2` mới là cú pháp đúng ở bản cũ.
+NGINX_VER=$(nginx -v 2>&1 | sed 's|.*/||' | tr -d '[:space:]')
+NGINX_MAJOR=${NGINX_VER%%.*}
+NGINX_REST=${NGINX_VER#*.}
+NGINX_MINOR=${NGINX_REST%%.*}
+if [ "$NGINX_MAJOR" -gt 1 ] || { [ "$NGINX_MAJOR" -eq 1 ] && [ "$NGINX_MINOR" -ge 25 ]; }; then
+  LISTEN_443="listen 443 ssl;"
+  HTTP2_LINE="http2 on;"
+else
+  LISTEN_443="listen 443 ssl http2;"
+  HTTP2_LINE="# http2 khai trong listen (nginx $NGINX_VER chưa có directive http2)"
+fi
+ok "nginx $NGINX_VER → dùng: $LISTEN_443"
+
 # IP thật của khách khi đứng sau Cloudflare. Không có phần này thì mọi người mang
 # CÙNG một IP của Cloudflare — một người nhập sai mật khẩu 5 lần là KHOÁ CẢ CÔNG TY.
 CF_SNIPPET=/etc/nginx/snippets/vhd-cloudflare-realip.conf
