@@ -52,7 +52,31 @@ rm -rf be/dist.bak fe/.next.bak
 [ -d be/dist ] && mv be/dist be/dist.bak || true
 [ -d fe/.next ] && mv fe/.next fe/.next.bak || true
 
+# Trợ lý nội bộ chiếm ~170MB mỗi người đang dùng. Build backend + frontend cần
+# ~2GB, mà VPS chỉ có 3.8GB — đã gặp thật: `nest build` bị nhân hệ thống kill
+# không để lại thông báo nào, deploy tưởng lỗi mã nguồn rồi rollback. Nên tạm tắt
+# trợ lý trong lúc build. Nó là công cụ nội bộ, gián đoạn vài phút chấp nhận được;
+# còn deploy hỏng thì ảnh hưởng cả web bán hàng.
+ASSISTANT_WAS_ON=0
+
+stop_assistant_for_build() {
+  if systemctl is-active --quiet vhd-gate 2>/dev/null; then
+    ASSISTANT_WAS_ON=1
+    log "Tạm tắt trợ lý nội bộ để nhường RAM cho build"
+    systemctl stop vhd-gate || true
+  fi
+}
+
+restore_assistant() {
+  [ "$ASSISTANT_WAS_ON" = 1 ] || return 0
+  ASSISTANT_WAS_ON=0   # chỉ bật lại một lần, dù được gọi ở cả hai đường
+  systemctl start vhd-gate 2>/dev/null \
+    && log "Đã bật lại trợ lý nội bộ" \
+    || log "⚠️  Không bật lại được trợ lý nội bộ — bật ở trang /admin/server"
+}
+
 rollback() {
+  restore_assistant
   log "⚠️  Lỗi — KHÔI PHỤC bản cũ (server tiếp tục chạy bản đang ổn định)"
   cd "$APP_DIR"
   git reset --hard "$PREV_SHA" || true
@@ -99,6 +123,8 @@ restore_runtime  # đưa thiết lập của máy chủ về đúng chỗ
 
 # Từ đây nếu bất kỳ bước nào lỗi → rollback
 trap rollback ERR
+
+stop_assistant_for_build
 
 log "2/7 Backend: cài deps + migrate + build"
 cd "$APP_DIR/be"
@@ -168,5 +194,6 @@ log "7/7 Dọn backup + lưu PM2"
 trap - ERR
 rm -rf be/dist.bak fe/.next.bak
 pm2 save
+restore_assistant
 
 log "✅ Deploy thành công: $(git rev-parse --short HEAD)"
