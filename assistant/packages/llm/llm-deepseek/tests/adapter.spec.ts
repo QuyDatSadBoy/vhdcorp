@@ -1475,7 +1475,7 @@ describe('plugin registration and config', () => {
     expect(ctx.llm.listProviders()).toEqual([{ id: 'deepseek-official', name: 'DeepSeek' }])
     expect(ctx.llm.listConfigurableProviders()).toEqual([{
       provider: 'deepseek-official',
-      displayName: 'DeepSeek',
+      displayName: 'VHD Corp',
       settingsNs: 'llm-deepseek',
       settingsPath: [],
     }])
@@ -1509,15 +1509,15 @@ describe('plugin registration and config', () => {
     await ctx.plugin(LlmDeepSeek, { baseURL: 'http://127.0.0.1:1' })
     expect(ctx.llm.listProviders()).toEqual([{ id: 'deepseek-official', name: 'DeepSeek' }])
     await expect(ctx.llm.listModels('deepseek-official')).resolves.toEqual([
-      { provider: 'deepseek-official', id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash', inputModalities: ['text'] },
-      { provider: 'deepseek-official', id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', inputModalities: ['text'] },
-      { provider: 'deepseek-official', id: 'deepseek-v4-flash-vision-exp', name: 'DeepSeek-V4-Flash-Vision-Exp', inputModalities: ['text', 'image'] },
+      { provider: 'deepseek-official', id: 'deepseek-v4-flash', name: 'VHD-Flash', inputModalities: ['text'] },
+      { provider: 'deepseek-official', id: 'deepseek-v4-pro', name: 'VHD-Pro', inputModalities: ['text'] },
+      { provider: 'deepseek-official', id: 'deepseek-v4-flash-vision-exp', name: 'VHD-Flash-Vision', inputModalities: ['text', 'image'] },
     ])
     await expect(ctx.llm.resolveModelInfo('deepseek-official', 'deepseek-v4-flash'))
       .resolves.toMatchObject({
         provider: 'deepseek-official',
         id: 'deepseek-v4-flash',
-        name: 'DeepSeek-V4-Flash',
+        name: 'VHD-Flash',
         context: { contextWindow: 1_000_000 },
         defaultMaxTokens: 256_000,
         reasoning: {
@@ -1534,7 +1534,7 @@ describe('plugin registration and config', () => {
       .resolves.toMatchObject({
         provider: 'deepseek-official',
         id: 'deepseek-v4-flash-vision-exp',
-        name: 'DeepSeek-V4-Flash-Vision-Exp',
+        name: 'VHD-Flash-Vision',
         inputModalities: ['text', 'image'],
         context: { contextWindow: 1_000_000 },
         defaultMaxTokens: 256_000,
@@ -1616,9 +1616,9 @@ describe('plugin registration and config', () => {
     await ctx.plugin(LlmRuntime)
     LlmDeepSeek.apply(ctx, { baseURL: 'http://127.0.0.1:1' })
     await expect(ctx.llm.listModels('deepseek-official')).resolves.toEqual([
-      { provider: 'deepseek-official', id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash', inputModalities: ['text'] },
-      { provider: 'deepseek-official', id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', inputModalities: ['text'] },
-      { provider: 'deepseek-official', id: 'deepseek-v4-flash-vision-exp', name: 'DeepSeek-V4-Flash-Vision-Exp', inputModalities: ['text', 'image'] },
+      { provider: 'deepseek-official', id: 'deepseek-v4-flash', name: 'VHD-Flash', inputModalities: ['text'] },
+      { provider: 'deepseek-official', id: 'deepseek-v4-pro', name: 'VHD-Pro', inputModalities: ['text'] },
+      { provider: 'deepseek-official', id: 'deepseek-v4-flash-vision-exp', name: 'VHD-Flash-Vision', inputModalities: ['text', 'image'] },
     ])
   })
 

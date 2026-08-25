@@ -45,9 +45,13 @@ function sessionFakeFor() {
   } satisfies SessionBehaviorOverrides
 }
 
-async function bench() {
+/**
+ * @param isLoopback - trang có đang chạy ở máy cá nhân không. Mặc định false vì
+ *   đó là cách triển khai thật cho anh em VHD (truy cập qua tên miền).
+ */
+async function bench(isLoopback = false) {
   const runtime = await SlotTestRuntime.create()
-  runtime.provide('connection', { api: { settings: {} }, isLoopback: false })
+  runtime.provide('connection', { api: { settings: {} }, isLoopback })
   // The plugin injects both; these specs exercise no settings path.
   runtime.provide('remote', { $on: () => () => {} })
   runtime.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
@@ -233,8 +237,8 @@ describe('conversation slot inject API', () => {
     await b.runtime.dispose()
   })
 
-  it('openFile (chat view face) resolves against session cwd and calls workspaces.openPath', async () => {
-    const b = await bench()
+  it('chạy trên máy cá nhân (loopback): mở tệp bằng ứng dụng mặc định của máy', async () => {
+    const b = await bench(true)
     const { injected } = b.chatViewApi(ROOT)
     await injected.openFile('src/a.ts')
     await vi.waitFor(() => {
@@ -243,11 +247,33 @@ describe('conversation slot inject API', () => {
     await b.runtime.dispose()
   })
 
-  it('openFile rejects when the Host cannot open the path', async () => {
-    const b = await bench()
+  it('chạy trên máy cá nhân: lỗi mở tệp được ném ra cho người gọi', async () => {
+    const b = await bench(true)
     b.runtime.workspaces.stub('openPath', () => Promise.reject(new Error('xdg-open is not available')))
     const { injected } = b.chatViewApi(ROOT)
     await expect(injected.openFile('src/a.ts')).rejects.toThrow('xdg-open is not available')
+    await b.runtime.dispose()
+  })
+
+  it('dùng từ xa (không loopback): TẢI tệp về máy người dùng, không mở trên máy chủ', async () => {
+    // openPath mở tệp bằng ứng dụng mặc định của MÁY CHỦ — vô nghĩa với người
+    // ngồi trình duyệt từ xa, và Host chặn 403 vì endpoint đó đòi quyền loopback.
+    const b = await bench()   // bench mặc định isLoopback: false
+    const clicked: string[] = []
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- khôi phục nguyên bản sau khi thay
+    const realClick: () => void = HTMLAnchorElement.prototype.click
+    HTMLAnchorElement.prototype.click = function click(this: HTMLAnchorElement) {
+      clicked.push(this.getAttribute('href') ?? '')
+    }
+    try {
+      const { injected } = b.chatViewApi(ROOT)
+      await injected.openFile('src/a.ts')
+      expect(clicked).toEqual(['/vhd-download?path=%2Fproj%2Fsrc%2Fa.ts'])
+      // Và tuyệt đối KHÔNG gọi openPath
+      expect(b.runtime.workspaces.calls.some(c => c.method === 'openPath')).toBe(false)
+    } finally {
+      HTMLAnchorElement.prototype.click = realClick
+    }
     await b.runtime.dispose()
   })
 

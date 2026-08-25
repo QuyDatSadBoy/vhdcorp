@@ -7,7 +7,7 @@
 
 import { after, before, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -368,6 +368,73 @@ describe('trang quản trị đọc trạng thái', () => {
     assert.equal(body.sessions, 1)
     assert.equal(body.instances[0].user, GOOD.email)
     assert.equal(typeof body.instances[0].idleSeconds, 'number')
+  })
+})
+
+describe('tải file về máy người dùng', () => {
+  /** Dựng sẵn phiên + thư mục của một người, trả về cookie và các đường dẫn. */
+  async function withFiles() {
+    const { base, gate } = await startGate()
+    const cookie = cookieOf(await login(base, GOOD.email, GOOD.password))
+    await fetch(`${base}/warm`, { headers: { cookie } })  // bật tiến trình → tạo thư mục
+    const slug = slugFor(GOOD.email)
+    const ws = join(homes, slug, 'workspace')
+    await writeFile(join(ws, 'bao-gia.txt'), 'gioăng bích DN50 — 120.000đ', 'utf8')
+    return { base, gate, cookie, slug, ws }
+  }
+
+  it('tải được file trong thư mục của mình, đúng tên và nội dung', async () => {
+    const { base, cookie, ws } = await withFiles()
+    const res = await fetch(`${base}/vhd-download?path=${encodeURIComponent(join(ws, 'bao-gia.txt'))}`,
+      { headers: { cookie } })
+    assert.equal(res.status, 200)
+    assert.match(res.headers.get('content-disposition'), /attachment/)
+    assert.match(res.headers.get('content-disposition'), /bao-gia\.txt/)
+    // Trình duyệt không được đoán kiểu rồi chạy tệp của người dùng như HTML
+    assert.equal(res.headers.get('x-content-type-options'), 'nosniff')
+    assert.equal(await res.text(), 'gioăng bích DN50 — 120.000đ')
+  })
+
+  it('tên tệp tiếng Việt vẫn tải đúng tên', async () => {
+    const { base, cookie, ws } = await withFiles()
+    const ten = 'báo giá tháng 8.txt'
+    await writeFile(join(ws, ten), 'nội dung', 'utf8')
+    const res = await fetch(`${base}/vhd-download?path=${encodeURIComponent(join(ws, ten))}`,
+      { headers: { cookie } })
+    assert.equal(res.status, 200)
+    // RFC 5987: tên có dấu đi ở filename*, còn filename giữ bản ASCII cho trình duyệt cũ
+    assert.match(res.headers.get('content-disposition'), /filename\*=UTF-8''/)
+    assert.ok(decodeURIComponent(res.headers.get('content-disposition').split("UTF-8''")[1]).includes(ten))
+  })
+
+  it('KHÔNG tải được file ngoài thư mục của mình', async () => {
+    const { base, cookie } = await withFiles()
+    for (const p of ['/etc/passwd', join(homes, 'nguoi_khac', 'workspace', 'bi-mat.txt'), '/opt']) {
+      const res = await fetch(`${base}/vhd-download?path=${encodeURIComponent(p)}`, { headers: { cookie } })
+      assert.equal(res.status, 404, `phải chặn ${p}`)
+    }
+  })
+
+  it('liên kết mềm trỏ ra ngoài cũng bị chặn', async () => {
+    const { base, cookie, ws } = await withFiles()
+    // So chuỗi thô thì cái này lọt: đường dẫn nằm trong workspace nhưng trỏ ra ngoài
+    const link = join(ws, 'loi-ra')
+    await symlink('/etc/passwd', link).catch(() => {})
+    const res = await fetch(`${base}/vhd-download?path=${encodeURIComponent(link)}`, { headers: { cookie } })
+    assert.equal(res.status, 404)
+  })
+
+  it('chưa đăng nhập thì không tải được', async () => {
+    const { base, ws } = await withFiles()
+    const res = await fetch(`${base}/vhd-download?path=${encodeURIComponent(join(ws, 'bao-gia.txt'))}`,
+      { redirect: 'manual' })
+    assert.equal(res.status, 401)
+  })
+
+  it('thư mục thì báo rõ, không trả về gì', async () => {
+    const { base, cookie, ws } = await withFiles()
+    const res = await fetch(`${base}/vhd-download?path=${encodeURIComponent(ws)}`, { headers: { cookie } })
+    assert.equal(res.status, 400)
   })
 })
 

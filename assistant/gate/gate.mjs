@@ -25,7 +25,8 @@ import { timingSafeEqual } from 'node:crypto'
 import { connect } from 'node:net'
 import { resolve } from 'node:path'
 import { createSessions, clientIp, safeNext, verifyWithAdminApi } from './auth.mjs'
-import { createInstances } from './instances.mjs'
+import { createInstances, slugFor } from './instances.mjs'
+import { serveDownload, userRootFor } from './download.mjs'
 import { busyPage, loginPage, startingPage } from './login-page.mjs'
 
 const MAX_LOGIN_BODY = 4096
@@ -276,6 +277,18 @@ async function handle(req, res) {
         return
       }
     }
+  }
+
+  // Tải file: bấm tên file trong khung hội thoại, bản gốc gọi host.openPath tức
+  // "mở bằng ứng dụng mặc định của MÁY CHỦ" — vô nghĩa với người ngồi trình
+  // duyệt từ xa, và bị DSH chặn 403 vì endpoint đó đòi quyền loopback. Ở đây
+  // phục vụ đúng thứ người dùng cần: tải về máy họ, và CHỈ file nằm trong thư
+  // mục của chính họ.
+  if (path === '/vhd-download') {
+    await serveDownload(req, res, userRootFor(homesRoot, slugFor(session.user)),
+      url.searchParams.get('path'))
+    instances.touch(session.user)
+    return
   }
 
   let port

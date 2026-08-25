@@ -160,7 +160,9 @@ async function bench(snapshot: ConversationSnapshot) {
   ctx.provide('layout', layout)
   ctx.provide('connection', {
     api: { settings: {} },
-    isLoopback: false,
+    // Bài kiểm này nói về hành vi MỞ tệp trên máy — chỉ có ở máy cá nhân;
+    // dùng từ xa thì bấm tên tệp là tải về (xem ui-conversation).
+    isLoopback: true,
     hostDescription: { getSnapshot: () => undefined, subscribe: () => () => {} },
   } as never)
   // ui-theme's Appearance row binds a durable scope through these two.

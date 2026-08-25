@@ -80,12 +80,15 @@ const DEFAULT_API_KEY_ENV = 'DEEPSEEK_API_KEY'
 /** The single provider route this plugin owns. */
 const PROVIDER = 'deepseek-official'
 
+// Tên HIỂN THỊ mang thương hiệu VHD; `id` giữ nguyên vì đó là mã gửi lên API của
+// nhà cung cấp, đổi là gọi hỏng. Trợ lý này dùng nội bộ VHD nên tên nhà cung cấp
+// nền không nên hiện trong giao diện của anh em.
 const DEFAULT_MODELS: DeepSeekCatalogModel[] = [
-  { id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash', contextWindow: DEFAULT_CONTEXT_WINDOW },
-  { id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', contextWindow: DEFAULT_CONTEXT_WINDOW },
+  { id: 'deepseek-v4-flash', name: 'VHD-Flash', contextWindow: DEFAULT_CONTEXT_WINDOW },
+  { id: 'deepseek-v4-pro', name: 'VHD-Pro', contextWindow: DEFAULT_CONTEXT_WINDOW },
   {
     id: 'deepseek-v4-flash-vision-exp',
-    name: 'DeepSeek-V4-Flash-Vision-Exp',
+    name: 'VHD-Flash-Vision',
     contextWindow: DEFAULT_CONTEXT_WINDOW,
     inputModalities: ['text', 'image'],
     imagePixelBudget: DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET,
@@ -440,7 +443,7 @@ export function apply(ctx: Context, config: Config): void {
     resolveAttachments: () => ctx.get('attachments'),
   })
   ctx.llm.registerConfigurableProviders([
-    { provider: PROVIDER, displayName: 'DeepSeek', settingsNs: NS, settingsPath: [] },
+    { provider: PROVIDER, displayName: 'VHD Corp', settingsNs: NS, settingsPath: [] },
   ])
   // Route effects bind to this apply fiber via the stable `ctx` reference,
   // even when a swap runs inside the scoped settings callback below.

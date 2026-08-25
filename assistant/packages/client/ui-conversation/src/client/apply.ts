@@ -39,6 +39,7 @@ import { en, NS, zh, type ConversationKey } from './locales.ts'
 import { registerConversationNodes } from './conversation-nodes/register.ts'
 import { registerChatNodeRenderers } from './chat/register-node-renderers.ts'
 import { CONVERSATION_SETTINGS_NAMESPACE, type ConversationSettings } from '../submission-settings.ts'
+import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -112,9 +113,30 @@ function selectApproval({ interactions }: ComposerChainProps): ApprovalWait | nu
 /** Mounts the conversation plugin.
  * @param ctx - Client root context.
  */
+/**
+ * Tải một tệp trong thư mục của người dùng về máy họ.
+ *
+ * Đường dẫn `/vhd-download` do cổng vào phục vụ (đứng trước ứng dụng này): nó
+ * biết ai đang đăng nhập nên chỉ trả tệp NẰM TRONG thư mục của chính người đó.
+ * Dùng thẻ <a download> chứ không phải window.open để trình duyệt tải thẳng,
+ * không mở thêm tab trắng rồi đóng.
+ */
+function downloadHostFile(hostPath: string): void {
+  if (typeof document === 'undefined') return
+  const link = document.createElement('a')
+  link.href = `/vhd-download?path=${encodeURIComponent(hostPath)}`
+  link.rel = 'noopener'
+  link.download = ''
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
+
 export function apply(ctx: Context): void {
   const sessions = ctx.sessions
   const workspaces = ctx.workspaces
+  // Cùng cách lấy như ui-deliverables: `connection` không nằm trong kiểu Context
+  const connection = ctx.get('connection') as ConnectionHandle
   const layout = ctx.layout
   const slots = ctx.slots
 
@@ -399,7 +421,16 @@ export function apply(ctx: Context): void {
         fileMentions: owner => ctx.get('chatFileMentions')?.forClosing(owner),
         openFile: (path) => {
           const cwd = sessions.list.getSnapshot().byId[sessionId]?.cwd
-          return workspaces.openPath(resolveWorkspacePath(cwd, path))
+          const target = resolveWorkspacePath(cwd, path)
+          // Trang không chạy ở loopback nghĩa là người dùng đang ngồi trình duyệt
+          // TỪ XA. `openPath` mở tệp bằng ứng dụng mặc định của MÁY CHỦ — vô
+          // nghĩa với họ, và Host chặn thẳng (403, endpoint đó đòi quyền
+          // loopback). Thứ họ thực sự muốn là tải tệp về máy mình.
+          if (!connection.isLoopback) {
+            downloadHostFile(target)
+            return Promise.resolve()
+          }
+          return workspaces.openPath(target)
         },
         loadOlder: () => { void scoped.loadOlder() },
         loadImage: attachment => conversation.resolveImage(sessionId, attachment),

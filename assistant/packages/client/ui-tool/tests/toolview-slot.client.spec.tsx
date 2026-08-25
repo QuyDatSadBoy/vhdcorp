@@ -66,7 +66,9 @@ async function bench(nodes: ToolResultNode[]) {
   const runtime = await SlotTestRuntime.create()
   runtime.provide('connection', {
     api: { settings: {} },
-    isLoopback: false,
+    // Bài kiểm này nói về hành vi MỞ tệp trên máy — chỉ có ở máy cá nhân;
+    // dùng từ xa thì bấm tên tệp là tải về (xem ui-conversation).
+    isLoopback: true,
     hostDescription: { getSnapshot: () => undefined, subscribe: () => () => {} },
   })
   // ui-theme's Appearance row binds a durable scope through these two.
