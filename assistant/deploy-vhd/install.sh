@@ -438,6 +438,38 @@ else
 fi
 
 step "8/8 Dọn rác tự động hằng ngày"
+# Script dọn rác — để ở tệp riêng cho dễ đọc và sửa, thay vì nhồi vào ExecStart
+cat > "$ROOT/gc.sh" <<'GCEOF'
+#!/usr/bin/env bash
+# Dọn rác trợ lý nội bộ VHD — chạy hằng ngày qua systemd timer.
+#
+# NGUYÊN TẮC: chỉ xoá thứ CHẮC CHẮN là rác. Tệp làm việc của anh em không bao giờ
+# bị đụng tới — mất việc của người khác thì không nút hoàn tác nào cứu được.
+# Muốn xoá tệp cụ thể thì dùng nút Xóa ở trang /admin/server.
+set -u
+HOMES="${VHD_HOMES:-/opt/vhd-assistant/homes}"
+DAYS="${GC_DAYS:-14}"
+[ -d "$HOMES" ] || exit 0
+
+# 1) Toàn bộ nội dung các thư mục vốn chỉ chứa thứ tạm
+find "$HOMES" -mindepth 2 -maxdepth 5 -type d \
+  \( -name logs -o -name cache -o -name tmp -o -name .cache \) \
+  -exec find {} -type f -mtime "+$DAYS" -delete \; 2>/dev/null
+
+# 2) Tệp rác nằm rải trong thư mục làm việc — nhận theo đuôi, không theo tuổi thư mục
+find "$HOMES" -mindepth 3 -type f \
+  \( -name '*.tmp' -o -name '*.temp' -o -name '*.log' -o -name '*.bak' \
+     -o -name '*.old' -o -name '*~' -o -name '.DS_Store' -o -name 'Thumbs.db' \) \
+  -mtime "+$DAYS" -delete 2>/dev/null
+
+# 3) Thư mục rỗng còn lại sau khi xoá (không đụng thư mục gốc của người dùng)
+find "$HOMES" -mindepth 3 -type d -empty -delete 2>/dev/null
+
+exit 0
+GCEOF
+chmod +x "$ROOT/gc.sh"
+chown "$USER_NAME:$USER_NAME" "$ROOT/gc.sh"
+
 cat > /etc/systemd/system/vhd-assistant-gc.service <<EOF
 [Unit]
 Description=Don rac tro ly noi bo VHD
@@ -445,9 +477,8 @@ Description=Don rac tro ly noi bo VHD
 [Service]
 Type=oneshot
 User=$USER_NAME
-# Chỉ dọn log/cache/tmp cũ hơn 14 ngày. KHÔNG xoá file trong workspace của anh em.
-ExecStart=/usr/bin/find $ROOT/homes -mindepth 2 -maxdepth 4 -type d \\
-  \\( -name logs -o -name cache -o -name tmp \\) -exec find {} -type f -mtime +14 -delete ;
+Environment=VHD_HOMES=$ROOT/homes
+ExecStart=$ROOT/gc.sh
 EOF
 cat > /etc/systemd/system/vhd-assistant-gc.timer <<EOF
 [Unit]

@@ -1099,6 +1099,134 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
 
   /* ─── Audit ─────────────────────────────────────────────────── */
 
+  /* ─── Dọn file trong thư mục làm việc của trợ lý ──────────── */
+
+  /**
+   * Gốc thư mục người dùng trợ lý. Mọi thao tác tệp ở dưới đây PHẢI nằm trong
+   * đường dẫn này — đó là hàng rào duy nhất giữa "dọn rác" và "xoá nhầm nửa máy
+   * chủ", nên kiểm bằng đường dẫn thật chứ không so chuỗi.
+   */
+  private readonly assistantHomes =
+    process.env.VHD_HOMES || '/opt/vhd-assistant/homes';
+
+  /** Đuôi/tên tệp coi là rác chắc chắn — dọn tự động được mà không sợ mất việc. */
+  private static readonly JUNK_PATTERNS = [
+    '*.tmp', '*.temp', '*.log', '*.bak', '*.old', '*~', '.DS_Store', 'Thumbs.db',
+  ];
+
+  /** Đường dẫn nằm trong thư mục làm việc của một người dùng trợ lý hay không. */
+  private async assertInsideHomes(target: string): Promise<string> {
+    let root: string;
+    let real: string;
+    try {
+      root = await fsp.realpath(this.assistantHomes);
+      real = await fsp.realpath(target);
+    } catch {
+      throw new BadRequestException('Không tìm thấy tệp');
+    }
+    // realpath cả hai vế: so chuỗi thô thì một liên kết mềm trỏ ra ngoài vẫn lọt
+    if (real !== root && !real.startsWith(root + '/')) {
+      throw new BadRequestException(
+        'Chỉ xoá được tệp trong thư mục làm việc của trợ lý',
+      );
+    }
+    return real;
+  }
+
+  /**
+   * Liệt kê tệp trong thư mục làm việc của từng người, nặng nhất trước.
+   *
+   * Trợ lý sinh khá nhiều tệp nháp trong lúc làm việc; admin cần thấy cái gì
+   * đang chiếm chỗ để quyết định xoá, thay vì phải SSH vào đếm bằng tay.
+   */
+  async listAssistantFiles(limit = 60) {
+    const script =
+      `find ${this.assistantHomes} -mindepth 3 -type f -printf '%s\\t%T@\\t%p\\n' 2>/dev/null ` +
+      `| sort -rn | head -n ${Math.min(Math.max(limit, 1), 300)}`;
+    let stdout = '';
+    try {
+      ({ stdout } = await execFileAsync('bash', ['-c', script], {
+        env: this.execEnv,
+        maxBuffer: 4 * 1024 * 1024,
+      }));
+    } catch {
+      return { files: [], totalMb: 0, byUser: [] };
+    }
+
+    const files = stdout
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        const [size, mtime, ...rest] = line.split('\t');
+        const path = rest.join('\t');
+        // homes/<nick>/workspace/... → lấy <nick> để nhóm theo người
+        const after = path.slice(this.assistantHomes.length + 1);
+        return {
+          path,
+          user: after.split('/')[0] ?? '?',
+          sizeMb: Math.round((Number(size) / 1048576) * 100) / 100,
+          ageDays: Math.floor((Date.now() / 1000 - Number(mtime)) / 86400),
+        };
+      });
+
+    const byUser = [...files.reduce((acc, f) => {
+      acc.set(f.user, (acc.get(f.user) ?? 0) + f.sizeMb);
+      return acc;
+    }, new Map<string, number>())]
+      .map(([user, sizeMb]) => ({ user, sizeMb: Math.round(sizeMb * 100) / 100 }))
+      .sort((a, b) => b.sizeMb - a.sizeMb);
+
+    const totalMb = Math.round(files.reduce((n, f) => n + f.sizeMb, 0) * 100) / 100;
+    return { files, totalMb, byUser };
+  }
+
+  /** Xoá MỘT tệp trong thư mục làm việc của trợ lý. */
+  async deleteAssistantFile(target: string, actor: string) {
+    if (typeof target !== 'string' || target.trim() === '') {
+      throw new BadRequestException('Thiếu đường dẫn tệp');
+    }
+    const real = await this.assertInsideHomes(target);
+    const info = await fsp.stat(real).catch(() => null);
+    if (info === null) throw new BadRequestException('Không tìm thấy tệp');
+    if (!info.isFile()) throw new BadRequestException('Chỉ xoá được tệp thường');
+
+    await this.audit(actor, `assistant-file-delete:${real}`);
+    await fsp.unlink(real);
+    return {
+      message: `Đã xoá ${real.split('/').pop()}`,
+      freedMb: Math.round((info.size / 1048576) * 100) / 100,
+    };
+  }
+
+  /**
+   * Dọn rác tự động một lượt: chỉ những đuôi tệp CHẮC CHẮN là rác và cũ hơn
+   * `olderThanDays`. Cố tình không đụng tệp làm việc của anh em — mất việc của
+   * người khác thì không có nút hoàn tác nào cứu được.
+   */
+  async cleanAssistantJunk(actor: string, olderThanDays = 14) {
+    const days = Math.min(Math.max(Math.floor(olderThanDays), 1), 365);
+    const names = ServerAdminService.JUNK_PATTERNS
+      .map((p) => `-name '${p}'`)
+      .join(' -o ');
+    const before = await this.listAssistantFiles(300);
+    await this.audit(actor, `assistant-junk-clean:${days}d`);
+    await execFileAsync(
+      'bash',
+      [
+        '-c',
+        `find ${this.assistantHomes} -mindepth 3 -type f \\( ${names} \\) ` +
+          `-mtime +${days} -delete 2>/dev/null; true`,
+      ],
+      { env: this.execEnv },
+    );
+    const after = await this.listAssistantFiles(300);
+    return {
+      message: `Đã dọn tệp rác cũ hơn ${days} ngày`,
+      freedMb: Math.round((before.totalMb - after.totalMb) * 100) / 100,
+      patterns: ServerAdminService.JUNK_PATTERNS,
+    };
+  }
+
   private async audit(actor: string, action: string) {
     const line = `${new Date().toISOString()} actor=${actor} action=${action}\n`;
     await fsp.appendFile(this.auditFile, line).catch(() => undefined);

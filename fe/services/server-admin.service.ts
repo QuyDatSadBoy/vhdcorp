@@ -86,6 +86,17 @@ const api = {
   controlSystemService: (name: string, action: "start" | "stop" | "restart") =>
     axios.post<{ data: { message: string } }>(`/server/system-services/${name}/${action}`).then(unwrap),
   assistant: () => axios.get<{ data: AssistantStatus }>("/server/assistant").then(unwrap),
+  assistantFiles: (limit = 60) =>
+    axios.get<{ data: AssistantFiles }>(`/server/assistant/files?limit=${limit}`).then(unwrap),
+  deleteAssistantFile: (path: string) =>
+    axios.post<{ data: { message: string; freedMb: number } }>("/server/assistant/files/delete", { path }).then(unwrap),
+  cleanAssistantJunk: (olderThanDays: number) =>
+    axios
+      .post<{ data: { message: string; freedMb: number; patterns: string[] } }>(
+        "/server/assistant/files/clean",
+        { olderThanDays },
+      )
+      .then(unwrap),
   ports: () => axios.get<{ data: { ports: ListeningPort[] } }>("/server/ports").then(unwrap),
 };
 
@@ -108,6 +119,13 @@ export interface AssistantStatus {
     sessions: number;
   } | null;
   stoppable: boolean;
+}
+
+/** Tệp trong thư mục làm việc của trợ lý, nặng nhất trước */
+export interface AssistantFiles {
+  files: { path: string; user: string; sizeMb: number; ageDays: number }[];
+  totalMb: number;
+  byUser: { user: string; sizeMb: number }[];
 }
 
 export interface SystemService {
@@ -264,6 +282,31 @@ export function useTopProcesses() {
 
 export function useAssistant() {
   return useQuery({ queryKey: ["server", "assistant"], queryFn: api.assistant, refetchInterval: 15_000 });
+}
+
+export function useAssistantFiles(enabled: boolean) {
+  return useQuery({
+    queryKey: ["server", "assistant-files"],
+    queryFn: () => api.assistantFiles(60),
+    enabled,
+    refetchInterval: 60_000,
+  });
+}
+
+export function useDeleteAssistantFile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteAssistantFile,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["server", "assistant-files"] }),
+  });
+}
+
+export function useCleanAssistantJunk() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.cleanAssistantJunk,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["server", "assistant-files"] }),
+  });
 }
 
 export function useControlSystemService() {

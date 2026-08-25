@@ -50,7 +50,10 @@ import {
   useTopProcesses,
   useSystemServices,
   useAssistant,
+  useAssistantFiles,
+  useCleanAssistantJunk,
   useControlSystemService,
+  useDeleteAssistantFile,
   useRestartSystem,
   useListeningPorts,
   useClearLog,
@@ -217,6 +220,11 @@ export default function ServerAdminPage() {
   const systemServices = useSystemServices();
   const assistant = useAssistant();
   const controlSystem = useControlSystemService();
+  // Chỉ tải danh sách tệp khi trợ lý thật sự đang chạy — quét đĩa mà service
+  // đang tắt thì vừa vô ích vừa tốn I/O của máy chủ.
+  const assistantFiles = useAssistantFiles(assistant.data?.unit.active === "active");
+  const deleteFile = useDeleteAssistantFile();
+  const cleanJunk = useCleanAssistantJunk();
   const restartSystem = useRestartSystem();
   const ports = useListeningPorts();
   const clearLog = useClearLog();
@@ -721,6 +729,92 @@ export default function ServerAdminPage() {
                         </span>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Tệp trong thư mục làm việc — trợ lý sinh khá nhiều tệp nháp
+                    khi làm việc, admin cần thấy cái gì chiếm chỗ để dọn. */}
+                {dang_chay && (
+                  <div className="space-y-2 rounded-xl border p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-semibold">Tệp trong thư mục làm việc</span>
+                      {assistantFiles.data && (
+                        <span className="text-[11px] text-muted-foreground">
+                          {assistantFiles.data.totalMb} MB
+                          {assistantFiles.data.byUser.length > 0 &&
+                            ` · ${assistantFiles.data.byUser.map((u) => `${u.user} ${u.sizeMb}MB`).join(" · ")}`}
+                        </span>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="ml-auto h-7 gap-1 text-xs"
+                        disabled={cleanJunk.isPending}
+                        onClick={async () => {
+                          if (
+                            !(await confirm({
+                              title: "Dọn tệp rác cũ hơn 14 ngày?",
+                              description:
+                                "Chỉ xóa các đuôi chắc chắn là rác (.tmp .log .bak .old ~ .DS_Store). KHÔNG chạm vào tệp làm việc của anh em.",
+                            }))
+                          )
+                            return;
+                          try {
+                            const r = await cleanJunk.mutateAsync(14);
+                            toast.success(`${r.message} — giải phóng ${r.freedMb} MB`);
+                          } catch {
+                            toast.error("Không dọn được tệp rác");
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" /> Dọn rác cũ
+                      </Button>
+                    </div>
+
+                    {assistantFiles.isLoading && (
+                      <p className="text-xs text-muted-foreground">Đang quét…</p>
+                    )}
+                    {assistantFiles.data?.files.length === 0 && (
+                      <p className="text-xs text-muted-foreground">Chưa có tệp nào.</p>
+                    )}
+                    {(assistantFiles.data?.files ?? []).slice(0, 15).map((f) => (
+                      <div key={f.path} className="flex items-center gap-2 text-xs">
+                        <span className="truncate font-mono" title={f.path}>
+                          {f.path.split("/").slice(-2).join("/")}
+                        </span>
+                        <span className="shrink-0 text-muted-foreground">
+                          {f.user} · {f.sizeMb} MB · {f.ageDays === 0 ? "hôm nay" : `${f.ageDays} ngày`}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="ml-auto h-6 shrink-0 px-2 text-[11px] text-red-600 hover:text-red-700"
+                          disabled={deleteFile.isPending}
+                          onClick={async () => {
+                            if (
+                              !(await confirm({
+                                title: `Xóa ${f.path.split("/").pop()}?`,
+                                description: `Tệp của ${f.user}, ${f.sizeMb} MB. Không khôi phục lại được.`,
+                              }))
+                            )
+                              return;
+                            try {
+                              const r = await deleteFile.mutateAsync(f.path);
+                              toast.success(`${r.message} — giải phóng ${r.freedMb} MB`);
+                            } catch {
+                              toast.error("Không xóa được tệp");
+                            }
+                          }}
+                        >
+                          Xóa
+                        </Button>
+                      </div>
+                    ))}
+                    {(assistantFiles.data?.files.length ?? 0) > 15 && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Hiện 15 tệp nặng nhất trong tổng số {assistantFiles.data?.files.length}.
+                      </p>
+                    )}
                   </div>
                 )}
 
