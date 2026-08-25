@@ -59,11 +59,32 @@ export interface ConnectionConfig {
   trustedHosts?: string[]
   /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
   maxRequestBodyBytes?: number
+  /**
+   * Let {@link PRIVILEGED_METHODS} reach a `trustedHosts` authority instead of
+   * loopback only. Default `false`.
+   *
+   * Set it only for a deployment that authenticates every request before it
+   * reaches this process AND runs one process per authenticated user, with that
+   * user's own settings document, credential store, and home directory. The
+   * loopback pin stands in for exactly that statement: with no authentication
+   * layer, loopback is the only available way to say "the one person this
+   * configuration belongs to". A per-user process behind a login says it
+   * directly, so the pin has nothing left to protect.
+   *
+   * The rest of the fence still binds, and still carries the defense it was
+   * built for: Host must be loopback or a declared authority (DNS rebinding),
+   * an explicit `sec-fetch-site: cross-site` is refused, and any Origin the
+   * browser attaches must equal the Host (cross-site requests). A shared
+   * process, an anonymous surface, or a LAN deployment with no front door must
+   * leave this off.
+   */
+  privilegedFromTrustedHosts?: boolean
 }
 
 export const Config: z<ConnectionConfig> = z.object({
   trustedHosts: z.array(String).default([]),
   maxRequestBodyBytes: z.natural().min(1).default(DEFAULT_MAX_REQUEST_BODY_BYTES),
+  privilegedFromTrustedHosts: z.boolean().default(false),
 })
 
 /**
@@ -76,7 +97,9 @@ export const Config: z<ConnectionConfig> = z.object({
  * reconnaissance no anonymous caller should have. `trustedHosts` is a
  * DNS-rebinding fence, explicitly not authentication, so the whole
  * configuration plane stays loopback-same-origin until a real authentication
- * layer exists. `llm.discoverModels` belongs to that plane on both counts: it
+ * layer exists — a deployment that has one declares
+ * {@link ConnectionConfig.privilegedFromTrustedHosts}, the only way this pin
+ * opens. `llm.discoverModels` belongs to that plane on both counts: it
  * carries a draft credential, and it makes the HOST issue a GET to a URL the
  * caller chose and reports back the status or the parsed body — an anonymous
  * LAN caller would have a probe for whatever the host can reach and the
@@ -123,7 +146,8 @@ const PRIVILEGED_METHODS = new Set([
  * the prefix passes the browser-trust fence first (DNS-rebinding and
  * cross-site defense — [api-request-trust](./api-request-trust.ts));
  * privileged methods additionally pass it with an empty trust list, which
- * pins them to loopback.
+ * pins them to loopback unless
+ * {@link ConnectionConfig.privilegedFromTrustedHosts} is set.
  * @param ctx - Host plugin context.
  * @param config - resolved plugin config (schema defaults applied).
  */
@@ -131,6 +155,8 @@ export function apply(ctx: Context, config?: ConnectionConfig): void {
   // The Loader resolves schema defaults; hand-built test contexts may pass none.
   const trustedHosts = config?.trustedHosts ?? []
   const maxRequestBodyBytes = config?.maxRequestBodyBytes ?? DEFAULT_MAX_REQUEST_BODY_BYTES
+  // Authorities the configuration plane answers: loopback alone by default.
+  const privilegedHosts = (config?.privilegedFromTrustedHosts ?? false) ? trustedHosts : []
   // Config boundary: a malformed entry fails the load loudly here rather than
   // silently authorizing its hostname prefix at request time.
   for (const entry of trustedHosts) assertTrustedAuthority(entry)
@@ -144,7 +170,7 @@ export function apply(ctx: Context, config?: ConnectionConfig): void {
         : undefined
       if (method !== undefined
         && PRIVILEGED_METHODS.has(method)
-        && !isTrustedApiRequest(request, [])) {
+        && !isTrustedApiRequest(request, privilegedHosts)) {
         return new Response('forbidden', { status: 403 })
       }
       if (request.method === 'GET' && (pathname === MUX_EVENTS_PATH || pathname === HOST_EVENTS_PATH)) {

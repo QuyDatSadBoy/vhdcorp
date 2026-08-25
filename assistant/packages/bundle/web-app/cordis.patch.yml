@@ -186,6 +186,17 @@
         # A deployment adding authorities keeps this expression and concatenates
         # its literals, for example: ['app.internal', ...ctx.webRuntime.trustedHosts].
         trustedHosts: !!js ctx.webRuntime.trustedHosts
+        # Mở mặt cấu hình (settings, credentials, agent-preset) cho tên miền đã
+        # khai báo, thay vì chỉ loopback. Mặc định của bản gốc là TẮT và đúng như
+        # vậy: chốt loopback đứng thay cho câu "đây là người duy nhất mà cấu hình
+        # này thuộc về", vì bản gốc không có lớp đăng nhập nào.
+        #
+        # Bản VHD có: cổng đăng nhập ở trước, mỗi người một tiến trình riêng với
+        # DSH_HOME riêng. Không bật thì trang Cài đặt hỏng thật — hàng "Agent
+        # preset" và "Permission" hiện disabled, và mỗi lần tải trang lại 3 lần
+        # 403 vì trình duyệt thử lại. Cổng đặt biến này khi sinh tiến trình; chạy
+        # dsh tay (không có cổng) thì biến trống nên vẫn chốt loopback.
+        privilegedFromTrustedHosts: !!js process.env.DSH_PRIVILEGED_FROM_TRUSTED_HOSTS === '1'
 
     - id: api-remotes
       name: '@deepseek-ai/dsh-api-remotes'

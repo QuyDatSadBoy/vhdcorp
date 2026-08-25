@@ -242,6 +242,14 @@ export function createInstances(options) {
             HOME: home,
             // Thư mục làm việc của người này — trợ lý mở lên là ở đây.
             VHD_WORKSPACE: workspace,
+            // Mặt cấu hình (settings, credentials, agent-preset) của DSH mặc định
+            // chỉ trả lời loopback, vì bản gốc không có lớp đăng nhập nào — chốt
+            // loopback đứng thay cho câu "đây là người duy nhất mà cấu hình này
+            // thuộc về". Ở đây cổng đã xác thực xong trước khi request tới được
+            // tiến trình này, và tiến trình này chỉ phục vụ ĐÚNG một người với
+            // DSH_HOME riêng, nên câu đó đúng theo nghĩa thật. Thiếu biến này thì
+            // trang Cài đặt hỏng: hàng chọn preset và permission bị disabled.
+            DSH_PRIVILEGED_FROM_TRUSTED_HOSTS: '1',
           },
           stdio: ['ignore', 'pipe', 'pipe'],
         })

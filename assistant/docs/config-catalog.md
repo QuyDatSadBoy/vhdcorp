@@ -415,6 +415,26 @@ export interface ConnectionConfig {
   trustedHosts?: string[]
   /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
   maxRequestBodyBytes?: number
+  /**
+   * Let {@link PRIVILEGED_METHODS} reach a `trustedHosts` authority instead of
+   * loopback only. Default `false`.
+   *
+   * Set it only for a deployment that authenticates every request before it
+   * reaches this process AND runs one process per authenticated user, with that
+   * user's own settings document, credential store, and home directory. The
+   * loopback pin stands in for exactly that statement: with no authentication
+   * layer, loopback is the only available way to say "the one person this
+   * configuration belongs to". A per-user process behind a login says it
+   * directly, so the pin has nothing left to protect.
+   *
+   * The rest of the fence still binds, and still carries the defense it was
+   * built for: Host must be loopback or a declared authority (DNS rebinding),
+   * an explicit `sec-fetch-site: cross-site` is refused, and any Origin the
+   * browser attaches must equal the Host (cross-site requests). A shared
+   * process, an anonymous surface, or a LAN deployment with no front door must
+   * leave this off.
+   */
+  privilegedFromTrustedHosts?: boolean
 }
 ```
 
@@ -987,7 +1007,7 @@ export interface DeepSeekCatalogModel {
 
 Depends on: [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
 
-Source: [`packages/llm/llm-deepseek/src/index.ts:106`](../packages/llm/llm-deepseek/src/index.ts)
+Source: [`packages/llm/llm-deepseek/src/index.ts:109`](../packages/llm/llm-deepseek/src/index.ts)
 
 <a id="deepseek-aidsh-llm-pi-ai"></a>
 

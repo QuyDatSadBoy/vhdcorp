@@ -61,6 +61,47 @@
   white-space: nowrap;
 }
 
+/* Author credit under the title: quiet by default, the icons only gaining
+   colour on hover, so it never competes with the composer below it. */
+.author {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: -4px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+}
+
+.authorLinks {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.authorLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: inherit;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.authorLink:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.authorLink:focus-visible {
+  outline: 2px solid var(--dsw-alias-label-primary-bluish);
+  outline-offset: 1px;
+}
+
 /* Keep hover detection on a stationary box while the mark moves within it. */
 .fishHitbox {
   grid-row: 1;

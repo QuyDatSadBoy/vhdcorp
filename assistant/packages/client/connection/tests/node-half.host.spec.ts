@@ -75,7 +75,7 @@ function fakeResponse(): { response: ServerResponse; state: { status?: number; b
   return { response, state }
 }
 
-async function mounted(config?: { trustedHosts?: string[] }): Promise<{
+async function mounted(config?: { trustedHosts?: string[]; privilegedFromTrustedHosts?: boolean }): Promise<{
   routes: WebRoute[]
   upgrades: WebUpgradeRoute[]
   dispose: () => Promise<void>
@@ -195,6 +195,44 @@ describe('connection node half', () => {
     const read = fakeResponse()
     await routes[0]!.handler(fakeRequest({ host: 'harness.example' }), read.response)
     expect(read.state.status).not.toBe(403)
+    await dispose()
+  })
+
+  it('opens the configuration plane to a declared authority once the deployment claims a front door', async () => {
+    // privilegedFromTrustedHosts is the deployment saying it authenticates
+    // every request and runs one process per user, which is what the loopback
+    // pin stands in for when nothing else can say it.
+    const { routes, dispose } = await mounted({
+      trustedHosts: ['harness.example'],
+      privilegedFromTrustedHosts: true,
+    })
+    for (const method of [
+      'settings.describe', 'settings.update', 'credentials.describe', 'credentials.set',
+      'agentPreset.read', 'llm.discoverModels', 'host.openPath',
+    ]) {
+      const allowed = fakeResponse()
+      await routes[0]!.handler(
+        fakeRequest({ host: 'harness.example' }, `${API_PATH}/${method}`),
+        allowed.response,
+      )
+      expect([method, allowed.state.status]).not.toEqual([method, 403])
+      expect([method, allowed.state.body]).not.toEqual([method, 'forbidden'])
+    }
+    // The rest of the fence keeps its grip on the same opened methods: an
+    // undeclared Host is still rebinding, and a cross-site marker or a
+    // mismatched Origin is still someone else's page driving this browser.
+    for (const headers of [
+      { host: 'attacker.example' },
+      { host: 'harness.example', 'sec-fetch-site': 'cross-site' },
+      { host: 'harness.example', origin: 'https://attacker.example' },
+    ]) {
+      const denied = fakeResponse()
+      await routes[0]!.handler(
+        fakeRequest(headers, `${API_PATH}/settings.update`),
+        denied.response,
+      )
+      expect([headers, denied.state.status]).toEqual([headers, 403])
+    }
     await dispose()
   })
 
