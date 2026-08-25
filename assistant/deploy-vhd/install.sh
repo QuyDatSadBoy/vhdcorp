@@ -71,7 +71,7 @@ else
       python3-reportlab python3-docx python3-dateutil \
       imagemagick ffmpeg poppler-utils \
       zip unzip p7zip-full sqlite3 ripgrep fd-find \
-      fonts-dejavu-core fonts-liberation ghostscript >/dev/null 2>&1 \
+      fonts-dejavu-core fonts-liberation ghostscript musl-tools >/dev/null 2>&1 \
       && ok "đã cài bộ công cụ" \
       || echo "   ⚠ cài công cụ không trọn vẹn — trợ lý vẫn chạy nhưng ít việc làm được hơn"
   fi
@@ -158,6 +158,23 @@ else
     || die "cài thư viện thất bại (nếu do vượt $BUILD_MEM thì đặt BUILD_MEM cao hơn)"
   run_build build \
     || die "build thất bại (nếu do vượt $BUILD_MEM thì đặt BUILD_MEM cao hơn)"
+  # Trình khoá thư mục (Landlock). Thiếu nó thì DSH từ chối chạy lệnh ở chế độ
+  # workspace-write với lỗi "no sandbox backend is usable on this host", và mọi
+  # lệnh bash đều phải người dùng bấm duyệt tay — trợ lý gần như không dùng được.
+  # Binary phải build bằng musl-gcc trên chính máy chủ.
+  LAUNCHER="$APP/native/landlock-run/packages/linux-x64/bin/landlock-run"
+  if [ -x "$LAUNCHER" ]; then
+    ok "trình khoá thư mục đã có"
+  elif command -v musl-gcc >/dev/null 2>&1; then
+    ( cd "$APP/native/landlock-run" \
+      && sudo -u "$USER_NAME" -H npx tsx ./scripts/build.ts >/dev/null 2>&1 ) || true
+    [ -x "$LAUNCHER" ] \
+      && ok "đã dựng trình khoá thư mục" \
+      || echo "   ⚠ không dựng được trình khoá thư mục — trợ lý sẽ phải hỏi duyệt từng lệnh"
+  else
+    echo "   ⚠ thiếu musl-gcc → không dựng được trình khoá thư mục"
+  fi
+
   echo "$HEAD_SHA" > "$STAMP"
   chown "$USER_NAME:$USER_NAME" "$STAMP"
 fi

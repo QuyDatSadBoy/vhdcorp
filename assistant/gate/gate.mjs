@@ -289,9 +289,12 @@ async function handle(req, res) {
   // duyệt từ xa, và bị DSH chặn 403 vì endpoint đó đòi quyền loopback. Ở đây
   // phục vụ đúng thứ người dùng cần: tải về máy họ, và CHỈ file nằm trong thư
   // mục của chính họ.
-  if (path === '/vhd-download') {
+  // Hai đường cho cùng một việc: /vhd-download để TẢI VỀ, /vhd-file để XEM
+  // THẲNG trong khung chat (trợ lý nhúng ảnh bằng markdown). Cả hai đều chỉ
+  // phục vụ tệp trong thư mục của chính người đang đăng nhập.
+  if (path === '/vhd-download' || path === '/vhd-file') {
     await serveDownload(req, res, userRootFor(homesRoot, slugFor(session.user)),
-      url.searchParams.get('path'))
+      url.searchParams.get('path'), path === '/vhd-file')
     instances.touch(session.user)
     return
   }

@@ -38,14 +38,28 @@ function contentDisposition(name) {
 }
 
 /**
+ * Kiểu tệp an toàn để hiển thị THẲNG trong trình duyệt.
+ *
+ * Chỉ ảnh, PDF và văn bản thuần. Mọi thứ khác ép về text/plain: tệp do trợ lý
+ * hoặc người dùng tạo có thể là HTML/SVG chứa mã, mở inline trên chính tên miền
+ * của trợ lý là mở đường cho chèn mã độc lấy phiên đăng nhập.
+ */
+const INLINE_SAFE = new Set([
+  'image/png', 'image/jpeg', 'image/gif', 'image/webp',
+  'application/pdf', 'text/plain; charset=utf-8',
+])
+
+/**
  * Phục vụ một lượt tải file.
  *
  * @param req - request đã qua xác thực
  * @param res - response
  * @param userRoot - thư mục gốc của người đang đăng nhập (đường dẫn thật)
  * @param rawPath - đường dẫn file người dùng yêu cầu
+ * @param inline - true thì hiển thị thẳng trong trình duyệt thay vì tải về.
+ *   Dùng cho trường hợp trợ lý muốn CHO XEM ảnh ngay trong khung chat.
  */
-export async function serveDownload(req, res, userRoot, rawPath) {
+export async function serveDownload(req, res, userRoot, rawPath, inline = false) {
   const fail = (code, message) => {
     res.writeHead(code, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' })
     res.end(message)
@@ -79,13 +93,21 @@ export async function serveDownload(req, res, userRoot, rawPath) {
   if (!info.isFile()) return fail(400, 'Chỉ tải được tệp thường.')
 
   const name = basename(target)
+  const declared = typeOf(name)
+  // Xem inline: chỉ cho kiểu an toàn, còn lại ép về văn bản thuần
+  const type = inline && !INLINE_SAFE.has(declared) ? 'text/plain; charset=utf-8' : declared
   res.writeHead(200, {
-    'content-type': typeOf(name),
+    'content-type': type,
     'content-length': String(info.size),
-    'content-disposition': contentDisposition(name),
+    'content-disposition': inline
+      ? `inline; filename="${name.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_')}"`
+      : contentDisposition(name),
     'cache-control': 'no-store',
     // Tệp do người dùng tạo: đừng để trình duyệt đoán kiểu rồi chạy như HTML
     'x-content-type-options': 'nosniff',
+    // Lớp chặn thứ hai cho đường xem inline: kể cả lọt một kiểu chạy được thì
+    // trang cũng không có quyền gì trên tên miền của trợ lý.
+    'content-security-policy': "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox",
   })
 
   const stream = createReadStream(target)

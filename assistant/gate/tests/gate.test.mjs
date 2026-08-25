@@ -447,6 +447,35 @@ describe('tải file về máy người dùng', () => {
     assert.equal(res.status, 404)
   })
 
+  it('/vhd-file cho XEM thẳng, không ép tải về', async () => {
+    const { base, cookie, ws } = await withFiles()
+    await writeFile(join(ws, 'anh.png'), Buffer.from('89504e470d0a1a0a', 'hex'))
+    const res = await fetch(`${base}/vhd-file?path=${encodeURIComponent(join(ws, 'anh.png'))}`,
+      { headers: { cookie } })
+    assert.equal(res.status, 200)
+    assert.match(res.headers.get('content-disposition'), /^inline/)
+    assert.equal(res.headers.get('content-type'), 'image/png')
+  })
+
+  it('/vhd-file KHÔNG cho chạy HTML/SVG trên tên miền của trợ lý', async () => {
+    // Tệp do trợ lý hoặc người dùng tạo có thể chứa mã. Mở inline đúng kiểu HTML
+    // trên chính tên miền này là mở đường lấy phiên đăng nhập của người khác.
+    const { base, cookie, ws } = await withFiles()
+    await writeFile(join(ws, 'x.svg'), '<svg xmlns="http://www.w3.org/2000/svg"><script>1</script></svg>', 'utf8')
+    const res = await fetch(`${base}/vhd-file?path=${encodeURIComponent(join(ws, 'x.svg'))}`,
+      { headers: { cookie } })
+    assert.equal(res.headers.get('content-type'), 'text/plain; charset=utf-8')
+    assert.match(res.headers.get('content-security-policy'), /sandbox/)
+    assert.equal(res.headers.get('x-content-type-options'), 'nosniff')
+  })
+
+  it('/vhd-file cũng không ra được ngoài thư mục của mình', async () => {
+    const { base, cookie } = await withFiles()
+    const res = await fetch(`${base}/vhd-file?path=${encodeURIComponent('/etc/passwd')}`,
+      { headers: { cookie } })
+    assert.equal(res.status, 404)
+  })
+
   it('chưa đăng nhập thì không tải được', async () => {
     const { base, ws } = await withFiles()
     const res = await fetch(`${base}/vhd-download?path=${encodeURIComponent(join(ws, 'bao-gia.txt'))}`,

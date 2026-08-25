@@ -310,14 +310,21 @@ describe('web-app runtime glue', () => {
     await new Promise(resolve => setTimeout(resolve, 0))
     const assembly = await ctx.systemPrompt.assemble()
     const text = assembly.sections.find(entry => entry.name === 'app:web-surface')?.text ?? ''
-    expect(text).toMatch(/NO shell/)
+    // Biết mình ở đâu và người dùng ở đâu
+    expect(text).toMatch(/You run on a VHD Corp server in the cloud/)
+    expect(text).toMatch(/no shell, no terminal, no file manager/)
     expect(text).toMatch(/Never tell them to run cp, scp/)
+    // Biết cách giao tệp: tải về và xem thẳng trong chat
     expect(text).toContain('https://assistant.vhdcorp.com/vhd-download?path=')
+    expect(text).toContain('https://assistant.vhdcorp.com/vhd-file?path=')
+    expect(text).toMatch(/embed the second form as markdown/)
     // Máy chủ nhỏ và dùng chung nên trợ lý phải tự dọn, và đặt đuôi .tmp cho tệp
     // tạm để bộ dọn rác hằng đêm bắt được nếu nó quên.
-    expect(text).toMatch(/delete scratch files the moment you no longer need them/)
-    expect(text).toMatch(/\.tmp suffix so the nightly cleaner removes them/)
-    expect(text).toMatch(/Never delete a file the user asked for/)
+    // Tự dọn rác: máy chủ dùng chung với cả web bán hàng
+    expect(text).toMatch(/Delete scratch files as soon as you are done/)
+    expect(text).toMatch(/\.tmp suffix so the nightly cleaner takes them/)
+    expect(text).toMatch(/Never delete anything the user asked for/)
+    expect(text).toMatch(/Check df -h and du -sh/)
     await ctx.fiber.dispose()
   })
 
