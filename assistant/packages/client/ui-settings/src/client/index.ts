@@ -51,7 +51,14 @@ export function apply(ctx: ClientContext): void {
   const connection = ctx.get('connection') as ConnectionHandle
   const mirror = new SettingsDescribeMirror(
     connection.api,
-    connection.isLoopback ? 'host' : 'memory',
+    // Bản gốc dùng 'memory' khi không phải loopback vì nó giả định NHIỀU trình
+    // duyệt từ xa dùng CHUNG một tiến trình và một tệp cấu hình — ghi vào tệp thì
+    // người này đè cài đặt của người kia. Ở bản VHD, mỗi người có tiến trình
+    // riêng và DSH_HOME riêng, nên tệp cấu hình đã là của riêng họ.
+    //
+    // Để 'memory' ở đây thì tải lại trang là mất sạch cài đặt — và hộp thoại
+    // chào mừng hiện lại mỗi lần vào, vì dấu "đã xem" cũng nằm trong đó.
+    'host',
   )
   ctx.effect(() => {
     const disposers = [

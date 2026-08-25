@@ -168,13 +168,17 @@ describe('ui-settings-general apply', () => {
     await vi.waitFor(() => { expect(b.settingsDescribe).toHaveBeenCalledTimes(2) })
   })
 
-  it('withholds the loopback-only document action off-loopback', async () => {
+  it('dùng từ xa: KHÔNG có nút mở tệp cấu hình, nhưng VẪN đọc cài đặt', async () => {
+    // Nút "mở tệp cấu hình" mở bằng trình soạn thảo của MÁY CHỦ — vô nghĩa với
+    // người dùng từ xa, giữ nguyên là loopback-only.
+    // Còn ĐỌC cài đặt thì có: mỗi người một tiến trình và một DSH_HOME riêng nên
+    // tệp cấu hình đã là của riêng họ; không đọc thì tải lại trang là mất sạch.
     const b = await bench(false)
     declare(b.slots)
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     expect(b.slots.entries('settings.action')).toEqual([])
-    expect(b.settingsDescribe).not.toHaveBeenCalled()
+    expect(b.settingsDescribe).toHaveBeenCalled()
     await fiber.dispose()
     for (const [name] of SEATS) expect(b.slots.entries(name)).toEqual([])
   })

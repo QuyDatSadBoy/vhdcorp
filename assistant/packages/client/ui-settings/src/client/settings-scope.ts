@@ -279,7 +279,9 @@ export class SettingsScopeBinder extends Service {
       connection.api,
       spec,
       this.mirror,
-      connection.isLoopback ? 'host' : 'memory',
+      // Theo đúng chế độ của mirror, đừng tự quyết lại: scope mà lệch chế độ với
+      // mirror của nó thì trạng thái hai bên mâu thuẫn.
+      this.mirror.persistence,
       this.schema,
     )
     ctx.effect(() => {

@@ -83,7 +83,7 @@ export class SettingsDescribeMirror implements SettingsDescribeFace {
    */
   constructor(
     private readonly api: SettingsFace,
-    private readonly persistence: 'host' | 'memory' = 'host',
+    readonly persistence: 'host' | 'memory' = 'host',
   ) {
     this.store = createSnapshotStore<SettingsMirrorSnapshot>({
       status: persistence === 'host' ? 'idle' : 'unavailable',

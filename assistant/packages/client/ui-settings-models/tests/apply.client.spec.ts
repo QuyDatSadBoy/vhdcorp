@@ -153,8 +153,30 @@ describe('ui-settings-models apply', () => {
     expect(() => b.locale.register('settings.models', 'en', {})).not.toThrow()
   })
 
-  it('keeps remote-browser acknowledgement in process memory', async () => {
-    const b = await bench(false)
+  it('dùng từ xa: dấu "đã xem" ĐỌC TỪ TỆP, không nằm trong bộ nhớ tạm', async () => {
+    // Bản gốc để chế độ bộ nhớ khi không phải loopback, nên tải lại trang là mất
+    // dấu "đã xem" và hộp thoại chào mừng hiện lại mỗi lần vào. Ở bản VHD mỗi
+    // người một tiến trình và một DSH_HOME riêng nên tệp cấu hình đã là của
+    // riêng họ — đọc ghi vào tệp là đúng.
+    const settings = {
+      describe: vi.fn(() => Promise.resolve({
+        result: {
+          ok: true as const,
+          value: {
+            hasDocument: false,
+            namespaces: [{
+              ns: WELCOME_NOTICE_SETTINGS_NAMESPACE,
+              schema: {},
+              value: { [WELCOME_NOTICE_ACK_FIELD]: WELCOME_NOTICE_VERSION },
+              applies: 'live' as const,
+              secrets: [],
+              revision: 0,
+            }],
+          },
+        },
+      })),
+    }
+    const b = await bench(false, settings)
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const entry = b.slots.entries('settings.onboarding')
@@ -164,9 +186,13 @@ describe('ui-settings-models apply', () => {
     )()
 
     await injected.controller.load()
-    expect(injected.controller.store.getSnapshot()).toEqual({
-      status: 'ready', acknowledged: false, error: null,
+    await vi.waitFor(() => {
+      // Đã xem rồi thì KHÔNG hiện lại hộp thoại
+      expect(injected.controller.store.getSnapshot()).toMatchObject({
+        status: 'ready', acknowledged: true,
+      })
     })
+    expect(settings.describe).toHaveBeenCalled()
   })
 })
 

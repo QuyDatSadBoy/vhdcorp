@@ -148,14 +148,17 @@ describe('ui-theme apply', () => {
     b.ctx.emit('connection/reset')
     await vi.waitFor(() => { expect(theme.getTheme().preference).toBe('dark') })
 
+    // Dùng từ xa: bản gốc giữ giao diện trong bộ nhớ tiến trình nên đổi sáng/tối
+    // xong tải lại trang là mất. Ở bản VHD mỗi người một tiến trình và một
+    // DSH_HOME riêng nên tệp cấu hình đã là của riêng họ — LƯU vào tệp mới đúng,
+    // và đó cũng là thứ giữ cho hộp thoại chào mừng không hiện lại mỗi lần vào.
     const remote = await bench(false)
     declareItems(remote.slots)
     await remote.ctx.plugin({ inject: [...inject], apply }).await()
     const remoteTheme = remote.ctx.get('theme') as ThemeRuntime
     remoteTheme.setTheme('dark')
-    await Promise.resolve()
-    expect(remote.describe).not.toHaveBeenCalled()
-    expect(remote.mutate).not.toHaveBeenCalled()
+    await vi.waitFor(() => { expect(remote.mutate).toHaveBeenCalled() })
+    expect(remoteTheme.getTheme().preference).toBe('dark')
   })
 
   it('activates before a slow settings refresh and converges when it settles', async () => {
