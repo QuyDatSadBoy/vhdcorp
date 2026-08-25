@@ -369,6 +369,14 @@
       config:
         allowParallelInProgress: true
 
+    # Hỏi lại người dùng bằng lựa chọn bấm được, thay vì đoán rồi làm sai.
+    # Dịch vụ `user-questions` và giao diện `ui-user-questions` đã có sẵn (plan
+    # mode dùng chúng), nhưng bản gốc không cấp TOOL cho mô hình nên nó không
+    # hỏi được. Đây là năng lực tổng quát: thiếu đúng một thông tin mà đáp án
+    # nằm trong tập hữu hạn thì hỏi một câu rồi đi tiếp, đỡ làm sai cả lượt.
+    - id: tool-ask-user
+      name: '@deepseek-ai/dsh-tool-ask-user'
+
     # Persisted same-session goals reach the model and the slash menu here; the
     # domain, driver, and `/goal` command are above.
     - id: tool-goal

@@ -1156,6 +1156,9 @@ importers:
       '@deepseek-ai/dsh-token-meter':
         specifier: workspace:^
         version: link:../../llm/token-meter
+      '@deepseek-ai/dsh-tool-ask-user':
+        specifier: workspace:*
+        version: link:../../interaction/tool-ask-user
       '@deepseek-ai/dsh-tool-bash':
         specifier: workspace:^
         version: link:../../shell/tool-bash
