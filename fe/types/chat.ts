@@ -38,6 +38,14 @@ export interface ConversationMessage {
   created_at: string;
   /** Gen-UI blocks đã persist kèm message assistant — reload không mất (§9.2) */
   ui_blocks?: { component: string; props: Record<string, unknown> }[];
+  /** Số đo lượt trả lời do máy chủ lưu — mở lại lịch sử vẫn thấy */
+  metrics?: {
+    in_tokens?: number;
+    out_tokens?: number;
+    total_tokens?: number;
+    model?: string;
+    elapsed?: number;
+  };
 }
 
 /* ─── SSE events từ POST /api/chat ─────────────────────────── */
@@ -59,12 +67,33 @@ export interface MessageDeltaEvent {
 export interface ToolStartEvent {
   type: "tool.start";
   name: string;
+  /** Tham số đã rút gọn (≤600 ký tự) — hiện trong log tiến trình khi khách mở ra xem */
+  input?: string;
 }
 
 /** Tool chạy xong */
 export interface ToolEndEvent {
   type: "tool.end";
   name: string;
+  /** Kết quả đã rút gọn (≤600 ký tự) */
+  output?: string;
+}
+
+/** Trạng thái một việc trong kế hoạch của agent (DeepAgents `write_todos`) */
+export type TodoStatus = "pending" | "in_progress" | "completed";
+
+export interface TodoItem {
+  content: string;
+  status: TodoStatus;
+}
+
+/**
+ * Agent tự lập kế hoạch nhiều bước (DeepAgents `write_todos`). Mỗi lần phát là
+ * TOÀN BỘ danh sách mới (thay thế danh sách cũ, không phải diff từng việc).
+ */
+export interface TodoEvent {
+  type: "todo";
+  items: TodoItem[];
 }
 
 /**
@@ -95,6 +124,7 @@ export type AgentStreamEvent =
   | MessageDeltaEvent
   | ToolStartEvent
   | ToolEndEvent
+  | TodoEvent
   | UiEvent
   | DoneEvent
   | AgentErrorEvent;
@@ -106,6 +136,21 @@ export interface UiBlock {
   id: string;
   component: string;
   props: Record<string, unknown>;
+}
+
+/** Trạng thái một lần gọi tool trong log hoạt động */
+export type ToolRunState = "running" | "ok" | "error";
+
+/** Một dòng log hoạt động: tool nào đang/đã chạy, kèm tham số & kết quả rút gọn */
+export interface ToolRun {
+  id: string;
+  /** Tên tool phía agent (search_products…) */
+  name: string;
+  /** Nhãn tiếng Việt cho khách đọc */
+  label: string;
+  state: ToolRunState;
+  input?: string;
+  output?: string;
 }
 
 /** Tin nhắn hiển thị trong khung chat (client-side, kèm trạng thái stream/lỗi) */
@@ -126,4 +171,24 @@ export interface UiChatMessage {
   image?: string;
   /** Các block gen-UI agent yêu cầu render inline (chỉ bubble assistant) */
   uiBlocks?: UiBlock[];
+  /** Số đo của lượt trả lời — hiện dưới bong bóng như ChatGPT/deepseek-harness */
+  metrics?: ChatMetrics;
+}
+
+/** Số đo một lượt trả lời (đo ở trình duyệt, không phải con số server báo). */
+export interface ChatMetrics {
+  /** Giây tới chữ đầu tiên — cảm nhận "nhanh hay chậm" nằm ở con số này */
+  ttft: number;
+  /** Tổng giây của cả lượt */
+  total: number;
+  /** Số ký tự trả lời (dùng để ước lượng tốc độ đọc ra) */
+  chars: number;
+  /** Trả từ bộ nhớ đệm, không gọi mô hình */
+  cached?: boolean;
+  /** Token THẬT do nhà cung cấp báo (không phải ước lượng ở trình duyệt) */
+  inTokens?: number;
+  outTokens?: number;
+  totalTokens?: number;
+  /** Model thực chạy lượt đó — hữu ích khi chuỗi dự phòng đổi model giữa đường */
+  model?: string;
 }

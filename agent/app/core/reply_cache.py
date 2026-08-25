@@ -75,7 +75,11 @@ def _enabled() -> bool:
 
 
 def kb_version() -> str:
-    """Khoá phiên bản = hash(persona + knowledge). Đổi → cache cũ bị bỏ (tránh trả lời lỗi thời)."""
+    """Khoá phiên bản = hash(persona + knowledge + CHẾ ĐỘ + luật riêng).
+
+    Phải gồm cả chế độ: admin nới phạm vi trợ lý mà cache vẫn giữ câu trả lời soạn theo
+    phạm vi cũ thì đổi chế độ chẳng có tác dụng gì với những câu đã từng hỏi — lỗi này
+    bắt được khi đổi sang mở rộng nhưng khách vẫn nhận đúng câu trả lời cũ."""
     try:
         from app.graph.nodes.context_node import PERSONA
         from app.services.knowledge import get_context_text
@@ -83,6 +87,12 @@ def kb_version() -> str:
         raw = PERSONA + "\n" + (get_context_text() or "")
     except Exception:
         raw = "v0"
+    try:
+        from app.deep.agent_mode import prompt_block
+
+        raw += "\n" + prompt_block()
+    except Exception:  # noqa: BLE001 — thiếu cấu hình chế độ thì vẫn cache như trước
+        pass
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 

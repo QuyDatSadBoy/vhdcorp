@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { UiChatMessage } from "@/types/chat";
+import type { ToolRun, UiChatMessage } from "@/types/chat";
 import MessageBubble from "./message-bubble";
 import SuggestedPrompts from "./suggested-prompts";
 
@@ -22,6 +22,8 @@ interface MessageListProps {
   messages: UiChatMessage[];
   loading: boolean;
   activeTool: string | null;
+  /** Log công cụ của lượt đang chạy — gắn vào bubble assistant cuối */
+  toolRuns?: ToolRun[];
   procSteps?: { label: string; done: boolean }[];
   onRetry: () => void;
   onSelectPrompt: (prompt: string) => void;
@@ -37,6 +39,7 @@ export default function MessageList({
   messages,
   loading,
   activeTool,
+  toolRuns,
   procSteps,
   onRetry,
   onSelectPrompt,
@@ -83,6 +86,7 @@ export default function MessageList({
               message={message}
               // Chỉ bubble cuối (đang stream) mới nhận tool indicator
               activeTool={i === lastIndex ? activeTool : null}
+              toolRuns={i === lastIndex ? toolRuns : undefined}
               procSteps={i === lastIndex ? procSteps : undefined}
               onRetry={message.error ? onRetry : undefined}
               onAction={onAction}

@@ -1,12 +1,16 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Put,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@guard/jwt-auth.guard';
@@ -108,5 +112,89 @@ export class AgentController {
     },
   ) {
     return this.agent.aiAssistant(body);
+  }
+
+  /**
+   * Như ai/assistant nhưng STREAM: trang quản trị thấy trợ lý gõ dần, kèm log công cụ
+   * và bảng kế hoạch — giống hệt khung chat của khách. Chuyển tiếp thẳng luồng SSE của
+   * agent; khoá admin vẫn nằm ở backend nên trình duyệt không bao giờ thấy nó.
+   */
+  @Post('ai/assistant/stream')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  async aiAssistantStream(
+    @Body()
+    body: {
+      messages?: { role: string; content: string }[];
+      categories?: string[];
+    },
+    @Res() res: Response,
+  ) {
+    const upstream = await this.agent.aiAssistantStream(body);
+    res.set({
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      // nginx mặc định đệm phản hồi → SSE sẽ ra một cục khi xong; tắt để chảy dần
+      'X-Accel-Buffering': 'no',
+    });
+    upstream.pipe(res);
+  }
+
+  /* ── Cấu hình lõi DeepAgents: SKILL (quy trình nghiệp vụ) + MCP (công cụ ngoài) ── */
+
+  @Get('deep/mode')
+  getAgentMode() {
+    return this.agent.getAgentMode();
+  }
+
+  @Post('deep/mode')
+  saveAgentMode(@Body() body: { mode?: string; rules?: string[] }) {
+    return this.agent.saveAgentMode(body);
+  }
+
+  @Get('deep/skills')
+  getSkills() {
+    return this.agent.getSkills();
+  }
+
+  @Post('deep/skills')
+  saveSkill(
+    @Body()
+    body: {
+      name: string;
+      description?: string;
+      content?: string;
+      enabled?: boolean;
+    },
+  ) {
+    return this.agent.saveSkill(body);
+  }
+
+  @Delete('deep/skills/:slug')
+  deleteSkill(@Param('slug') slug: string) {
+    return this.agent.deleteSkill(slug);
+  }
+
+  @Get('deep/mcp')
+  getMcpServers() {
+    return this.agent.getMcpServers();
+  }
+
+  @Post('deep/mcp')
+  saveMcpServer(
+    @Body()
+    body: {
+      name: string;
+      url: string;
+      transport?: string;
+      enabled?: boolean;
+    },
+  ) {
+    return this.agent.saveMcpServer(body);
+  }
+
+  @Delete('deep/mcp/:name')
+  deleteMcpServer(@Param('name') name: string) {
+    return this.agent.deleteMcpServer(name);
   }
 }

@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS messages (
     role            TEXT NOT NULL,
     content         TEXT NOT NULL,
     ui_blocks       TEXT NOT NULL DEFAULT '[]',
+    metrics         TEXT NOT NULL DEFAULT '{}',
     created_at      TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
@@ -50,6 +51,10 @@ class Database:
         cols = {r["name"] for r in await cur.fetchall()}
         if "ui_blocks" not in cols:
             await self.conn.execute("ALTER TABLE messages ADD COLUMN ui_blocks TEXT NOT NULL DEFAULT '[]'")
+        # Số đo của lượt trả lời (thời gian, token) — để mở lại lịch sử vẫn thấy,
+        # thay vì mất sạch khi tải lại trang như trước.
+        if "metrics" not in cols:
+            await self.conn.execute("ALTER TABLE messages ADD COLUMN metrics TEXT NOT NULL DEFAULT '{}'")
         await self.conn.commit()
 
     async def close(self) -> None:

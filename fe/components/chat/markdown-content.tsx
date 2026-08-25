@@ -5,6 +5,7 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import ProductCardInline from "./product-card-inline";
+import CodeBlock from "./code-block";
 
 /**
  * Render markdown cho câu trả lời của assistant (đậm/nghiêng/list/link/bảng).
@@ -55,11 +56,22 @@ function MarkdownContent({ content }: { content: string }) {
             <th className="border-b border-border bg-muted/60 px-2.5 py-1.5 text-left font-semibold">{children}</th>
           ),
           td: ({ children }) => <td className="border-b border-border/60 px-2.5 py-1.5 align-top">{children}</td>,
-          code: ({ children }) => (
-            <code className="rounded bg-muted px-1 py-0.5 text-[0.85em] font-normal before:content-none after:content-none">
-              {children}
-            </code>
-          ),
+          // Khối mã (```) → thẻ có tiêu đề + nút chép; mã lẻ giữa dòng vẫn như cũ.
+          // Nhận biết bằng lớp `language-*` mà remark gắn cho khối có rào ba dấu.
+          code: ({ className, children }) => {
+            const lang = /language-(\w+)/.exec(className || "")?.[1] ?? null;
+            const text = String(children ?? "");
+            if (lang || text.includes("\n")) {
+              return <CodeBlock language={lang} code={text.replace(/\n$/, "")} />;
+            }
+            return (
+              <code className="rounded bg-muted px-1 py-0.5 text-[0.85em] font-normal before:content-none after:content-none">
+                {children}
+              </code>
+            );
+          },
+          // `pre` bọc ngoài khối mã sẽ thừa vì CodeBlock đã tự dựng khung
+          pre: ({ children }) => <>{children}</>,
         }}
       >
         {content}

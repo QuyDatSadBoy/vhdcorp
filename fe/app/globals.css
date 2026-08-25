@@ -348,6 +348,66 @@
     }
   }
 
+  /* Dải sáng lướt qua dòng đang chạy trong log hoạt động của trợ lý AI.
+     Dùng dải sáng cho CẢ DÒNG thay vì đổi icon thành spinner: nhiều tool chạy
+     song song thì màn hình không bị "xoay tròn khắp nơi", mà vẫn thấy rõ dòng nào sống. */
+  .agent-row-running {
+    position: relative;
+    overflow: hidden;
+  }
+  .agent-row-running::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    left: -300px;
+    width: 300px;
+    pointer-events: none;
+    /* Dải sáng là MÀU NỀN ở 60% alpha, không phải màu nhấn: nó rửa mờ chữ về phía
+       nền khi đi qua chứ không loé lên — kiềm chế, đọc chữ vẫn thoải mái. */
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--background) 60%, transparent) 55%,
+      transparent 100%
+    );
+    animation: agent-row-sweep 2.6s ease-out infinite;
+  }
+  @keyframes agent-row-sweep {
+    0% {
+      left: -300px;
+    }
+    /* Dừng 10% chu kỳ ở cạnh phải → mỗi lượt quét có nhịp thở, không quay vòng liên tục */
+    90%,
+    100% {
+      left: 100%;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .agent-row-running::after {
+      animation: none;
+    }
+  }
+
+  /* Dòng mới của kế hoạch / log nhảy vào từ dưới — log "chạy" thật thay vì đứng im */
+  .agent-row-enter {
+    animation: agent-row-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes agent-row-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .agent-row-enter {
+      animation: none;
+    }
+  }
+
   /* Thanh tiến độ cuộn — CSS scroll-timeline thuần (0 JS, chạy trên compositor) */
   @supports (animation-timeline: scroll()) {
     .scroll-progress-bar {

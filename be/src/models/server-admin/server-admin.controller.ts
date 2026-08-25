@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -7,6 +8,7 @@ import {
   Query,
   Res,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -175,6 +177,57 @@ export class ServerAdminController {
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   restartSystem(@Param('name') name: string, @CurrentUser() user: JwtPayload) {
     return this.service.restartSystemService(name, user.email);
+  }
+
+  /** Bật / tắt / khởi động lại service từ giao diện — không cần nhớ lệnh systemctl */
+  @Post('system-services/:name/:action')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  controlSystem(
+    @Param('name') name: string,
+    @Param('action') action: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (action !== 'start' && action !== 'stop' && action !== 'restart') {
+      throw new BadRequestException('Hành động chỉ có: start, stop, restart');
+    }
+    return this.service.controlSystemService(name, action, user.email);
+  }
+
+  /** Trạng thái trợ lý nội bộ: service sống/chết + đang có ai dùng + RAM */
+  @Get('assistant')
+  assistant() {
+    return this.service.getAssistantStatus();
+  }
+
+  /** Tệp trong thư mục làm việc của trợ lý, nặng nhất trước */
+  @Get('assistant/files')
+  assistantFiles(@Query('limit') limit?: string) {
+    return this.service.listAssistantFiles(Number(limit) || 60);
+  }
+
+  /**
+   * Xoá một tệp trong thư mục làm việc của trợ lý.
+   *
+   * Đường dẫn đi qua body chứ không qua URL: đường dẫn tuyệt đối có dấu gạch
+   * chéo, nhét vào path param là phải mã hoá qua lại rất dễ sai.
+   */
+  @Post('assistant/files/delete')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  deleteAssistantFile(
+    @Body('path') path: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.deleteAssistantFile(path, user.email);
+  }
+
+  /** Dọn tệp rác cũ (chỉ các đuôi chắc chắn là rác) */
+  @Post('assistant/files/clean')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  cleanAssistantJunk(
+    @Body('olderThanDays') olderThanDays: number | undefined,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.cleanAssistantJunk(user.email, olderThanDays ?? 14);
   }
 
   @Get('ports')

@@ -83,6 +83,20 @@ const api = {
   systemServices: () => axios.get<{ data: { services: SystemService[] } }>("/server/system-services").then(unwrap),
   restartSystem: (name: string) =>
     axios.post<{ data: { message: string } }>(`/server/system-services/${name}/restart`).then(unwrap),
+  controlSystemService: (name: string, action: "start" | "stop" | "restart") =>
+    axios.post<{ data: { message: string } }>(`/server/system-services/${name}/${action}`).then(unwrap),
+  assistant: () => axios.get<{ data: AssistantStatus }>("/server/assistant").then(unwrap),
+  assistantFiles: (limit = 60) =>
+    axios.get<{ data: AssistantFiles }>(`/server/assistant/files?limit=${limit}`).then(unwrap),
+  deleteAssistantFile: (path: string) =>
+    axios.post<{ data: { message: string; freedMb: number } }>("/server/assistant/files/delete", { path }).then(unwrap),
+  cleanAssistantJunk: (olderThanDays: number) =>
+    axios
+      .post<{ data: { message: string; freedMb: number; patterns: string[] } }>(
+        "/server/assistant/files/clean",
+        { olderThanDays },
+      )
+      .then(unwrap),
   ports: () => axios.get<{ data: { ports: ListeningPort[] } }>("/server/ports").then(unwrap),
 };
 
@@ -92,6 +106,28 @@ export interface TopProcess {
   cpu: number;
   mem: number;
   rssMb: number;
+}
+
+/** Trạng thái trợ lý nội bộ: systemd + ai đang dùng */
+export interface AssistantStatus {
+  unit: { active: string; sub: string; enabled: string; memoryMb: number | null };
+  gate: {
+    instances: { user: string; port: number; idleSeconds: number }[];
+    active: number;
+    maxActive: number;
+    idleMinutes: number;
+    sessions: number;
+  } | null;
+  stoppable: boolean;
+}
+
+/** Tệp trong thư mục làm việc của trợ lý, nặng nhất trước */
+export interface AssistantFiles {
+  files: { path: string; user: string; sizeMb: number; ageDays: number }[];
+  totalMb: number;
+  /** Dung lượng dữ liệu vận hành (lịch sử chat, cấu hình) — chỉ để xem, không xóa tay */
+  systemMb: number;
+  byUser: { user: string; sizeMb: number }[];
 }
 
 export interface SystemService {
@@ -244,6 +280,47 @@ export function useBotTraffic() {
 
 export function useTopProcesses() {
   return useQuery({ queryKey: ["server", "processes"], queryFn: api.processes, refetchInterval: 15_000 });
+}
+
+export function useAssistant() {
+  return useQuery({ queryKey: ["server", "assistant"], queryFn: api.assistant, refetchInterval: 15_000 });
+}
+
+export function useAssistantFiles(enabled: boolean) {
+  return useQuery({
+    queryKey: ["server", "assistant-files"],
+    queryFn: () => api.assistantFiles(60),
+    enabled,
+    refetchInterval: 60_000,
+  });
+}
+
+export function useDeleteAssistantFile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteAssistantFile,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["server", "assistant-files"] }),
+  });
+}
+
+export function useCleanAssistantJunk() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.cleanAssistantJunk,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["server", "assistant-files"] }),
+  });
+}
+
+export function useControlSystemService() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, action }: { name: string; action: "start" | "stop" | "restart" }) =>
+      api.controlSystemService(name, action),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["server", "system-services"] });
+      void qc.invalidateQueries({ queryKey: ["server", "assistant"] });
+    },
+  });
 }
 
 export function useSystemServices() {

@@ -25,12 +25,14 @@ from app.tools.site import (
     get_current_time,
 )
 from app.tools.ui import (
+    ask_user_question,
     show_comparison,
     show_contact_form,
     show_faq,
     show_product_carousel,
     show_quote_form,
 )
+from app.tools.web_fetch import web_fetch
 from app.tools.web_search import web_search
 
 
@@ -46,7 +48,7 @@ def _route_agent(state: AgentState) -> str:
 
 
 class ChatGraphBuilder(BaseGraphBuilder):
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, extra_tools: list | None = None) -> None:
         self.settings = settings
         self.tools = [
             # Tra cứu / hành động
@@ -55,6 +57,7 @@ class ChatGraphBuilder(BaseGraphBuilder):
             get_product_detail,
             search_knowledge,
             web_search,
+            web_fetch,
             send_contact_request,
             create_quote_request,
             # Phủ đủ module web (đọc trực tiếp DB): tin tức, danh mục, gợi ý, liên hệ
@@ -69,7 +72,12 @@ class ChatGraphBuilder(BaseGraphBuilder):
             show_quote_form,
             show_comparison,
             show_faq,
+            ask_user_question,
         ]
+        # Tool MCP do admin cấu hình (nạp async ở lifespan rồi truyền vào đây)
+        if extra_tools:
+            self.tools.extend(extra_tools)
+
         def _mk(model: str, key: str) -> ChatGoogleGenerativeAI:
             return ChatGoogleGenerativeAI(
                 model=model,
@@ -83,6 +91,19 @@ class ChatGraphBuilder(BaseGraphBuilder):
                 max_retries=0,
             )
 
+        def _mk_openai(model: str, key: str, base_url: str, timeout: int = 25):
+            """LLM cho mọi nhà cung cấp OpenAI-compatible (DeepSeek/Groq/MiniMax/OpenRouter)."""
+            from langchain_openai import ChatOpenAI
+
+            return ChatOpenAI(
+                model=model,
+                api_key=key,
+                base_url=base_url,
+                temperature=0.3,
+                max_retries=0,  # lỗi là chuyển tiếp ngay, không chờ retry
+                timeout=timeout,
+            )
+
         # Chuỗi dự phòng 2 CHIỀU: nhiều KEY × nhiều MODEL.
         # Thứ tự: model tốt trên MỌI key trước (xử lý key hết quota/bị thu hồi),
         # rồi mới hạ xuống model dự phòng trên mọi key (xử lý model quá tải).
@@ -93,9 +114,21 @@ class ChatGraphBuilder(BaseGraphBuilder):
         models = list(dict.fromkeys([settings.agent_model, *fallbacks]))  # dedupe, giữ thứ tự
         combos = [(m, k) for m in models for k in keys]
 
-        self.llm = _mk(*combos[0])  # (chính) — dùng cho vision mô tả ảnh
+        gemini_chain = [_mk(m, k) for (m, k) in combos]
+
+        # MODEL CHÍNH = DeepSeek Vision (nếu có key), Gemini tụt xuống dự phòng #1.
+        # Không có key DeepSeek → Gemini vẫn làm chính như trước (không vỡ gì).
+        if settings.deepseek_api_key and settings.deepseek_model:
+            deepseek = _mk_openai(
+                settings.deepseek_model, settings.deepseek_api_key, settings.deepseek_base_url, 30
+            )
+            chain = [deepseek, *gemini_chain]
+        else:
+            chain = gemini_chain
+
+        self.llm = chain[0]  # (chính) — dùng cho vision mô tả ảnh (DeepSeek vision đọc ảnh trực tiếp)
         primary_tools = self.llm.bind_tools(self.tools)
-        rest = [_mk(m, k).bind_tools(self.tools) for (m, k) in combos[1:]]
+        rest = [m.bind_tools(self.tools) for m in chain[1:]]
 
         # DỰ PHÒNG CHÉO NHÀ CUNG CẤP (OpenAI-compatible): cả Gemini hết quota → chuyển sang
         # provider khác (không dính quota Gemini). Thứ tự theo tốc độ + độ tin cậy đo thật:
@@ -105,22 +138,14 @@ class ChatGraphBuilder(BaseGraphBuilder):
             (settings.minimax_api_key, settings.minimax_llm_model, settings.minimax_base_url, 25),
             (settings.openrouter_api_key, settings.openrouter_model, settings.openrouter_base_url, 30),
         ]
-        if any(key for key, *_ in cross_providers):
-            from langchain_openai import ChatOpenAI
-
-            for key, model, base_url, timeout in cross_providers:
-                if key and model:
-                    llm = ChatOpenAI(
-                        model=model,
-                        api_key=key,
-                        base_url=base_url,
-                        temperature=0.3,
-                        max_retries=0,  # lỗi là chuyển tiếp ngay, không chờ retry
-                        timeout=timeout,
-                    )
-                    rest.append(llm.bind_tools(self.tools))
+        for key, model, base_url, timeout in cross_providers:
+            if key and model:
+                rest.append(_mk_openai(model, key, base_url, timeout).bind_tools(self.tools))
 
         self.llm_with_tools = primary_tools.with_fallbacks(rest) if rest else primary_tools
+
+        # Danh sách model THÔ (chưa bind tools) cho DeepAgents — create_deep_agent tự bind.
+        self.model_chain = [*chain, *[_mk_openai(m, k, b, t) for k, m, b, t in cross_providers if k and m]]
 
     def build(self) -> StateGraph:
         short_term = ShortTermMemory(limit=self.settings.short_term_limit)
@@ -129,6 +154,33 @@ class ChatGraphBuilder(BaseGraphBuilder):
         graph = StateGraph(AgentState)
         graph.add_node("guardrail", GuardrailNode(pipeline))
         graph.add_node("context", ContextNode())
+
+        # LÕI DeepAgents: tự lo vòng lặp model⇄tool → graph ngoài không cần node "tools".
+        if self.settings.use_deep_agent:
+            from app.deep.builder import build_deep_agent
+            from app.graph.nodes.deep_agent_node import DeepAgentNode
+
+            from app.deep.builder import build_deep_agent_for_mode
+
+            deep = build_deep_agent(
+                self.model_chain, self.tools, max_models=self.settings.deep_agent_max_fallbacks
+            )
+            graph.add_node(
+                "agent",
+                DeepAgentNode(
+                    deep,
+                    short_term,
+                    agent_factory=lambda: build_deep_agent_for_mode(
+                        self.model_chain, self.tools, max_models=self.settings.deep_agent_max_fallbacks
+                    ),
+                ),
+            )
+            graph.add_edge(START, "guardrail")
+            graph.add_conditional_edges("guardrail", _route_guardrail, {"blocked": END, "ok": "context"})
+            graph.add_edge("context", "agent")
+            graph.add_edge("agent", END)
+            return graph
+
         graph.add_node("agent", AgentNode(self.llm_with_tools, short_term))
         graph.add_node("tools", ToolExecutorNode(self.tools))
 

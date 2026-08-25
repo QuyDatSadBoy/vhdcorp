@@ -115,9 +115,19 @@ def _trim(dq: deque[float], now: float, window: float) -> None:
         dq.popleft()
 
 
+# Địa chỉ của chính máy chủ. Bộ kiểm thử đầu-cuối gọi qua đây, và trước khi miễn thì
+# nó tự đụng hàng rào chống spam của chính mình: mỗi lần chạy mất thêm ~40 giây chờ rồi
+# thử lại, mà những lượt đó chẳng bảo vệ ai — không phải khách lạ trên internet.
+# nginx đặt IP thật vào X-Forwarded-For/CF-Connecting-IP nên khách ngoài KHÔNG bao giờ
+# tới đây dưới dạng loopback; muốn giả cũng không được vì client_ip() ưu tiên header đó.
+_LOOPBACK = {"127.0.0.1", "::1", "localhost"}
+
+
 def check(ip: str) -> tuple[bool, str]:
     """Kiểm tra 1 lượt chat từ IP. Trả (allowed, lý-do-nếu-chặn). KHÔNG tính lượt ở đây."""
     cfg = load_limits()
+    if ip in _LOOPBACK:
+        return True, ""
     if not cfg["enabled"]:
         return False, "Trợ lý AI đang tạm bảo trì, bạn vui lòng liên hệ hotline 0879.744.888 nhé."
     if ip in cfg.get("blocked_ips", []):

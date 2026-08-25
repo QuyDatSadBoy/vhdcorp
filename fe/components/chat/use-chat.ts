@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { chatAgentService, streamChat, getChatUserId } from "@/services/chat-agent.service";
-import type { Conversation, UiBlock, UiChatMessage } from "@/types/chat";
+import { TOOL_STEP_LABELS } from "@/lib/tool-labels";
+import type { Conversation, TodoItem, ToolRun, UiBlock, UiChatMessage } from "@/types/chat";
 
 /** localStorage key nhớ hội thoại đang mở — mở lại panel giữ nguyên */
 const ACTIVE_ID_KEY = "vhd_chat_active_id"; // + hậu tố danh tính
@@ -10,25 +11,6 @@ const ACTIVE_ID_KEY = "vhd_chat_active_id"; // + hậu tố danh tính
 const GENERIC_ERROR = "Không kết nối được trợ lý. Vui lòng thử lại.";
 
 /** Nhãn tiến trình theo tool — khách thấy VHD "đang làm việc" thật */
-const TOOL_STEP_LABELS: Record<string, string> = {
-  get_current_time: "Đang xem ngày giờ hiện tại…",
-  search_products: "Đang tìm kiếm trong kho VHD…",
-  get_product_detail: "Đang lấy thông tin chi tiết sản phẩm…",
-  show_product_carousel: "Đang tìm kiếm & chọn lọc sản phẩm…",
-  show_comparison: "Đang lập bảng so sánh…",
-  get_recommendations: "Đang chọn gợi ý phù hợp với bạn…",
-  list_categories: "Đang tổng hợp danh mục hàng…",
-  search_posts: "Đang tìm bài viết liên quan…",
-  get_company_info: "Đang lấy thông tin liên hệ chính thức…",
-  add_to_cart: "Đang thêm sản phẩm vào giỏ…",
-  show_quote_form: "Đang chuẩn bị form báo giá…",
-  create_quote_request: "Đang gửi yêu cầu báo giá…",
-  show_contact_form: "Đang mở form liên hệ…",
-  send_contact_request: "Đang gửi thông tin liên hệ…",
-  show_faq: "Đang tra cứu câu hỏi thường gặp…",
-  search_knowledge: "Đang tra cứu tài liệu công ty…",
-  web_search: "Đang tra cứu thêm trên web…",
-};
 
 /**
  * State machine cho widget chat: danh sách hội thoại, tin nhắn của hội thoại
@@ -44,6 +26,10 @@ export function useChat() {
   const [activeTool, setActiveTool] = useState<string | null>(null);
   /** Log tiến trình sống động ("Đang tìm kiếm trong kho…") — hiện khi chưa có chữ */
   const [procSteps, setProcSteps] = useState<{ label: string; done: boolean }[]>([]);
+  /** Kế hoạch nhiều bước agent tự lập (DeepAgents write_todos) — rỗng = ẩn panel */
+  const [todos, setTodos] = useState<TodoItem[]>([]);
+  /** Log hoạt động chi tiết: từng lần gọi tool + tham số/kết quả (mở ra xem được) */
+  const [toolRuns, setToolRuns] = useState<ToolRun[]>([]);
 
   const abortRef = useRef<AbortController | null>(null);
   /** Message user cuối cùng — dùng cho nút "Thử lại" */
@@ -80,6 +66,22 @@ export function useChat() {
                   component: b.component,
                   props: b.props,
                 })),
+              }
+            : {}),
+          // Số đo do máy chủ lưu: mở lại hội thoại cũ vẫn thấy thời gian và token.
+          // Không có `ttft` trong lịch sử (đó là số đo ở trình duyệt lúc chạy), nên
+          // dùng chính thời gian máy chủ ghi cho cả hai chỗ thay vì bỏ trống.
+          ...(m.metrics?.total_tokens || m.metrics?.elapsed
+            ? {
+                metrics: {
+                  ttft: 0,
+                  total: m.metrics.elapsed ?? 0,
+                  chars: m.content.length,
+                  inTokens: m.metrics.in_tokens,
+                  outTokens: m.metrics.out_tokens,
+                  totalTokens: m.metrics.total_tokens,
+                  model: m.metrics.model,
+                },
               }
             : {}),
         }))
@@ -148,6 +150,9 @@ export function useChat() {
       setActiveTool(null);
       // Bước đầu tiên của log tiến trình — hiện ngay khi gửi
       setProcSteps([{ label: "Đã tiếp nhận, đang phân tích yêu cầu…", done: false }]);
+      // Kế hoạch + log hoạt động thuộc về LƯỢT này → xoá của lượt trước
+      setTodos([]);
+      setToolRuns([]);
       const controller = new AbortController();
       abortRef.current = controller;
 
@@ -160,12 +165,19 @@ export function useChat() {
       let finalized = false;
       let finalMessageId: string | null = null;
       let ticker: number | null = null;
+      // Số đo hiển thị dưới bong bóng. Đo ở TRÌNH DUYỆT vì đó mới là thứ khách cảm
+      // nhận (gồm cả đường truyền), khác với thời gian server tự báo.
+      const startedAt = performance.now();
+      let firstTokenAt: number | null = null;
+      let cachedAnswer = false;
+      // Token THẬT + model thực chạy do máy chủ báo trong sự kiện done
+      let serverMetrics: Record<string, unknown> | null = null;
       let typewriterResolve: (() => void) | null = null;
 
       const finalize = () => {
         if (finalized) return;
         finalized = true;
-        if (ticker != null) clearInterval(ticker);
+        if (ticker != null) cancelAnimationFrame(ticker);
         // Text xong RỒI mới gắn card — thứ tự tuần tự tuyệt đối
         patchMessage(assistantId, {
           ...(finalMessageId ? { id: finalMessageId } : {}),
@@ -173,23 +185,53 @@ export function useChat() {
           uiBlocks: uiBlocks.length ? uiBlocks : undefined,
           streaming: false,
           finishedLive: true,
+          metrics: {
+            ttft: ((firstTokenAt ?? performance.now()) - startedAt) / 1000,
+            total: (performance.now() - startedAt) / 1000,
+            chars: content.length,
+            cached: cachedAnswer,
+            inTokens: Number(serverMetrics?.in_tokens) || undefined,
+            outTokens: Number(serverMetrics?.out_tokens) || undefined,
+            totalTokens: Number(serverMetrics?.total_tokens) || undefined,
+            model: (serverMetrics?.model as string) || undefined,
+          },
         });
         typewriterResolve?.();
       };
 
-      // Typewriter ~30fps: hiển thị đuổi theo target với bước thích ứng —
-      // chữ chảy đều mượt bất kể mạng bắn delta theo cụm.
+      // Chữ chảy theo NHỊP MÀN HÌNH (requestAnimationFrame) thay vì hẹn giờ 33ms.
+      //
+      // Đo trước khi sửa: mỗi lần hiện trung bình 21.6 ký tự — chữ nhảy thành cục chứ
+      // không chảy. Lý do: bước cũ là backlog/12 nên mạng bắn một cụm 200 ký tự là hiện
+      // 17 ký tự một nhịp, và hẹn giờ 33ms lại lệch nhịp vẽ của trình duyệt nên thêm
+      // cảm giác rung.
+      //
+      // Bước nay có TRẦN: tối đa 8 ký tự mỗi khung hình ≈ 480 ký tự/giây ở 60fps —
+      // vẫn nhanh hơn tốc độ mô hình sinh chữ nên không bao giờ tụt lại. Chỉ khi tụt
+      // hậu rất nhiều (câu lấy từ bộ đệm đổ về cả bài) mới cho nhảy 24 ký tự để bắt
+      // kịp, chứ không bắt khách chờ chữ bò từng nhịp.
+      const STEP_SMOOTH = 8;
+      const STEP_CATCHUP = 24;
       const tick = () => {
         const backlog = content.length - shownChars;
         if (backlog > 0) {
-          shownChars = Math.min(content.length, shownChars + Math.max(2, Math.ceil(backlog / 12)));
+          const cap = backlog > 400 ? STEP_CATCHUP : STEP_SMOOTH;
+          const step = Math.min(cap, Math.max(2, Math.ceil(backlog / 10)));
+          shownChars = Math.min(content.length, shownChars + step);
           patchMessage(assistantId, { content: content.slice(0, shownChars) });
-        } else if (serverDone) {
-          finalize();
+          ticker = requestAnimationFrame(tick) as unknown as number;
+          return;
         }
+        if (serverDone) {
+          ticker = null;
+          finalize();
+          return;
+        }
+        // Hết chữ để hiện nhưng máy chủ chưa xong → vẫn giữ vòng để bắt chữ kế tiếp
+        ticker = requestAnimationFrame(tick) as unknown as number;
       };
       const ensureTicker = () => {
-        if (ticker == null) ticker = window.setInterval(tick, 33) as unknown as number;
+        if (ticker == null) ticker = requestAnimationFrame(tick) as unknown as number;
       };
       /** Đánh dấu bước hiện tại xong + thêm bước mới vào log tiến trình */
       const pushStep = (label: string) => {
@@ -215,17 +257,37 @@ export function useChat() {
                 ]);
                 break;
               case "message.delta":
+                if (firstTokenAt === null) firstTokenAt = performance.now();
                 content += event.content;
                 setActiveTool(null);
                 ensureTicker(); // typewriter bắt đầu chảy chữ
                 break;
-              case "tool.start":
+              case "tool.start": {
+                const label = TOOL_STEP_LABELS[event.name] ?? "Đang xử lý yêu cầu…";
                 setActiveTool(event.name);
-                pushStep(TOOL_STEP_LABELS[event.name] ?? "Đang xử lý yêu cầu…");
+                pushStep(label);
+                setToolRuns((prev) => [
+                  ...prev,
+                  { id: crypto.randomUUID(), name: event.name, label, state: "running", input: event.input },
+                ]);
                 break;
+              }
               case "tool.end":
                 setActiveTool(null);
                 pushStep("Đang tổng hợp & xác minh thông tin…");
+                // Đóng dòng ĐANG CHẠY gần nhất của đúng tool đó (nhiều tool có thể
+                // chạy song song nên không thể chỉ lấy phần tử cuối)
+                setToolRuns((prev) => {
+                  const idx = prev.findLastIndex((r) => r.name === event.name && r.state === "running");
+                  if (idx < 0) return prev;
+                  const next = [...prev];
+                  next[idx] = { ...next[idx], state: "ok", output: event.output };
+                  return next;
+                });
+                break;
+              case "todo":
+                // Danh sách MỚI thay thế toàn bộ danh sách cũ (last-wins)
+                setTodos(event.items);
                 break;
               case "ui":
                 // Card/gợi ý XẾP HÀNG chờ — chỉ gắn sau khi text stream xong
@@ -233,6 +295,8 @@ export function useChat() {
                 break;
               case "done":
                 finalMessageId = event.message_id;
+                cachedAnswer = Boolean((event as { cached?: boolean }).cached);
+                serverMetrics = (event as { metrics?: Record<string, unknown> }).metrics ?? null;
                 serverDone = true;
                 // Không có chữ (vd guardrail) → chốt luôn; có chữ → typewriter chảy nốt rồi tự finalize
                 if (content.length === 0 || shownChars >= content.length) finalize();
@@ -245,7 +309,7 @@ export function useChat() {
           },
         });
         if (streamError) {
-          if (ticker != null) clearInterval(ticker);
+          if (ticker != null) cancelAnimationFrame(ticker);
           finalized = true;
           patchMessage(assistantId, { streaming: false, error: streamError });
         } else {
@@ -265,7 +329,7 @@ export function useChat() {
           }
         }
       } catch (err) {
-        if (ticker != null) clearInterval(ticker);
+        if (ticker != null) cancelAnimationFrame(ticker);
         finalized = true;
         if (err instanceof DOMException && err.name === "AbortError") {
           // User bấm Stop — giữ phần đã stream, không coi là lỗi
@@ -278,10 +342,16 @@ export function useChat() {
           patchMessage(assistantId, { streaming: false, error: GENERIC_ERROR });
         }
       } finally {
-        if (ticker != null) clearInterval(ticker);
+        if (ticker != null) cancelAnimationFrame(ticker);
         setStreaming(false);
         setActiveTool(null);
         setProcSteps([]);
+        // Tool nào còn "running" khi stream kết thúc/bị dừng thì không thể coi là xong
+        setToolRuns((prev) =>
+          prev.some((r) => r.state === "running")
+            ? prev.map((r) => (r.state === "running" ? { ...r, state: "error" as const } : r))
+            : prev
+        );
         abortRef.current = null;
         if (!createdConversation && activeId) {
           // Cập nhật meta hội thoại hiện tại (đưa lên đầu sidebar)
@@ -363,6 +433,8 @@ export function useChat() {
     streaming,
     activeTool,
     procSteps,
+    todos,
+    toolRuns,
     init,
     send,
     stop,

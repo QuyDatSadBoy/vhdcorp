@@ -35,7 +35,23 @@ const PM2_SERVICES = ['vhd-be', 'vhd-fe', 'vhd-agent'] as const;
 type Pm2Name = (typeof PM2_SERVICES)[number];
 
 // Service hệ thống cho phép XEM + restart trên UI (whitelist — không cho tùy ý)
-const SYSTEM_SERVICES = ['nginx', 'postgresql', 'fail2ban', 'ssh'] as const;
+const SYSTEM_SERVICES = [
+  'nginx',
+  'postgresql',
+  'fail2ban',
+  'ssh',
+  'vhd-gate', // cổng vào trợ lý nội bộ
+] as const;
+
+/**
+ * Service được phép TẮT từ giao diện.
+ *
+ * Cố tình chỉ có trợ lý nội bộ. Tắt nginx / ssh / postgresql / BE từ web là tự
+ * khoá mình ra ngoài: response còn chưa kịp về thì đường vào đã đứt, và muốn bật
+ * lại phải SSH — mà ssh có thể chính là thứ vừa bị tắt. Restart thì an toàn vì
+ * service tự lên lại.
+ */
+const STOPPABLE_SERVICES = ['vhd-gate'] as const;
 
 /** Tác vụ dọn rác cố định — mỗi key là một lệnh viết sẵn, không có ô gõ lệnh */
 const CLEANUP_TASKS = [
@@ -44,6 +60,7 @@ const CLEANUP_TASKS = [
   'journal',
   'build-backups',
   'ram-cache',
+  'assistant-junk',
 ] as const;
 type CleanupTask = (typeof CLEANUP_TASKS)[number];
 
@@ -596,6 +613,20 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
             force: true,
           });
           break;
+        case 'assistant-junk':
+          // Log/cache/tmp cũ hơn 14 ngày trong home của từng người dùng trợ lý.
+          // KHÔNG chạm vào workspace/ — đó là file làm việc của anh em.
+          await execFileAsync(
+            'bash',
+            [
+              '-c',
+              "find /opt/vhd-assistant/homes -mindepth 2 -maxdepth 4 -type d " +
+                "\\( -name logs -o -name cache -o -name tmp \\) " +
+                "-exec find {} -type f -mtime +14 -delete \\; 2>/dev/null; true",
+            ],
+            { env: this.execEnv },
+          );
+          break;
         case 'ram-cache':
           // Giải phóng page-cache (an toàn, không mất dữ liệu) — RAM "available" tăng lại
           await execFileAsync(
@@ -917,13 +948,104 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
 
   /** Khởi động lại 1 service hệ thống (chỉ trong whitelist) */
   async restartSystemService(name: string, actor: string) {
+    return this.controlSystemService(name, 'restart', actor);
+  }
+
+  /**
+   * Bật / tắt / khởi động lại 1 service hệ thống từ giao diện quản trị.
+   *
+   * `stop` bị giới hạn trong {@link STOPPABLE_SERVICES} — xem lý do ở đó.
+   */
+  async controlSystemService(
+    name: string,
+    action: 'start' | 'stop' | 'restart',
+    actor: string,
+  ) {
     if (!(SYSTEM_SERVICES as readonly string[]).includes(name))
       throw new BadRequestException(
         'Service không nằm trong danh sách cho phép',
       );
-    await this.audit(actor, `system-restart:${name}`);
-    await execFileAsync('systemctl', ['restart', name], { env: this.execEnv });
-    return { message: `Đã khởi động lại ${name}` };
+    if (
+      action === 'stop' &&
+      !(STOPPABLE_SERVICES as readonly string[]).includes(name)
+    ) {
+      throw new BadRequestException(
+        `Không cho tắt ${name} từ giao diện: tắt xong là mất luôn đường vào ` +
+          'trang quản trị, muốn bật lại phải SSH. Dùng "Khởi động lại" nếu cần.',
+      );
+    }
+    await this.audit(actor, `system-${action}:${name}`);
+    await execFileAsync('systemctl', [action, name], { env: this.execEnv });
+    const done = { start: 'Đã bật', stop: 'Đã tắt', restart: 'Đã khởi động lại' };
+    return { message: `${done[action]} ${name}` };
+  }
+
+  /**
+   * Trạng thái trợ lý nội bộ: systemd nói service sống hay chết, còn cổng vào nói
+   * đang có ai dùng và chiếm bao nhiêu RAM.
+   *
+   * Gộp hai nguồn vào một endpoint để giao diện chỉ gọi một lần.
+   */
+  async getAssistantStatus() {
+    const unit = { active: 'unknown', sub: '', enabled: '', memoryMb: null as number | null };
+    try {
+      const { stdout } = await execFileAsync(
+        'systemctl',
+        [
+          'show',
+          'vhd-gate',
+          '--property=ActiveState,SubState,UnitFileState,MemoryCurrent',
+        ],
+        { env: this.execEnv },
+      );
+      const kv: Record<string, string> = {};
+      stdout
+        .trim()
+        .split('\n')
+        .forEach((l) => {
+          const i = l.indexOf('=');
+          if (i > 0) kv[l.slice(0, i)] = l.slice(i + 1);
+        });
+      unit.active = kv.ActiveState || 'unknown';
+      unit.sub = kv.SubState || '';
+      unit.enabled = kv.UnitFileState || '';
+      const mem = Number(kv.MemoryCurrent);
+      // MemoryCurrent của cgroup gồm CẢ tiến trình trợ lý con — đúng thứ cần biết
+      unit.memoryMb =
+        Number.isFinite(mem) && mem > 0 ? Math.round(mem / 1024 / 1024) : null;
+    } catch {
+      // systemd không có unit này (chưa cài) → cứ trả unknown, đừng làm hỏng trang
+    }
+
+    // Ai đang dùng: hỏi chính cổng vào. Không có token thì bỏ qua phần này.
+    let gate: {
+      instances: { user: string; port: number; idleSeconds: number }[];
+      active: number;
+      maxActive: number;
+      idleMinutes: number;
+      sessions: number;
+    } | null = null;
+    const token = process.env.VHD_ADMIN_TOKEN;
+    const gateUrl = process.env.VHD_GATE_URL || 'http://127.0.0.1:4400';
+    if (token && unit.active === 'active') {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 3000);
+        try {
+          const res = await fetch(`${gateUrl}/_gate/status`, {
+            headers: { 'x-vhd-admin-token': token },
+            signal: controller.signal,
+          });
+          if (res.ok) gate = await res.json();
+        } finally {
+          clearTimeout(timer);
+        }
+      } catch {
+        // Cổng vào đang khởi động lại → để null, giao diện hiện "chưa lấy được"
+      }
+    }
+
+    return { unit, gate, stoppable: true };
   }
 
   /** Các cổng đang lắng nghe (ss -tlnp) — soi dịch vụ nào mở cổng nào */
@@ -976,6 +1098,160 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
   }
 
   /* ─── Audit ─────────────────────────────────────────────────── */
+
+  /* ─── Dọn file trong thư mục làm việc của trợ lý ──────────── */
+
+  /**
+   * Gốc thư mục người dùng trợ lý. Mọi thao tác tệp ở dưới đây PHẢI nằm trong
+   * đường dẫn này — đó là hàng rào duy nhất giữa "dọn rác" và "xoá nhầm nửa máy
+   * chủ", nên kiểm bằng đường dẫn thật chứ không so chuỗi.
+   */
+  private readonly assistantHomes =
+    process.env.VHD_HOMES || '/opt/vhd-assistant/homes';
+
+  /** Đuôi/tên tệp coi là rác chắc chắn — dọn tự động được mà không sợ mất việc. */
+  private static readonly JUNK_PATTERNS = [
+    '*.tmp', '*.temp', '*.log', '*.bak', '*.old', '*~', '.DS_Store', 'Thumbs.db',
+  ];
+
+  /** Đường dẫn nằm trong thư mục làm việc của một người dùng trợ lý hay không. */
+  private async assertInsideHomes(target: string): Promise<string> {
+    let root: string;
+    let real: string;
+    try {
+      root = await fsp.realpath(this.assistantHomes);
+      real = await fsp.realpath(target);
+    } catch {
+      throw new BadRequestException('Không tìm thấy tệp');
+    }
+    // realpath cả hai vế: so chuỗi thô thì một liên kết mềm trỏ ra ngoài vẫn lọt
+    if (real !== root && !real.startsWith(root + '/')) {
+      throw new BadRequestException(
+        'Chỉ xoá được tệp trong thư mục làm việc của trợ lý',
+      );
+    }
+    return real;
+  }
+
+  /**
+   * Liệt kê tệp trong thư mục làm việc của từng người, nặng nhất trước.
+   *
+   * Trợ lý sinh khá nhiều tệp nháp trong lúc làm việc; admin cần thấy cái gì
+   * đang chiếm chỗ để quyết định xoá, thay vì phải SSH vào đếm bằng tay.
+   */
+  async listAssistantFiles(limit = 60) {
+    // CHỈ liệt kê tệp trong workspace/ — đó là nơi tệp sinh ra khi chat, xoá được
+    // an toàn. Phần còn lại trong thư mục người dùng là dữ liệu vận hành của trợ
+    // lý: session.jsonl.zstd chính là LỊCH SỬ CHAT, bấm Xoá nhầm là mất hội thoại
+    // của người ta. Phần đó để bộ dọn rác tự động lo.
+    const script =
+      `find ${this.assistantHomes}/*/workspace -type f -printf '%s\\t%T@\\t%p\\n' 2>/dev/null ` +
+      `| sort -rn | head -n ${Math.min(Math.max(limit, 1), 300)}`;
+    let stdout = '';
+    try {
+      ({ stdout } = await execFileAsync('bash', ['-c', script], {
+        env: this.execEnv,
+        maxBuffer: 4 * 1024 * 1024,
+      }));
+    } catch {
+      return { files: [], totalMb: 0, byUser: [] };
+    }
+
+    const files = stdout
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        const [size, mtime, ...rest] = line.split('\t');
+        const path = rest.join('\t');
+        // homes/<nick>/workspace/... → lấy <nick> để nhóm theo người
+        const after = path.slice(this.assistantHomes.length + 1);
+        return {
+          path,
+          user: after.split('/')[0] ?? '?',
+          sizeMb: Math.round((Number(size) / 1048576) * 100) / 100,
+          ageDays: Math.floor((Date.now() / 1000 - Number(mtime)) / 86400),
+        };
+      });
+
+    const byUser = [...files.reduce((acc, f) => {
+      acc.set(f.user, (acc.get(f.user) ?? 0) + f.sizeMb);
+      return acc;
+    }, new Map<string, number>())]
+      .map(([user, sizeMb]) => ({ user, sizeMb: Math.round(sizeMb * 100) / 100 }))
+      .sort((a, b) => b.sizeMb - a.sizeMb);
+
+    const totalMb = Math.round(files.reduce((n, f) => n + f.sizeMb, 0) * 100) / 100;
+
+    // Dung lượng phần dữ liệu vận hành (lịch sử chat, cấu hình, cache) — chỉ để
+    // admin thấy bức tranh đầy đủ, KHÔNG cho xoá tay ở đây.
+    let systemMb = 0;
+    try {
+      const { stdout: du } = await execFileAsync(
+        'bash',
+        ['-c', `du -sm ${this.assistantHomes} 2>/dev/null | cut -f1`],
+        { env: this.execEnv },
+      );
+      systemMb = Math.max(0, Math.round((Number(du.trim()) - totalMb) * 100) / 100);
+    } catch {
+      systemMb = 0;
+    }
+
+    return { files, totalMb, systemMb, byUser };
+  }
+
+  /** Xoá MỘT tệp trong thư mục làm việc của trợ lý. */
+  async deleteAssistantFile(target: string, actor: string) {
+    if (typeof target !== 'string' || target.trim() === '') {
+      throw new BadRequestException('Thiếu đường dẫn tệp');
+    }
+    const real = await this.assertInsideHomes(target);
+    // Hàng rào thứ hai: chỉ tệp trong workspace/. Chặn xoá nhầm lịch sử chat
+    // (session.jsonl.zstd) và cấu hình vận hành của trợ lý.
+    if (!real.includes('/workspace/')) {
+      throw new BadRequestException(
+        'Chỉ xoá được tệp trong thư mục làm việc (workspace) của người dùng',
+      );
+    }
+    const info = await fsp.stat(real).catch(() => null);
+    if (info === null) throw new BadRequestException('Không tìm thấy tệp');
+    if (!info.isFile()) throw new BadRequestException('Chỉ xoá được tệp thường');
+
+    await this.audit(actor, `assistant-file-delete:${real}`);
+    await fsp.unlink(real);
+    return {
+      message: `Đã xoá ${real.split('/').pop()}`,
+      freedMb: Math.round((info.size / 1048576) * 100) / 100,
+    };
+  }
+
+  /**
+   * Dọn rác tự động một lượt: chỉ những đuôi tệp CHẮC CHẮN là rác và cũ hơn
+   * `olderThanDays`. Cố tình không đụng tệp làm việc của anh em — mất việc của
+   * người khác thì không có nút hoàn tác nào cứu được.
+   */
+  async cleanAssistantJunk(actor: string, olderThanDays = 14) {
+    const days = Math.min(Math.max(Math.floor(olderThanDays), 1), 365);
+    const names = ServerAdminService.JUNK_PATTERNS
+      .map((p) => `-name '${p}'`)
+      .join(' -o ');
+    const before = await this.listAssistantFiles(300);
+    await this.audit(actor, `assistant-junk-clean:${days}d`);
+    await execFileAsync(
+      'bash',
+      [
+        '-c',
+        `find ${this.assistantHomes} -mindepth 3 -type f \\( ${names} \\) ` +
+          `-mtime +${days} -delete 2>/dev/null; true`,
+      ],
+      { env: this.execEnv },
+    );
+    const after = await this.listAssistantFiles(300);
+    return {
+      message: `Đã dọn tệp rác cũ hơn ${days} ngày`,
+      freedMb: Math.round((before.totalMb - after.totalMb) * 100) / 100,
+      patterns: ServerAdminService.JUNK_PATTERNS,
+    };
+  }
 
   private async audit(actor: string, action: string) {
     const line = `${new Date().toISOString()} actor=${actor} action=${action}\n`;

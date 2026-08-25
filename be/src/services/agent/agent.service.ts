@@ -1,4 +1,11 @@
-import { BadGatewayException, Injectable, Logger } from '@nestjs/common';
+import { Readable } from 'stream';
+import {
+  BadGatewayException,
+  BadRequestException,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 /**
@@ -63,6 +70,87 @@ export class AgentService {
 
   private get adminSecret(): string {
     return this.config.get<string>('AGENT_ADMIN_SECRET') ?? '';
+  }
+
+  /**
+   * Gọi endpoint admin của agent (cấu hình SKILL / MCP cho lõi DeepAgents).
+   * Lỗi 4xx của agent (vd URL MCP không hợp lệ) được chuyển nguyên văn cho admin
+   * thấy lý do, thay vì gộp hết thành "agent không phản hồi".
+   */
+  private async callDeep(
+    path: string,
+    method: 'GET' | 'POST' | 'DELETE' = 'GET',
+    body?: unknown,
+  ): Promise<Record<string, unknown>> {
+    const res = await fetch(`${this.baseUrl}/api/admin/deep/${path}`, {
+      method,
+      headers: {
+        'X-Admin-Secret': this.adminSecret,
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    }).catch(() => null);
+
+    if (!res) {
+      throw new BadGatewayException(
+        'Agent AI không phản hồi — kiểm tra service cổng 8001 đang chạy.',
+      );
+    }
+    const data = (await res.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
+    if (!res.ok) {
+      const detail =
+        typeof data.detail === 'string'
+          ? data.detail
+          : 'Agent AI từ chối yêu cầu.';
+      throw new BadRequestException(detail);
+    }
+    return data;
+  }
+
+  /** Phạm vi hoạt động của trợ lý (chặt / tiêu chuẩn / mở rộng) + luật riêng. */
+  getAgentMode() {
+    return this.callDeep('mode');
+  }
+
+  saveAgentMode(body: { mode?: string; rules?: string[] }) {
+    return this.callDeep('mode', 'POST', body);
+  }
+
+  getSkills() {
+    return this.callDeep('skills');
+  }
+
+  saveSkill(body: {
+    name: string;
+    description?: string;
+    content?: string;
+    enabled?: boolean;
+  }) {
+    return this.callDeep('skills', 'POST', body);
+  }
+
+  deleteSkill(slug: string) {
+    return this.callDeep(`skills/${encodeURIComponent(slug)}`, 'DELETE');
+  }
+
+  getMcpServers() {
+    return this.callDeep('mcp');
+  }
+
+  saveMcpServer(body: {
+    name: string;
+    url: string;
+    transport?: string;
+    enabled?: boolean;
+  }) {
+    return this.callDeep('mcp', 'POST', body);
+  }
+
+  deleteMcpServer(name: string) {
+    return this.callDeep(`mcp/${encodeURIComponent(name)}`, 'DELETE');
   }
 
   /** Chống spam chat: đọc cấu hình giới hạn (bảo vệ chi phí API AI). */
@@ -164,6 +252,35 @@ export class AgentService {
     categories?: string[];
   }): Promise<Record<string, unknown>> {
     return this.postAi('/api/admin/ai/assistant', body);
+  }
+
+  /**
+   * Chuyển tiếp NGUYÊN LUỒNG SSE của trợ lý admin (message.delta / tool.start /
+   * tool.end / todo / done) về cho trình duyệt.
+   *
+   * Phải đi qua đây chứ không gọi agent trực tiếp từ trang quản trị: khoá admin nằm
+   * ở backend, đưa xuống client là lộ. Trả về ReadableStream để controller stream lại
+   * mà không gom hết vào bộ nhớ — câu trả lời dài vẫn hiện dần.
+   */
+  async aiAssistantStream(body: {
+    messages?: { role: string; content: string }[];
+    categories?: string[];
+  }): Promise<NodeJS.ReadableStream> {
+    const res = await fetch(`${this.baseUrl}/api/admin/ai/assistant/stream`, {
+      method: 'POST',
+      headers: {
+        'X-Admin-Secret': this.adminSecret,
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify(body ?? {}),
+    });
+    if (!res.ok || !res.body) {
+      throw new ServiceUnavailableException(
+        `Trợ lý AI không phản hồi (HTTP ${res.status}).`,
+      );
+    }
+    return Readable.fromWeb(res.body as never);
   }
 
   private async postAi(

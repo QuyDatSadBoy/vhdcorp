@@ -6,15 +6,22 @@ import logging
 import re
 
 from fastapi import APIRouter, Header, HTTPException
-from langchain_core.messages import HumanMessage
+from fastapi.responses import StreamingResponse
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel
 
+from app.api.chat import SSE_HEADERS, _sse
 from app.core.config import get_settings
 from app.core.security import require_admin
+from app.deep.admin_agent import admin_skill_files, get_admin_agent
+from app.services.chat_service import (
+    _chunk_text,
+    _todos_from_tool_input,
+    _tool_input_preview,
+    _tool_output_preview,
+)
 from app.tools.web_search import _tavily_search
-from app.tools.products import load_catalog_live
-from app.services.knowledge import get_context_text
 from app.core import usage
 
 logger = logging.getLogger(__name__)
@@ -50,10 +57,16 @@ def _text(resp) -> str:
 def _parse_json(text: str) -> dict:
     t = re.sub(r"```(?:json)?", "", text).strip().strip("`").strip()
     m = re.search(r"\{.*\}", t, re.S)
-    try:
-        return json.loads(m.group(0)) if m else {}
-    except Exception:  # noqa: BLE001
+    if not m:
         return {}
+    for strict in (True, False):
+        # strict=False: chấp nhận XUỐNG DÒNG THẬT trong chuỗi — model hay xuống dòng
+        # trong description/content markdown thay vì escape \n (đo thật, hỏng ~1/3 lượt).
+        try:
+            return json.loads(m.group(0), strict=strict)
+        except Exception:  # noqa: BLE001
+            continue
+    return {}
 
 
 
@@ -73,34 +86,6 @@ def _img_blocks(images: list[str], limit: int = 4) -> list[dict]:
     return [{"type": "image_url", "image_url": {"url": u}} for u in images[:limit] if u]
 
 
-
-
-async def _business_context(categories: list[str]) -> str:
-    """Ngữ cảnh KHO THẬT + kiến thức công ty để trợ lý admin trả lời chính xác (như client)."""
-    parts: list[str] = []
-    try:
-        cat = await load_catalog_live()
-        pub = [p for p in cat if str(p.get("status", "PUBLISHED")).upper() == "PUBLISHED"]
-        by_cat: dict[str, int] = {}
-        for p in pub:
-            cn = (p.get("category") or {}).get("name") or "Khác"
-            by_cat[cn] = by_cat.get(cn, 0) + 1
-        top = sorted(by_cat.items(), key=lambda x: -x[1])[:12]
-        parts.append(
-            f"KHO HIỆN CÓ: {len(pub)} sản phẩm đang bán. Theo danh mục: "
-            + ", ".join(f"{k} ({v})" for k, v in top) + "."
-        )
-        names = ", ".join(p.get("name", "") for p in pub[:40])
-        if names:
-            parts.append("Một số sản phẩm: " + names)
-    except Exception:  # noqa: BLE001
-        logger.exception("business_context: load catalog lỗi")
-    kn = get_context_text()
-    if kn:
-        parts.append("THÔNG TIN CÔNG TY:\n" + kn[:2500])
-    if categories:
-        parts.append("Danh mục để gán sản phẩm: " + ", ".join(categories))
-    return "\n\n".join(parts)
 
 
 # ─────────────── Sản phẩm ───────────────
@@ -230,54 +215,161 @@ class AssistantReq(BaseModel):
     categories: list[str] = []  # tên danh mục hiện có (để AI gợi ý đúng)
 
 
+# Yêu cầu định dạng cho lượt KHÔNG stream: tin nhắn cuối phải là JSON để FE lấy `action`.
+# (Bản stream không dùng khối này — ở đó FE cần văn bản chảy ra tự nhiên.)
+_JSON_FORMAT = (
+    "\n\n[Hệ thống — không phải lời admin] Tra cứu bằng tool trước nếu cần dữ liệu thật. "
+    "Tin nhắn CUỐI CÙNG của bạn phải là DUY NHẤT một JSON tiếng Việt, không kèm chữ nào khác:\n"
+    '{"reply":"câu trả lời cho admin (markdown được)",'
+    '"action":null hoặc {"type":"product","data":{"name","description","categoryHint","metaTitle","metaDesc"}}'
+    ' hoặc {"type":"post","data":{"title","excerpt","content","metaTitle","metaDesc"}}}\n'
+    "Chỉ đặt action khi admin RÕ RÀNG muốn tạo sản phẩm/bài viết; còn lại action=null."
+)
+
+
+def _agent_input(body: AssistantReq, json_format: bool) -> dict:
+    """Hội thoại admin → input cho deep agent (kèm SKILL admin)."""
+    msgs: list = []
+    for m in body.messages[-8:]:
+        cls = AIMessage if m.role == "assistant" else HumanMessage
+        msgs.append(cls(content=m.content))
+
+    extra = ""
+    if body.categories:
+        extra += "\n\n[Danh mục hiện có trên web]: " + ", ".join(body.categories)
+    if json_format:
+        extra += _JSON_FORMAT
+    if extra:
+        last = msgs[-1]
+        if isinstance(last, HumanMessage):
+            msgs[-1] = HumanMessage(content=str(last.content) + extra)
+        else:
+            msgs.append(HumanMessage(content=extra.strip()))
+
+    try:
+        files = admin_skill_files()
+    except Exception:  # noqa: BLE001 — skill lỗi thì chạy không skill, đừng chết chat
+        logger.exception("Không nạp được skill admin")
+        files = {}
+    return {"messages": msgs, "files": files}
+
+
+# Mỗi vòng model⇄tool của DeepAgents đi qua ~8 node (model, tools + các middleware),
+# nên mức mặc định 25 của LangGraph hết sạch sau 3-4 lần gọi tool (đo thật: câu "soạn mô
+# tả cho X" chết giữa chừng). Chốt chặn thật vẫn là ModelCallLimit(12)/ToolCallLimit(15)
+# trong builder — số này chỉ để chúng kịp chạy trước.
+_RECURSION_LIMIT = 100
+_CONFIG = {"recursion_limit": _RECURSION_LIMIT}
+
+
+def _record_deep_usage(messages: list) -> None:
+    """Cộng token thật của MỌI vòng gọi model trong 1 lần chạy deep agent."""
+    itok = otok = 0
+    model = ""
+    for m in messages:
+        um = getattr(m, "usage_metadata", None) or {}
+        itok += int(um.get("input_tokens", 0) or 0)
+        otok += int(um.get("output_tokens", 0) or 0)
+        model = (getattr(m, "response_metadata", None) or {}).get("model_name") or model
+    if itok or otok:
+        usage.record_request(model or get_settings().agent_model, itok, otok)
+
+
 @router.post("/assistant")
 async def assistant(
     body: AssistantReq,
     x_admin_secret: str = Header(None, alias="X-Admin-Secret"),
 ):
-    """Trợ lý admin: chat để soạn NHÁP sản phẩm/bài viết. Trả JSON {reply, action?}.
+    """Trợ lý admin chạy bằng LÕI DeepAgents (tool tra cứu thật + SKILL admin).
+    Giữ nguyên hợp đồng cũ: trả {ok, reply, action?}.
     KHÔNG tự ghi DB — FE hiển thị nháp để admin DUYỆT rồi mới tạo (bằng quyền admin)."""
     _check(x_admin_secret)
     if not body.messages:
         raise HTTPException(status_code=400, detail="Thiếu nội dung chat.")
-    llm = _llm(0.6)
-
-    convo = "\n".join(f"{m.role}: {m.content}" for m in body.messages[-8:])
-    last = body.messages[-1].content if body.messages else ""
-    ctx = await _business_context(body.categories)
-    web = ""
-    if len(last) > 3:
-        try:
-            web = await _tavily_search(f"{last} vật tư điện lạnh cơ điện")
-        except Exception:  # noqa: BLE001
-            pass
-
-    instr = (
-        f"{BRAND}\n\nBạn là TRỢ LÝ ĐIỀU HÀNH cho ADMIN website VHD Corp — làm được ĐỦ VIỆC:\n"
-        "1) Soạn NHÁP sản phẩm mới (name, description chuẩn SEO, metaTitle/metaDesc, gợi ý danh mục).\n"
-        "2) Soạn NHÁP bài viết/tin tức (Markdown ~400-600 từ, chuẩn SEO).\n"
-        "3) Trả lời về KHO THẬT: có bao nhiêu sản phẩm, thuộc danh mục nào, tìm 1 sản phẩm cụ thể.\n"
-        "4) Tư vấn KINH DOANH & SEO: gợi ý từ khóa, ý tưởng bài theo mùa vụ, cải thiện mô tả, chiến lược nội dung.\n"
-        "5) Trả lời về chính sách/thông tin công ty (dựa THÔNG TIN CÔNG TY bên dưới).\n\n"
-        f"{ctx}\n\n"
-        f"Hội thoại gần đây:\n{convo}\n\n"
-        f"Tham khảo web (có thể rỗng):\n{web[:1200]}\n\n"
-        "QUY TẮC: KHÔNG bịa số liệu/sản phẩm — chỉ dựa dữ liệu trên; thiếu thì nói thẳng chưa có. "
-        "Nếu admin hỏi 'bạn làm được gì' → liệt kê 5 việc trên kèm ví dụ câu lệnh.\n\n"
-        "Trả về DUY NHẤT một JSON tiếng Việt:\n"
-        '{"reply":"câu trả lời hữu ích, cụ thể cho admin",'
-        '"action":null hoặc {"type":"product","data":{"name","description","categoryHint","metaTitle","metaDesc"}}'
-        ' hoặc {"type":"post","data":{"title","excerpt","content","metaTitle","metaDesc"}}}\n'
-        "Chỉ đặt action khi admin RÕ RÀNG muốn tạo sản phẩm/bài viết. content bài viết là Markdown ~400 từ. "
-        "categoryHint là tên danh mục phù hợp nhất. Nếu chỉ hỏi/đáp/tư vấn thì action=null."
-    )
     try:
-        r = await llm.ainvoke([HumanMessage(content=[{"type": "text", "text": instr}])])
-        _record_usage(r)
-        data = _parse_json(_text(r))
+        result = await get_admin_agent().ainvoke(_agent_input(body, json_format=True), config=_CONFIG)
     except Exception:  # noqa: BLE001
         logger.exception("assistant lỗi")
         raise HTTPException(status_code=502, detail="Trợ lý AI lỗi, thử lại.")
-    reply = str(data.get("reply") or "Mình chưa rõ ý bạn, bạn nói lại giúp nhé.")
+
+    msgs = result.get("messages", [])
+    _record_deep_usage(msgs)
+    text = next((_chunk_text(m) for m in reversed(msgs) if isinstance(m, AIMessage) and _chunk_text(m)), "")
+    data = _parse_json(text)
+    # Model quên bọc JSON → vẫn trả nguyên văn cho admin thay vì báo lỗi
+    reply = str(data.get("reply") or "").strip() or text.strip() or "Mình chưa rõ ý bạn, bạn nói lại giúp nhé."
     action = data.get("action") if isinstance(data.get("action"), dict) else None
     return {"ok": True, "reply": reply, "action": action}
+
+
+@router.post("/assistant/stream")
+async def assistant_stream(
+    body: AssistantReq,
+    x_admin_secret: str = Header(None, alias="X-Admin-Secret"),
+):
+    """Như /assistant nhưng SSE: message.delta / tool.start / tool.end / todo / done / error
+    (đúng bộ event của chat khách để FE admin hiện kế hoạch + log tool)."""
+    _check(x_admin_secret)
+    if not body.messages:
+        raise HTTPException(status_code=400, detail="Thiếu nội dung chat.")
+    agent_input = _agent_input(body, json_format=False)
+
+    async def event_stream():
+        from app.tools.admin_actions import reset_proposal_queue, set_proposal_queue
+
+        parts: list[str] = []
+        itok = otok = 0
+        model = ""
+        # Kênh nhận ĐỀ XUẤT sửa dữ liệu: tool ghi vào đây, ta rút ra sau mỗi tool.end
+        # rồi bắn cho giao diện hiện thẻ chờ admin duyệt.
+        proposals: list[dict] = []
+        ptoken = set_proposal_queue(proposals)
+        try:
+            async for event in get_admin_agent().astream_events(agent_input, config=_CONFIG, version="v2"):
+                kind = event["event"]
+                if kind == "on_chat_model_stream":
+                    text = _chunk_text(event["data"]["chunk"])
+                    if text:
+                        parts.append(text)
+                        yield _sse({"type": "message.delta", "content": text})
+                elif kind == "on_chat_model_end":
+                    msg = event.get("data", {}).get("output")
+                    um = getattr(msg, "usage_metadata", None) or {}
+                    itok += int(um.get("input_tokens", 0) or 0)
+                    otok += int(um.get("output_tokens", 0) or 0)
+                    model = (getattr(msg, "response_metadata", None) or {}).get("model_name") or model
+                elif kind == "on_tool_start":
+                    name = event.get("name", "")
+                    todos = _todos_from_tool_input(name, event.get("data", {}).get("input"))
+                    if todos is not None:
+                        yield _sse({"type": "todo", "items": todos})
+                        continue
+                    yield _sse({
+                        "type": "tool.start",
+                        "name": name,
+                        "input": _tool_input_preview(event.get("data", {}).get("input")),
+                    })
+                elif kind == "on_tool_end":
+                    name = event.get("name", "")
+                    if name == "write_todos":
+                        continue  # đã bắn event todo ở on_tool_start
+                    yield _sse({
+                        "type": "tool.end",
+                        "name": name,
+                        "output": _tool_output_preview(event.get("data", {}).get("output")),
+                    })
+                    while proposals:
+                        yield _sse({"type": "proposal", **proposals.pop(0)})
+        except Exception as exc:  # noqa: BLE001 — luôn trả event error cho client
+            logger.exception("assistant/stream lỗi")
+            yield _sse({"type": "error", "message": f"Trợ lý AI lỗi: {exc}"})
+            return
+        finally:
+            reset_proposal_queue(ptoken)
+        for leftover in proposals:  # an toàn: còn sót thì bắn nốt
+            yield _sse({"type": "proposal", **leftover})
+        if itok or otok:
+            usage.record_request(model or get_settings().agent_model, itok, otok)
+        yield _sse({"type": "done", "reply": "".join(parts)})
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream", headers=SSE_HEADERS)

@@ -3,6 +3,7 @@ stream sự kiện SSE, lưu message, kích hoạt background memory task."""
 
 import asyncio
 import logging
+import time
 import uuid
 from collections.abc import AsyncGenerator
 
@@ -62,6 +63,56 @@ def _chunk_text(chunk) -> str:
     return ""
 
 
+_PREVIEW_CHARS = 600
+_TODO_STATUSES = {"pending", "in_progress", "completed"}
+
+
+def _todos_from_tool_input(tool_name: str, tool_input) -> list[dict] | None:
+    """Lấy danh sách todo từ lần gọi `write_todos` của DeepAgents.
+
+    Trả None nếu không phải write_todos (để caller xử lý như tool thường).
+    Chuẩn hoá về [{content, status}] và bỏ item lạ — FE chỉ hiểu 3 status."""
+    if tool_name != "write_todos":
+        return None
+    raw = tool_input.get("todos") if isinstance(tool_input, dict) else None
+    items: list[dict] = []
+    for it in raw or []:
+        if not isinstance(it, dict):
+            continue
+        content = str(it.get("content", "")).strip()
+        status = str(it.get("status", "pending")).strip()
+        if content:
+            items.append({"content": content[:300], "status": status if status in _TODO_STATUSES else "pending"})
+    return items
+
+
+def _preview(value) -> str:
+    """Rút gọn payload tool để hiện trong log tiến trình ở FE (không đổ cả JSON lớn)."""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        text = value
+    else:
+        import json as _json
+
+        try:
+            text = _json.dumps(value, ensure_ascii=False, default=str)
+        except Exception:  # noqa: BLE001
+            text = str(value)
+    text = " ".join(text.split())
+    return text[:_PREVIEW_CHARS] + ("…" if len(text) > _PREVIEW_CHARS else "")
+
+
+def _tool_input_preview(tool_input) -> str:
+    return _preview(tool_input.get("input") if isinstance(tool_input, dict) and "input" in tool_input else tool_input)
+
+
+def _tool_output_preview(output) -> str:
+    # LangChain bọc kết quả trong ToolMessage → lấy .content cho gọn
+    content = getattr(output, "content", None)
+    return _preview(content if content is not None else output)
+
+
 class ChatService:
     def __init__(
         self,
@@ -92,6 +143,7 @@ class ChatService:
     ) -> AsyncGenerator[dict, None]:
         """Yield các event dict: conversation / message.delta / tool.start / tool.end / ui / done / error."""
         first_turn = False
+        turn_started = time.monotonic()
         try:
             if conversation_id:
                 conv = await self.conversation_repo.get(conversation_id, user_id)
@@ -139,7 +191,10 @@ class ChatService:
                 desc = ""
                 if self.llm is not None:
                     desc = await vision.describe_image(self.llm, image)
-                matches = find_products(desc, limit=8) if desc else []
+                # Mô tả ảnh là câu tự do dài ("gioăng cao su dạng vòng đệm màu đen…") nên
+                # tỉ lệ từ khớp luôn thấp — hạ ngưỡng cho riêng luồng ảnh, nếu giữ ngưỡng
+                # của ô tìm kiếm thì hầu như không bao giờ ra kết quả nào.
+                matches = find_products(desc, limit=8, min_ratio=0.15) if desc else []
                 image_props = {"query": desc, "products": [product_to_props(p) for p in matches]}
                 emitted_ui.append({"component": "image-search-result", "props": image_props})
                 yield {"type": "ui", "component": "image-search-result", "props": image_props}
@@ -190,10 +245,28 @@ class ChatService:
                         # (Không bắn lead-in nữa: FE hiện LOG TIẾN TRÌNH trong lúc tool
                         # chạy, và tự giữ thứ tự chữ → card bằng cách hoãn gắn card
                         # đến khi text stream xong.)
-                        tools_used.add(event.get("name", ""))
-                        yield {"type": "tool.start", "name": event.get("name", "")}
+                        name = event.get("name", "")
+                        tools_used.add(name)
+                        # DeepAgents: write_todos = model tự lập kế hoạch → FE hiện bảng
+                        # việc cần làm (thay danh sách cũ, last-wins) thay vì 1 dòng tool.
+                        todos = _todos_from_tool_input(name, event.get("data", {}).get("input"))
+                        if todos is not None:
+                            yield {"type": "todo", "items": todos}
+                            continue
+                        yield {
+                            "type": "tool.start",
+                            "name": name,
+                            "input": _tool_input_preview(event.get("data", {}).get("input")),
+                        }
                     elif kind == "on_tool_end":
-                        yield {"type": "tool.end", "name": event.get("name", "")}
+                        name = event.get("name", "")
+                        if name == "write_todos":
+                            continue  # đã bắn event todo ở on_tool_start
+                        yield {
+                            "type": "tool.end",
+                            "name": name,
+                            "output": _tool_output_preview(event.get("data", {}).get("output")),
+                        }
                         # Emit ui event TRƯỚC message.delta của lời dẫn (§9.2)
                         while ui_commands:
                             cmd = ui_commands.pop(0)
@@ -222,8 +295,18 @@ class ChatService:
                 if final_text:
                     yield {"type": "message.delta", "content": final_text}
 
+            # Số đo của lượt này. Token là số THẬT do nhà cung cấp báo (usage_metadata),
+            # không phải ước lượng ở trình duyệt — nên lưu luôn vào tin nhắn để mở lại
+            # lịch sử vẫn còn, thay vì mất sạch khi tải lại trang.
+            metrics = {
+                "in_tokens": in_tokens,
+                "out_tokens": out_tokens,
+                "total_tokens": in_tokens + out_tokens,
+                "model": used_model or "",
+                "elapsed": round(time.monotonic() - turn_started, 2),
+            }
             message_id = await self.message_repo.add(
-                conversation_id, "assistant", final_text, ui_blocks=emitted_ui
+                conversation_id, "assistant", final_text, ui_blocks=emitted_ui, metrics=metrics
             )
             await self.conversation_repo.touch(conversation_id)
             usage.record_request(used_model, in_tokens, out_tokens)  # thống kê chi phí theo model (token thật)
@@ -234,7 +317,7 @@ class ChatService:
                     reply_cache.store(message, final_text, tools_used=tools_used, had_ui=bool(emitted_ui), page=page)
                 except Exception:  # noqa: BLE001 — lỗi cache không được ảnh hưởng trả lời
                     pass
-            yield {"type": "done", "message_id": message_id}
+            yield {"type": "done", "message_id": message_id, "metrics": metrics}
 
             self._spawn_background(
                 self.memory_service.post_turn(conversation_id, first_turn=first_turn)

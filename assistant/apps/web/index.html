@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- crossorigin: trình duyệt tải manifest KHÔNG kèm cookie theo mặc định, nên
+         sau cổng đăng nhập nó nhận 401 và mỗi lần vào trang là hai dòng đỏ trong
+         console. use-credentials cho phép gửi cookie phiên. -->
+    <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Trợ lý nội bộ VHD Corp</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -4,7 +4,12 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Sparkles, Send, Loader2, Package, FileText, Check } from "lucide-react";
-import { aiApi, type AssistantAction } from "@/services/ai.service";
+import { aiApi, type AssistantAction, type AssistantProposal, type AssistantTodo } from "@/services/ai.service";
+import ProposalCard from "@/components/admin/proposal-card";
+import AgentTrace from "@/components/chat/agent-trace";
+import AgentPlan from "@/components/chat/agent-plan";
+import type { ToolRun } from "@/types/chat";
+import { toolLabel } from "@/lib/tool-labels";
 import { useCategories } from "@/services/category.service";
 import { useCreateProduct } from "@/services/product.service";
 import { useCreatePost } from "@/services/post.service";
@@ -16,6 +21,12 @@ interface ChatMsg {
   role: "user" | "assistant";
   content: string;
   action?: AssistantAction;
+  /** Log công cụ + kế hoạch của chính lượt này (giữ lại sau khi trả lời xong) */
+  toolRuns?: ToolRun[];
+  todos?: AssistantTodo[];
+  /** Đề xuất sửa dữ liệu — chờ admin bấm duyệt */
+  proposals?: AssistantProposal[];
+  streaming?: boolean;
 }
 
 export default function AiAssistantPage() {
@@ -52,15 +63,68 @@ export default function AiAssistantPage() {
     setMessages(next);
     setInput("");
     setLoading(true);
+    // Bong bóng trả lời được thêm TRƯỚC rồi bồi dần: admin thấy trợ lý đang làm gì
+    // thay vì ngồi chờ một cục im lặng 30–60 giây.
+    setMessages((m) => [...m, { role: "assistant", content: "", toolRuns: [], streaming: true }]);
+    const runs: ToolRun[] = [];
+    const patchLast = (fn: (msg: ChatMsg) => ChatMsg) =>
+      setMessages((m) => m.map((msg, i) => (i === m.length - 1 ? fn(msg) : msg)));
+
     try {
-      const r = await aiApi.assistant({
-        messages: next.map((m) => ({ role: m.role, content: m.content })),
-        categories: (categories ?? []).map((c) => c.name),
-      });
-      setMessages((m) => [...m, { role: "assistant", content: r.reply, action: r.action }]);
+      await aiApi.assistantStream(
+        {
+          messages: next.map((m) => ({ role: m.role, content: m.content })),
+          categories: (categories ?? []).map((c) => c.name),
+        },
+        (e) => {
+          if (e.type === "message.delta") {
+            patchLast((msg) => ({ ...msg, content: msg.content + e.content }));
+          } else if (e.type === "tool.start") {
+            runs.push({
+              id: `${e.name}-${runs.length}`,
+              name: e.name,
+              label: toolLabel(e.name),
+              state: "running",
+              input: e.input,
+            });
+            patchLast((msg) => ({ ...msg, toolRuns: [...runs] }));
+          } else if (e.type === "tool.end") {
+            const hit = [...runs].reverse().find((r) => r.state === "running" && r.name === e.name);
+            if (hit) {
+              hit.state = "ok";
+              hit.output = e.output;
+            }
+            patchLast((msg) => ({ ...msg, toolRuns: [...runs] }));
+          } else if (e.type === "todo") {
+            patchLast((msg) => ({ ...msg, todos: e.items }));
+          } else if (e.type === "proposal") {
+            const { type: _t, ...p } = e;
+            patchLast((msg) => ({ ...msg, proposals: [...(msg.proposals ?? []), p as AssistantProposal] }));
+          } else if (e.type === "error") {
+            patchLast((msg) => ({ ...msg, content: msg.content || e.message }));
+          }
+        }
+      );
+      // Lượt stream không trả `action`; lấy bản nháp bằng một lượt gọn sau khi xong
+      // (chỉ khi admin thực sự nhờ soạn nháp — nhận biết qua từ khoá trong câu hỏi).
+      if (/tạo|soạn|viết|nháp/i.test(text)) {
+        try {
+          const r = await aiApi.assistant({
+            messages: [...next, { role: "assistant", content: "" }].map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
+            categories: (categories ?? []).map((c) => c.name),
+          });
+          if (r.action) patchLast((msg) => ({ ...msg, action: r.action }));
+        } catch {
+          /* không lấy được bản nháp thì vẫn giữ câu trả lời đã hiện */
+        }
+      }
     } catch {
-      setMessages((m) => [...m, { role: "assistant", content: "Xin lỗi, mình gặp lỗi. Bạn thử lại nhé." }]);
+      patchLast((msg) => ({ ...msg, content: msg.content || "Xin lỗi, mình gặp lỗi. Bạn thử lại nhé." }));
     } finally {
+      patchLast((msg) => ({ ...msg, streaming: false }));
       setLoading(false);
     }
   }
@@ -120,14 +184,26 @@ export default function AiAssistantPage() {
         {messages.map((m, i) => (
           <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
             <div className="max-w-[85%] space-y-2">
-              <div
-                className={
-                  "whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm " +
-                  (m.role === "user" ? "bg-brand-primary text-white" : "bg-card border")
-                }
-              >
-                {m.content}
-              </div>
+              {/* Log công cụ nằm TRÊN câu trả lời — admin thấy số liệu lấy từ đâu */}
+              {Boolean(m.toolRuns?.length) && <AgentTrace runs={m.toolRuns!} />}
+              {Boolean(m.todos?.length) && <AgentPlan items={m.todos!} />}
+              {m.proposals?.map((p, k) => (
+                <ProposalCard key={`${p.slug}-${k}`} proposal={p} />
+              ))}
+              {(m.content || m.streaming) && (
+                <div
+                  className={
+                    "whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm " +
+                    (m.role === "user" ? "bg-brand-primary text-white" : "bg-card border")
+                  }
+                >
+                  {m.content || (
+                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang xử lý…
+                    </span>
+                  )}
+                </div>
+              )}
               {m.action && (
                 <Card className="border-brand-primary/30">
                   <CardContent className="space-y-2 p-3">

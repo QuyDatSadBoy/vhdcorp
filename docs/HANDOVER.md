@@ -4,6 +4,9 @@
 > **Tagline:** Kết nối giá trị – Hợp tác vững bền
 > **Mục đích:** Tổng hợp tài khoản, URL, tính năng và checklist test để khách hàng nghiệm thu toàn bộ hệ thống.
 
+> 📌 File này là **changelog theo đợt** — mục càng cuối càng mới. Thay đổi mới nhất về trợ lý AI:
+> **§32** (2026-08). Các mục 11–31 nói agent chạy Gemini + vòng lặp `agent ⇄ tools` đã lạc hậu.
+
 ---
 
 ## 1. Khởi động hệ thống
@@ -275,13 +278,17 @@ Layout 3 panel (Left 280px / Canvas / Right 320px), kéo thả sửa toàn bộ 
 
 ## 7. Tài liệu liên quan
 
-| File                                               | Nội dung                                             |
-| -------------------------------------------------- | ---------------------------------------------------- |
-| [docs/PRD.md](docs/PRD.md)                         | Spec đầy đủ: route, auth flow, builder, dependencies |
-| [docs/DATABASE.md](docs/DATABASE.md)               | 9 models Prisma, index strategy, ERD                 |
-| [docs/FINAL_REPORT_V6.md](docs/FINAL_REPORT_V6.md) | Báo cáo round audit & test gần nhất                  |
-| [be/prisma/seed.ts](be/prisma/seed.ts)             | Script seed tài khoản admin + dữ liệu mẫu            |
-| [AGENTS.md](AGENTS.md)                             | Quy tắc code & cấu trúc thư mục                      |
+| File                                         | Nội dung                                                      |
+| -------------------------------------------- | ------------------------------------------------------------- |
+| [TINH_NANG.md](TINH_NANG.md)                 | Tổng quan hệ thống + toàn bộ tính năng (**đọc trước**)        |
+| [PRD.md](PRD.md)                             | Spec đầy đủ: route, auth flow, builder, dependencies          |
+| [DATABASE.md](DATABASE.md)                   | 9 models Prisma, index strategy, ERD                          |
+| [AGENT_PLAN.md](AGENT_PLAN.md)               | Kiến trúc agent — **§12 = hiện trạng** (DeepAgents, env, API) |
+| [VANHANH.md](VANHANH.md)                     | Vận hành, CI/CD, `ship.sh`, rollback                          |
+| [DEPLOY.md](DEPLOY.md)                       | Setup VPS lần đầu + nginx + Cloudflare                        |
+| [BAO_CAO.md](BAO_CAO.md)                     | Báo cáo bàn giao                                              |
+| [../be/prisma/seed.ts](../be/prisma/seed.ts) | Script seed tài khoản admin + dữ liệu mẫu                     |
+| [../AGENTS.md](../AGENTS.md)                 | Quy tắc code & cấu trúc thư mục                               |
 
 ---
 
@@ -383,6 +390,8 @@ uv run python scripts/sync_products.py   # đồng bộ lại catalog khi đổi
 ```
 
 Env: `agent/.env` (đã điền GOOGLE_API_KEY + 13 Tavily keys + model `gemini-3-flash-preview`). FE cần `NEXT_PUBLIC_AGENT_URL=http://localhost:8001` trong `fe/.env.local` (đã có).
+
+> ⚠️ Phần env này **đã lạc hậu** — model chính giờ là DeepSeek và có thêm ~14 biến mới. Bảng env hiện hành: [AGENT_PLAN.md §12.9](AGENT_PLAN.md) · thay đổi: §32 cuối file này.
 
 ### Những gì agent làm được (đã verify)
 
@@ -793,3 +802,131 @@ Env: `agent/.env` (đã điền GOOGLE_API_KEY + 13 Tavily keys + model `gemini-
 - **Mọi page đủ section**: home 13, about 6, contact 2 (+form cố định), products 1 (+listing cố định), posts nạp CTA liên hệ (+listing cố định) — publish xong.
 - **.gitignore chuẩn hóa**: bỏ track `agent/data/checkpoints.sqlite-shm/-wal` + `products.json` (file runtime tự sinh), thêm `be/uploads/`.
 - **CI/CD trọn bộ**: `scripts/deploy.sh` (pull→build BE/FE→uv sync→PM2 reload→health check, fail thì service cũ vẫn chạy) + `ecosystem.config.js` (PM2 3 service, tự hồi sinh) + `.github/workflows/deploy.yml` (push `main` → SSH VPS tự deploy; cần 3 secrets VPS_HOST/USER/SSH_KEY) + **`docs/DEPLOY.md`** hướng dẫn setup VPS 1 lần (swap 4GB, node/uv/pm2/docker postgres+unaccent, env, nginx khi có domain). Chưa test được vòng CI thật (chưa có VPS/secrets) — script đã `bash -n` + ecosystem parse OK.
+
+## 32. Cập nhật 2026-08 — Lõi agent chuyển sang DeepAgents, DeepSeek làm model chính, AG-UI
+
+> Tóm tắt kỹ thuật đầy đủ (kèm bảng biến môi trường, giới hạn, endpoint): **[AGENT_PLAN.md §12](AGENT_PLAN.md)**.
+> Các mục 11–31 ở trên nói agent chạy Gemini + vòng lặp `agent ⇄ tools` — **đã lạc hậu**.
+
+### Model: DeepSeek chính, 13 nước dự phòng
+
+- `deepseek-v4-flash-vision-exp` (OpenAI-compatible, `https://api.deepseek.com`) làm **model
+  chính**: 1M context, đọc ảnh trực tiếp (thay Gemini vision trong luồng tìm sản phẩm bằng
+  ảnh), tool-calling, không leak `<think>`.
+- Chuỗi thật (`agent/app/graph/builder.py`): DeepSeek → `gemini-3.1-flash-lite` × 5 key →
+  `gemini-3.6-flash` × 5 key → Groq `openai/gpt-oss-120b` (free) → `MiniMax-Text-01` →
+  OpenRouter `inclusionai/ling-3.0-flash:free` (free) = **14 model**.
+- Mọi model `max_retries=0` → gặp 429/5xx là **chuyển ngay**, không chờ retry ~25s.
+- Dự phòng nằm ở **`ModelFallbackMiddleware`** (per-model-call) chứ KHÔNG bọc `.with_fallbacks`
+  quanh graph — model chính lỗi thì gọi lại đúng lượt gọi model đó, không chạy lại cả lượt chat
+  (nếu chạy lại thì token đã stream cho khách bị lặp).
+- ⚠️ Deep agent chỉ nhận `DEEP_AGENT_MAX_FALLBACKS` model **đầu chuỗi** (mặc định **6**) →
+  hiện thực tế là DeepSeek + 5 key flash-lite. Muốn dùng tới Groq/MiniMax/OpenRouter phải tăng
+  biến này.
+- `agent/app/core/usage.py::DEFAULT_MODEL_PRICES` đã có đơn giá từng model (2 model free để 0)
+  → trang thống kê chi phí tính đúng theo model thực chạy.
+- Env mới: `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL`, `DEEPSEEK_BASE_URL`, `GROQ_API_KEY`,
+  `GROQ_MODEL`, `GROQ_BASE_URL`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`,
+  `OPENROUTER_BASE_URL`, `MINIMAX_LLM_MODEL`, `MINIMAX_BASE_URL`, `GOOGLE_API_KEYS`,
+  `FALLBACK_MODEL`, `USE_DEEP_AGENT`, `DEEP_AGENT_MAX_FALLBACKS`.
+  **`agent/.env.example` chưa được cập nhật** — vẫn còn `AGENT_MODEL=gemini-3-flash-preview`
+  và thiếu toàn bộ biến trên. Việc cần làm: đồng bộ lại `.env.example` theo AGENT_PLAN §12.9.
+
+### Lõi agent = DeepAgents (`agent/app/deep/`)
+
+- Graph còn 3 node: `guardrail` → `context` → `agent`. Node `tools` chỉ tồn tại ở đường lùi
+  `USE_DEEP_AGENT=false`.
+- `write_todos` → model tự lập kế hoạch nhiều bước → SSE event **`todo`** → FE render
+  `fe/components/chat/agent-plan.tsx`. Prompt nhắc việc được viết lại bằng tiếng Việt để model
+  KHÔNG lập kế hoạch cho câu chào hỏi tầm thường.
+- `task` → **2 subagent** context riêng: `tra-cuu-san-pham` (so sánh ≥3 mặt hàng),
+  `tra-cuu-tai-lieu` (đối chiếu nhiều mục chính sách).
+- **Chốt an toàn chi phí** (đo thật: model từng tra `search_products` 20 lần cho 1 câu hỏi):
+  `search_products` 5 lần/lượt, tổng tool 15 lần/lượt, model 12 vòng/lượt. Hai giới hạn tool
+  dùng `exit_behavior="continue"` → khách vẫn nhận được câu trả lời từ dữ liệu đã có.
+- **FilesystemMiddleware chỉ-đọc**: allowlist `read_file`/`ls`/`glob`/`grep`; đã bỏ hẳn
+  `write_file`/`edit_file`/`delete`/`execute` → prompt-injection không còn tool nào để lợi dụng.
+- **MCP server admin cấu hình được** (`agent/app/deep/mcp_store.py`): chỉ nhận `http`/`https`
+  (không stdio → không thể mượn admin UI để chạy tiến trình trên máy chủ), tối đa 20 server,
+  timeout nạp 8s, 1 server chết thì bỏ qua server đó.
+
+### SKILL ra file riêng
+
+- `agent/skills/` — **5 skill bán hàng**: `bao-gia-si`, `chot-don-va-giao-hang`,
+  `khuon-mau-va-duc-nhua`, `quy-cach-gioang`, `tu-van-chat-lieu-cao-su`.
+- `agent/skills-admin/` — **3 skill trợ lý admin**: `ra-soat-kho-hang`, `soan-bai-viet-seo`,
+  `viet-mo-ta-san-pham`.
+- Thêm skill = tạo `agent/skills/<slug>/SKILL.md` (frontmatter `name` + `description`, rồi
+  markdown). DeepAgents chỉ nạp frontmatter vào prompt, đọc nội dung khi cần → thêm nhiều
+  không phình context. Skill do admin thêm qua UI (`data/skills.local.json`) **ghi đè** skill
+  cùng tên trong repo.
+- Nguyên tắc viết: chỉ mô tả QUY TRÌNH, **không nhúng giá/tồn/bậc chiết khấu** — số liệu phải
+  tra bằng tool.
+
+### AG-UI + CopilotKit self-host
+
+- Agent: `/agui/chat` (`agent/app/api/agui.py`, agent name `vhd_chat`) — **chạy song song**
+  `/api/chat`, không thay thế. AG-UI không đi qua cache câu lặp + anti-spam nên chỉ dùng nội bộ.
+- Có bản vá `_AguiAgent.clone()` cho lệch phiên bản `ag-ui-langgraph 0.0.43` ↔ `copilotkit 0.1.95`
+  (không vá thì **mọi request AG-UI trả 500**).
+- FE: route handler `fe/app/copilotkit/[[...slug]]/route.ts` (`@copilotkit/runtime/v2` +
+  `InMemoryAgentRunner` + `HttpAgent`), đọc `AGENT_AGUI_URL` (mặc định
+  `http://localhost:8001/agui/chat`). **Biến này chưa có trong `fe/.env.example`.**
+- ⚠️ Route đặt ở **`/copilotkit`**, KHÔNG dưới `/api/*`: nginx production đẩy hết `/api/*` sang
+  NestJS:8080 nên route handler Next sẽ không bao giờ chạy.
+- Trang demo headless: **`/copilot-demo`** (`useAgent` + `AgentPlan` + `AgentTrace`).
+- Có **2 endpoint AG-UI**: `/agui/chat` (agent `vhd_chat`) và `/agui/admin` (agent `vhd_admin`
+  = deep agent trợ lý điều hành) — nhánh admin trước đây không bao giờ chạy vì `admin_graph`
+  không được truyền vào, đã nối thật ở `main.py` (dựng agent admin trong lifespan để lỗi cấu
+  hình lộ ra lúc khởi động).
+
+### API admin mới
+
+- Agent: `GET/POST /api/admin/deep/skills` + `DELETE /api/admin/deep/skills/{slug}`;
+  `GET/POST /api/admin/deep/mcp` + `DELETE /api/admin/deep/mcp/{name}` (trả `restart_required`
+  vì MCP nạp lúc khởi động). `POST /api/admin/ai/assistant/stream` (SSE, cùng bộ event chat khách).
+- BE proxy (JWT ADMIN/STAFF): `/api/agent/deep/skills`, `/api/agent/deep/mcp`,
+  `/api/agent/ai/assistant`. ⚠️ **Chưa có proxy cho `/assistant/stream`** — trang
+  `/admin/ai-assistant` đang dùng bản không stream.
+- FE: trang **`/admin/agent-config`** ("Kỹ năng & công cụ AI") + **`/admin/ai-assistant`** ("Trợ lý AI").
+
+### Hợp đồng SSE bổ sung
+
+- Thêm event **`todo`** `{items:[{content,status}]}` (last-wins, status `pending|in_progress|completed`).
+- `tool.start` giờ kèm **`input`**, `tool.end` kèm **`output`** — rút gọn **≤600 ký tự** →
+  FE hiện log tiến trình inline trong bong bóng trả lời. `write_todos` không bắn `tool.end`.
+
+### Cache câu hỏi lặp: đưa `page` vào KHOÁ
+
+- Trước đây câu hỏi kèm `page` bị **loại khỏi cache** → mở từ web là gần như không bao giờ hit.
+  Nay khoá = câu chuẩn hoá **NFC** + **SECTION trang** (segment đầu của path), dùng chung mọi
+  khách, tra ở MỌI lượt, chỉ LƯU ở lượt đầu. Vẫn chỉ cache khi không dùng tool động và không có UI.
+- Docstring trong `agent/app/core/reply_cache.py` còn dòng cũ "không page_context" — cần sửa lại.
+
+### Kiểm thử & deploy
+
+- `cd agent && rtk pytest`: **122 test** (16 module) — 118 tất định + 4 test `live` (gọi LLM
+  thật). CI chạy `-m "not live"`. Marker `live` chưa khai báo trong `pyproject.toml` nên pytest
+  in `PytestUnknownMarkWarning` (vô hại).
+- `scripts/e2e-agent.py` (mới): **20 phép thử qua HTTP thật** trong 7 nhóm — chat cơ bản, cache
+  câu lặp, tìm sản phẩm + slug, không bịa hàng không có, SKILL nghiệp vụ, AG-UI, chặn spam.
+  Chỉ có cờ `--url` (mặc định `http://127.0.0.1:8001`); chạy được thẳng production:
+  `--url https://vhdcorp.com/agent`.
+- `scripts/ship.sh` (mới): cửa chắn thay CI khi GitHub Actions hết quota — cây git sạch →
+  pytest → BE tsc/build → FE tsc/lint/build → dựng agent thật ở cổng 8199 chạy e2e → deploy →
+  e2e lại trên production. Nhánh deploy mặc định `develop`.
+- `scripts/deploy.sh`: nhận **`DEPLOY_BRANCH`** (mặc định `main`) và tự thêm `~/.local/bin` vào
+  `PATH` để tìm `uv` (shell SSH không-đăng-nhập thiếu đường dẫn này → trước đây deploy chết ở
+  bước `uv sync` rồi rollback).
+- CI hiện có **4 job song song** (`be`, `fe_build`, `fe_check`, `agent`) + job gate tên `test`
+  (dùng cho branch protection — đừng đổi tên) + `deploy`.
+
+### Việc còn lại (đã phát hiện khi rà soát tài liệu, CHƯA sửa vì thuộc phần code)
+
+- [ ] Cập nhật `agent/.env.example` cho khớp `config.py` (thiếu 14 biến).
+- [ ] Thêm `AGENT_AGUI_URL` vào `fe/.env.example`.
+- [ ] Sửa comment sai trong code: `config.py` nói PTIT là TTS chính (thực tế `api/tts.py` gọi
+      **MiniMax trước**, PTIT là dự phòng); docstring `reply_cache.py` nói không cache theo page.
+- [ ] `GET /api/health` trả `model = AGENT_MODEL` (tên model Gemini) chứ không phải model chính
+      đang chạy → dễ gây nhầm khi chẩn đoán.
+- [ ] Khai báo marker `live` trong `agent/pyproject.toml`.

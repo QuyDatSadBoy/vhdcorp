@@ -16,6 +16,21 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # ── MODEL CHÍNH: DeepSeek V4 Flash Vision (OpenAI-compatible) ──
+    # deepseek-v4-flash-vision-exp: 1M context, VISION (đọc ảnh khách gửi), tool-calling,
+    # không leak <think>, có prompt caching phía server (đo thật: ~1.6s chat, ~0.9s vision).
+    # Rỗng = tắt → tự động quay về Gemini làm chính (chuỗi dự phòng bên dưới không đổi).
+    deepseek_api_key: str = ""
+    deepseek_model: str = "deepseek-v4-flash-vision-exp"
+    deepseek_base_url: str = "https://api.deepseek.com"
+
+    # LÕI agent: True = DeepAgents (write_todos lập kế hoạch, subagent, SKILL do admin
+    # cấu hình, tool MCP). False = vòng lặp agent⇄tools tự viết như trước (đường lùi an
+    # toàn nếu DeepAgents có sự cố). Guardrail/cache/memory/gen-UI không phụ thuộc cờ này.
+    use_deep_agent: bool = True
+    # Số model đưa vào deep agent (model đầu là chính, còn lại làm dự phòng per-call)
+    deep_agent_max_fallbacks: int = 6
+
     google_api_key: str = ""
     # Nhiều key Gemini (phân tách bằng dấu phẩy) — fallback cho nhau: key hết quota/
     # bị thu hồi thì tự chuyển key khác. Rỗng thì dùng google_api_key.

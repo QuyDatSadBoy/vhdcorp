@@ -117,6 +117,45 @@ export const TTS_MAX_CHARS = 600;
  * Voice reply: gọi BE proxy TTS (MiniMax) → trả về blob audio/mpeg để phát.
  * Cắt bớt text quá dài để tránh gọi tốn kém / lỗi.
  */
+/** Chế độ trợ lý đang chạy — khung chat hiện cho khách biết hỏi được tới đâu. */
+export interface AgentModeInfo {
+  mode: string;
+  label: string;
+  hint: string;
+}
+
+export async function fetchAgentMode(signal?: AbortSignal): Promise<AgentModeInfo | null> {
+  try {
+    const res = await fetch(`${AGENT_URL}/api/agent-mode`, { signal });
+    if (!res.ok) return null;
+    return (await res.json()) as AgentModeInfo;
+  } catch {
+    return null; // không lấy được thì giấu chip, đừng làm hỏng khung chat
+  }
+}
+
+/** Kết quả bóc chữ từ tệp khách gửi. */
+export interface UploadResult {
+  ok: boolean;
+  filename?: string;
+  chars?: number;
+  text?: string;
+  error?: string;
+}
+
+/** Gửi tệp (PDF/Excel/Word/CSV) lên agent để lấy phần chữ đính vào câu hỏi. */
+export async function uploadDocument(file: File, signal?: AbortSignal): Promise<UploadResult> {
+  const form = new FormData();
+  form.append("file", file);
+  try {
+    const res = await fetch(`${AGENT_URL}/api/upload`, { method: "POST", body: form, signal });
+    if (!res.ok) return { ok: false, error: `Máy chủ trả lỗi ${res.status}` };
+    return (await res.json()) as UploadResult;
+  } catch {
+    return { ok: false, error: "Không gửi được tệp — kiểm tra kết nối rồi thử lại." };
+  }
+}
+
 export async function speakText(text: string, signal?: AbortSignal): Promise<Blob> {
   const clipped = text.length > TTS_MAX_CHARS ? `${text.slice(0, TTS_MAX_CHARS)}…` : text;
   const res = await fetch(`${AGENT_URL}/api/tts`, {
@@ -132,6 +171,8 @@ export async function speakText(text: string, signal?: AbortSignal): Promise<Blo
 }
 
 export const chatAgentService = {
+  uploadDocument,
+  fetchAgentMode,
   streamChat,
   speakText,
 

@@ -4,6 +4,7 @@ import type { ChatProduct } from "@/types/chat";
 import ComparisonTable from "./comparison-table";
 import ContactForm from "./contact-form";
 import FaqBlock from "./faq-block";
+import UserQuestion from "./user-question";
 import ImageSearchResult from "./image-search-result";
 import AddToCartAction from "./add-to-cart-action";
 import PostList, { type ChatPost } from "./post-list";
@@ -49,6 +50,16 @@ export default function GenUiBlock({ component, props, onAction }: GenUiBlockPro
 
     case "faq":
       return <FaqBlock items={(props.items as { question: string; answer: string }[]) ?? []} />;
+
+    case "user-question":
+      return (
+        <UserQuestion
+          question={(props.question as string) ?? ""}
+          options={(props.options as string[]) ?? []}
+          allowOther={(props.allowOther as boolean) ?? true}
+          onAction={onAction}
+        />
+      );
 
     case "add-to-cart":
       return (

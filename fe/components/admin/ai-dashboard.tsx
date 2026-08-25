@@ -35,6 +35,7 @@ type Cur = "vnd" | "usd";
 
 /** 2 model đang dùng (chính + dự phòng) — khớp server, dùng làm mặc định nếu API chưa trả. */
 const DEFAULT_MODELS = [
+  "deepseek-v4-flash-vision-exp",
   "gemini-3.1-flash-lite",
   "gemini-3.6-flash",
   "openai/gpt-oss-120b",
@@ -42,6 +43,7 @@ const DEFAULT_MODELS = [
   "inclusionai/ling-3.0-flash:free",
 ];
 const DEFAULT_PRICES: Record<string, ModelPrice> = {
+  "deepseek-v4-flash-vision-exp": { in: 0.44, out: 1.32 },
   "gemini-3.1-flash-lite": { in: 0.25, out: 1.5 },
   "gemini-3.6-flash": { in: 1.5, out: 7.5 },
   "openai/gpt-oss-120b": { in: 0, out: 0 },

@@ -22,6 +22,7 @@ import {
   Sparkles,
   ChevronRight,
   Bot,
+  Blocks,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth.store";
@@ -83,6 +84,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/builder", label: "Page Builder", icon: Wrench },
       { href: "/admin/settings", label: "Cài đặt site", icon: Settings },
       { href: "/admin/knowledge", label: "Kiến thức AI", icon: Bot },
+      { href: "/admin/agent-config", label: "Kỹ năng & công cụ AI", icon: Blocks },
     ],
   },
   {

@@ -11,10 +11,12 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from app.api import a2a as a2a_api
 from app.api import admin as admin_api
 from app.api import admin_ai as admin_ai_api
+from app.api import admin_deep as admin_deep_api
 from app.api import chat as chat_api
 from app.api import conversations as conversations_api
 from app.api import health as health_api
 from app.api import tts as tts_api
+from app.api import upload as upload_api
 from app.core.config import configure_tracing, get_settings
 from app.core.logging import setup_logging
 from app.db.database import Database
@@ -66,6 +68,25 @@ async def lifespan(app: FastAPI):
 
     product_sync_task = asyncio.create_task(_periodic_product_sync())
 
+    # Dọn checkpoint của hội thoại cũ/đã xoá. LangGraph chỉ ghi thêm chứ không tự dọn
+    # (đo trên máy chủ: 101 hội thoại đã chiếm 27MB và chỉ có tăng), để lâu thì đầy ổ.
+    # Chạy sau 5 phút cho service ổn định rồi lặp mỗi ngày; chạy trong luồng riêng vì
+    # sqlite VACUUM là thao tác chặn.
+    async def _periodic_checkpoint_gc() -> None:
+        from app.services.checkpoint_gc import collect_garbage
+
+        await asyncio.sleep(300)
+        while True:
+            try:
+                await asyncio.to_thread(
+                    collect_garbage, settings.checkpoint_db_path, settings.chat_db_path
+                )
+            except Exception:  # noqa: BLE001 — dọn dẹp lỗi không được giết service
+                logger.exception("Dọn checkpoint thất bại — thử lại ngày mai")
+            await asyncio.sleep(86_400)
+
+    checkpoint_gc_task = asyncio.create_task(_periodic_checkpoint_gc())
+
     db = Database(settings.chat_db_path)
     await db.connect()
 
@@ -87,11 +108,29 @@ async def lifespan(app: FastAPI):
         await mcp_started.wait()
 
     async with AsyncSqliteSaver.from_conn_string(settings.checkpoint_db_path) as checkpointer:
+        # Chặn nhật ký ghi (WAL) phình vô hạn. Phải đặt trên CHÍNH kết nối mà service
+        # dùng: đặt từ một kết nối khác thì SQLite chỉ áp cho kết nối đó, nên tệp -wal
+        # vẫn cứ lớn dần (đo trên máy chủ: 15MB và chỉ tăng, dọn từ ngoài không co).
+        # Với giới hạn này, mỗi lần SQLite tự gộp là tệp được cắt về mức đã đặt.
+        try:
+            await checkpointer.conn.execute(f"PRAGMA journal_size_limit = {8 * 1024 * 1024}")
+            await checkpointer.conn.commit()
+        except Exception:  # noqa: BLE001 — không đặt được thì chạy như trước, đừng chặn khởi động
+            logger.warning("Không đặt được giới hạn nhật ký ghi cho checkpoint DB")
         conversation_repo = ConversationRepo(db)
         message_repo = MessageRepo(db)
         memory_repo = MemoryRepo(db)
 
-        builder = ChatGraphBuilder(settings)
+        # Tool MCP do admin cấu hình ở /admin (best-effort: server chết thì bỏ qua)
+        mcp_tools: list = []
+        if settings.use_deep_agent:
+            from app.deep import mcp_store
+
+            mcp_tools = await mcp_store.load_tools()
+            if mcp_tools:
+                logger.info("Đã nạp %d tool từ MCP server của admin", len(mcp_tools))
+
+        builder = ChatGraphBuilder(settings, extra_tools=mcp_tools)
         graph = builder.compile(checkpointer)
 
         memory_service = MemoryService(
@@ -112,6 +151,21 @@ async def lifespan(app: FastAPI):
             llm=builder.llm,  # dùng cho vision (image search)
         )
 
+        # AG-UI (chuẩn Agent-User Interaction) cho CopilotKit — chạy SONG SONG với
+        # /api/chat, không thay thế. Gắn ở đây vì cần graph đã compile với checkpointer.
+        if settings.use_deep_agent:
+            from app.api.agui import mount_agui
+            from app.deep.admin_agent import get_admin_agent
+
+            # Trợ lý admin cũng nói AG-UI để trang quản trị dùng được CopilotKit.
+            # Dựng ở đây (thay vì lần gọi đầu) để lỗi cấu hình lộ ra lúc khởi động.
+            try:
+                admin_agent = get_admin_agent()
+            except Exception:  # noqa: BLE001 — thiếu key/cấu hình không được chặn chat khách
+                logger.exception("Không dựng được trợ lý admin → bỏ qua AG-UI admin")
+                admin_agent = None
+            app.state.agui_paths = mount_agui(app, chat_graph=graph, admin_graph=admin_agent)
+
         app.state.settings = settings
         app.state.db = db
         app.state.checkpointer = checkpointer
@@ -126,6 +180,7 @@ async def lifespan(app: FastAPI):
             await chat_service.wait_background()
 
     product_sync_task.cancel()
+    checkpoint_gc_task.cancel()
 
     if mcp_task is not None:
         mcp_stop.set()
@@ -156,9 +211,11 @@ def create_app() -> FastAPI:
     app.include_router(chat_api.router)
     app.include_router(conversations_api.router)
     app.include_router(tts_api.router)
+    app.include_router(upload_api.router)
     app.include_router(a2a_api.router)
     app.include_router(admin_api.router)
     app.include_router(admin_ai_api.router)
+    app.include_router(admin_deep_api.router)
 
     # MCP streamable-http tại /mcp (instance riêng mỗi app; lifespan chạy session_manager)
     mcp_server = build_mcp()

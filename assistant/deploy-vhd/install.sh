@@ -1,0 +1,581 @@
+#!/usr/bin/env bash
+#
+# Cài trợ lý nội bộ VHD Corp lên máy chủ. Chạy MỘT lần bằng sudo, sau đó mọi việc
+# bật/tắt/xem đều làm ở trang quản trị.
+#
+#   sudo bash install.sh assistant.vhdcorp.com
+#
+# Chạy lại được nhiều lần: bước nào đã xong thì bỏ qua, không phá cấu hình cũ.
+set -euo pipefail
+
+DOMAIN="${1:-}"
+REPO_URL="${REPO_URL:-git@github.com:QuyDatSadBoy/vhdcorp.git}"
+# Nhánh chứa mã trợ lý. Mặc định develop vì assistant/ nằm ở đó; clone nhánh
+# mặc định (main) sẽ ra một repo KHÔNG có thư mục assistant.
+BRANCH="${BRANCH:-develop}"
+ROOT=/opt/vhd-assistant
+APP="$ROOT/repo/assistant"
+USER_NAME=vhdagent
+GATE_PORT="${GATE_PORT:-4400}"
+BE_URL="${BE_URL:-http://127.0.0.1:8080}"
+MAX_ACTIVE="${MAX_ACTIVE:-4}"
+IDLE_MINUTES="${IDLE_MINUTES:-20}"
+
+die() { echo "✗ $*" >&2; exit 1; }
+ok()  { echo "✓ $*"; }
+step(){ echo; echo "── $* ──"; }
+
+[ "$(id -u)" = 0 ] || die "Phải chạy bằng sudo: sudo bash install.sh <tên-miền>"
+[ -n "$DOMAIN" ] || die "Thiếu tên miền. Ví dụ: sudo bash install.sh assistant.vhdcorp.com"
+
+step "1/8 Kiểm tra máy chủ"
+command -v node >/dev/null || die "Chưa có node"
+# systemd chạy service với PATH tối giản. node cài bằng nvm sẽ KHÔNG có trong đó,
+# service sẽ chết ngay với "node: command not found" — bắt lỗi ngay từ đây.
+NODE_BIN=$(command -v node)
+case "$NODE_BIN" in
+  /usr/bin/node|/usr/local/bin/node|/bin/node) : ;;
+  *) die "node đang ở $NODE_BIN — systemd không thấy được. Cài node hệ thống: apt install nodejs" ;;
+esac
+command -v corepack >/dev/null || die "Chưa có corepack (đi kèm node)"
+NODE_MAJOR=$(node -p 'process.versions.node.split(".")[0]')
+[ "$NODE_MAJOR" -ge 22 ] || die "Cần node >= 22, đang có $(node -v)"
+command -v nginx >/dev/null || die "Chưa có nginx"
+command -v git >/dev/null || die "Chưa có git"
+FREE_MB=$(free -m | awk 'NR==2{print $7}')
+[ "$FREE_MB" -ge 900 ] || echo "⚠ RAM trống chỉ ${FREE_MB}MB — nên giảm MAX_ACTIVE"
+ok "node $(node -v) tại $NODE_BIN, nginx, git, RAM trống ${FREE_MB}MB"
+
+step "1.5/8 Công cụ cho trợ lý làm việc"
+# Thiếu những thứ này thì trợ lý phải tự viết lại bằng tay — đã xảy ra thật: nó
+# tự viết bộ mã hoá GIF bằng Python thuần vì máy chủ không có Pillow, mất mấy
+# vòng thử mà kết quả vẫn kém. Đặt SKIP_TOOLS=1 để bỏ qua bước này.
+if [ "${SKIP_TOOLS:-0}" = 1 ]; then
+  ok "bỏ qua cài công cụ (SKIP_TOOLS=1)"
+else
+  MISSING=""
+  for t in convert ffmpeg pdftotext zip unzip sqlite3 rg; do
+    command -v "$t" >/dev/null 2>&1 || MISSING="$MISSING $t"
+  done
+  for m in PIL openpyxl numpy bs4 reportlab docx; do
+    python3 -c "import $m" >/dev/null 2>&1 || MISSING="$MISSING py:$m"
+  done
+  if [ -z "$MISSING" ]; then
+    ok "công cụ đã đủ"
+  else
+    echo "   thiếu:$MISSING → đang cài"
+    DEBIAN_FRONTEND=noninteractive apt-get update -qq >/dev/null 2>&1 || true
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+      python3-pip python3-venv \
+      python3-pil python3-openpyxl python3-numpy python3-bs4 python3-lxml \
+      python3-reportlab python3-docx python3-dateutil \
+      imagemagick ffmpeg poppler-utils \
+      zip unzip p7zip-full sqlite3 ripgrep fd-find \
+      fonts-dejavu-core fonts-liberation ghostscript musl-tools >/dev/null 2>&1 \
+      && ok "đã cài bộ công cụ" \
+      || echo "   ⚠ cài công cụ không trọn vẹn — trợ lý vẫn chạy nhưng ít việc làm được hơn"
+  fi
+fi
+
+step "2/8 Người dùng hệ thống riêng ($USER_NAME)"
+if id "$USER_NAME" >/dev/null 2>&1; then
+  ok "đã có"
+else
+  adduser --system --group --home "$ROOT" "$USER_NAME"
+  ok "đã tạo (không đăng nhập được, không có sudo)"
+fi
+mkdir -p "$ROOT/homes"
+chown -R "$USER_NAME:$USER_NAME" "$ROOT"
+chmod 700 "$ROOT/homes"
+
+step "3/8 Lấy mã và build"
+# Clone/pull bằng ROOT: khoá SSH của repo riêng tư nằm ở root, còn vhdagent là tài
+# khoản hệ thống không có khoá. Xong thì chuyển chủ cho vhdagent.
+# -c safe.directory: repo thuộc vhdagent nhưng git chạy bằng root, git 2.35+ từ
+# chối làm việc với repo của người khác nếu không khai báo ngoại lệ.
+GIT="git -c safe.directory=$ROOT/repo"
+if [ -d "$ROOT/repo/.git" ]; then
+  $GIT -C "$ROOT/repo" fetch -q --depth 1 origin "$BRANCH"
+  $GIT -C "$ROOT/repo" checkout -q -B "$BRANCH" FETCH_HEAD
+  ok "đã cập nhật mã ($BRANCH)"
+else
+  git clone -q --depth 1 --branch "$BRANCH" "$REPO_URL" "$ROOT/repo"
+  ok "đã tải mã ($BRANCH)"
+fi
+[ -d "$APP" ] || die "Nhánh $BRANCH không có thư mục assistant/ — kiểm tra lại BRANCH"
+chown -R "$USER_NAME:$USER_NAME" "$ROOT/repo"
+
+# corepack enable ghi shim vào /usr/bin nên phải chạy bằng root, không phải vhdagent.
+corepack enable pnpm >/dev/null 2>&1 || die "Không bật được pnpm qua corepack"
+ok "pnpm đã bật qua corepack"
+
+cd "$APP"
+# Bỏ qua cài + build khi mã KHÔNG đổi: build mất ~5 phút, mà installer được thiết
+# kế để chạy lại nhiều lần (sửa nginx, đổi trần người dùng...). Mốc so sánh là
+# commit đang checkout.
+HEAD_SHA=$($GIT -C "$ROOT/repo" rev-parse HEAD)
+STAMP="$ROOT/.built-sha"
+if [ -f "$APP/apps/cli/lib/bin.js" ] && [ "$(cat "$STAMP" 2>/dev/null)" = "$HEAD_SHA" ]; then
+  ok "mã không đổi → bỏ qua cài lại và build (tiết kiệm ~5 phút)"
+else
+  # Build trong một khung giới hạn bộ nhớ. Máy chủ có 3.8GB và đang chạy web bán
+  # hàng (~1.1GB); build này ăn khoảng 1-2GB. Không đóng khung thì khi thiếu RAM,
+  # nhân hệ thống chọn nạn nhân theo điểm số của nó — đã từng giết `nest build`
+  # giữa chừng, và lần khác có thể là vhd-be, tức web bán hàng sập chỉ vì đi cài
+  # trợ lý. Có khung thì vượt hạn mức là build chết với lỗi rõ, web không hề hấn.
+  #
+  # -H / --setenv=HOME để HOME trỏ về $ROOT: thiếu nó thì HOME vẫn là /root,
+  # corepack ghi cache vào /root/.cache và bị từ chối quyền.
+  # 1600M quá thấp — build thật chết với mã 134 (OOM của V8). Máy chủ 3868MB, web
+  # bán hàng giữ ~1.1GB, nên 2400M vẫn còn dư cho web. Trợ lý được tắt ngay dưới
+  # đây nên phần RAM của nó cũng được trả về cho build.
+  BUILD_MEM="${BUILD_MEM:-2400M}"
+  # `tsc -b tsconfig.host.json` cần khoảng 2GB heap cho 246 project của repo này.
+  # Đo được từ hai lần chết thật: đặt trần bao nhiêu thì nó chết đúng ở đó (1196
+  # /1223MB rồi 1694/1731MB), kèm "average mu = 0.098" — 90% thời gian dành cho
+  # gom rác, dấu hiệu của một tiến trình đang bị bó quá chặt chứ không phải rò rỉ.
+  #
+  # RAM thật vẫn khoá ở $BUILD_MEM để web bán hàng không bị ảnh hưởng — phần vượt
+  # cho tràn sang swap (máy chủ có sẵn 4GB, gần như chưa dùng). Build chậm hơn
+  # một chút khi phải tràn, nhưng nó chạy một lần lúc deploy, còn web thì phục vụ
+  # khách suốt ngày. Đây là lý do KHÔNG nâng $BUILD_MEM: nâng RAM là lấy RAM của
+  # web, còn cho tràn swap thì không.
+  BUILD_HEAP_MB="${BUILD_HEAP_MB:-3000}"
+  BUILD_SWAP="${BUILD_SWAP:-2G}"
+  run_build() {
+    if command -v systemd-run >/dev/null 2>&1; then
+      systemd-run --scope -q --uid="$USER_NAME" \
+        -p MemoryMax="$BUILD_MEM" -p MemorySwapMax="$BUILD_SWAP" \
+        --setenv=HOME="$ROOT" --working-directory="$APP" \
+        --setenv=NODE_OPTIONS="--max-old-space-size=$BUILD_HEAP_MB" \
+        pnpm "$@"
+    else
+      sudo -u "$USER_NAME" -H env NODE_OPTIONS="--max-old-space-size=$BUILD_HEAP_MB" pnpm "$@"
+    fi
+  }
+  if command -v systemd-run >/dev/null 2>&1; then
+    ok "build trong khung giới hạn $BUILD_MEM — web bán hàng không bị ảnh hưởng"
+  else
+    echo "   ⚠ không có systemd-run — build chạy không có khung giới hạn"
+  fi
+
+  # Tắt trợ lý trong lúc build: nó sắp được khởi động lại ở bước 5 nên gián đoạn
+  # là không tránh khỏi, mà tắt thì trả lại RAM của nó (cổng vào + tiến trình của
+  # từng người) cho build — đúng thứ vừa thiếu khi build chết vì OOM.
+  GATE_WAS_UP=0
+  if systemctl is-active --quiet vhd-gate 2>/dev/null; then
+    GATE_WAS_UP=1
+    systemctl stop vhd-gate || true
+    ok "tạm tắt trợ lý để nhường RAM cho build"
+  fi
+
+  # Build chết là bước tắt ở trên đã chạy rồi: không bật lại thì trợ lý nằm im
+  # cho tới khi có người để ý. Đã xảy ra thật. Bật lại bản build cũ — nó vẫn còn
+  # nguyên trên đĩa vì build mới chết trước khi ghi được gì.
+  die_but_keep_assistant_up() {
+    if [ "$GATE_WAS_UP" = 1 ]; then
+      systemctl start vhd-gate 2>/dev/null && echo "   ℹ đã bật lại trợ lý bản cũ — dịch vụ không nằm im chờ" >&2
+    fi
+    die "$@"
+  }
+
+  run_build install --frozen-lockfile \
+    || die_but_keep_assistant_up "cài thư viện thất bại (nếu do vượt $BUILD_MEM thì đặt BUILD_MEM cao hơn)"
+  run_build build \
+    || die_but_keep_assistant_up "build thất bại — xem log ở trên; hết heap thì nâng BUILD_HEAP_MB, hết RAM thì nâng BUILD_SWAP"
+  # Trình khoá thư mục (Landlock). Thiếu nó thì DSH từ chối chạy lệnh ở chế độ
+  # workspace-write với lỗi "no sandbox backend is usable on this host", và mọi
+  # lệnh bash đều phải người dùng bấm duyệt tay — trợ lý gần như không dùng được.
+  # Binary phải build bằng musl-gcc trên chính máy chủ.
+  LAUNCHER="$APP/native/landlock-run/packages/linux-x64/bin/landlock-run"
+  if [ -x "$LAUNCHER" ]; then
+    ok "trình khoá thư mục đã có"
+  elif command -v musl-gcc >/dev/null 2>&1; then
+    ( cd "$APP/native/landlock-run" \
+      && sudo -u "$USER_NAME" -H npx tsx ./scripts/build.ts >/dev/null 2>&1 ) || true
+    [ -x "$LAUNCHER" ] \
+      && ok "đã dựng trình khoá thư mục" \
+      || echo "   ⚠ không dựng được trình khoá thư mục — trợ lý sẽ phải hỏi duyệt từng lệnh"
+  else
+    echo "   ⚠ thiếu musl-gcc → không dựng được trình khoá thư mục"
+  fi
+
+  echo "$HEAD_SHA" > "$STAMP"
+  chown "$USER_NAME:$USER_NAME" "$STAMP"
+fi
+[ -f "$APP/apps/cli/lib/bin.js" ] || die "Build xong mà thiếu apps/cli/lib/bin.js"
+ok "đã build"
+
+# Dọn hai gói binary chỉ dùng cho subagent Codex / Claude Code. VHD chạy DeepSeek
+# nên không cần, mà chúng chiếm ~560MB. Đã kiểm: xoá xong trợ lý vẫn bật lên và
+# trả trang bình thường. Đặt PRUNE_SUBAGENTS=0 nếu muốn giữ.
+if [ "${PRUNE_SUBAGENTS:-1}" = 1 ]; then
+  FREE_BEFORE=$(df --output=avail -BM / | tail -1 | tr -dc '0-9')
+  rm -rf "$APP"/node_modules/.pnpm/@openai+codex@*-linux-* \
+         "$APP"/node_modules/.pnpm/@anthropic-ai+claude-agent-sdk-linux-* 2>/dev/null || true
+  sudo -u "$USER_NAME" -H pnpm store prune >/dev/null 2>&1 || true
+  FREE_AFTER=$(df --output=avail -BM / | tail -1 | tr -dc '0-9')
+  ok "dọn gói không dùng: giải phóng $((FREE_AFTER - FREE_BEFORE))MB (còn trống ${FREE_AFTER}MB)"
+  echo "   (subagent Codex/Claude Code sẽ không chạy được — VHD dùng DeepSeek nên không cần)"
+fi
+
+step "4/8 Cấu hình"
+ENV_FILE="$ROOT/.env"
+# Token để trang quản trị đọc được ai đang dùng. Giữ nguyên nếu đã có, vì backend
+# cũng đang dùng đúng token này.
+if [ -f "$ENV_FILE" ] && grep -q '^VHD_ADMIN_TOKEN=' "$ENV_FILE"; then
+  TOKEN=$(grep '^VHD_ADMIN_TOKEN=' "$ENV_FILE" | cut -d= -f2-)
+  ok "giữ token cũ"
+else
+  TOKEN=$(head -c 32 /dev/urandom | base64 | tr -d '/+=' | head -c 40)
+  ok "đã sinh token mới"
+fi
+# Giữ lại khoá API mô hình nếu đã có
+KEEP_KEYS=$( [ -f "$ENV_FILE" ] && grep -E '^(DEEPSEEK_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY)=' "$ENV_FILE" || true )
+cat > "$ENV_FILE" <<EOF
+$KEEP_KEYS
+VHD_GATE_PORT=$GATE_PORT
+VHD_BE_URL=$BE_URL
+VHD_HOMES=$ROOT/homes
+VHD_MAX_ACTIVE=$MAX_ACTIVE
+VHD_IDLE_MINUTES=$IDLE_MINUTES
+VHD_DSH_COMMAND=node apps/cli/lib/bin.js web
+VHD_DSH_CWD=$APP
+VHD_ADMIN_TOKEN=$TOKEN
+VHD_PUBLIC_HOST=$DOMAIN
+EOF
+chown "$USER_NAME:$USER_NAME" "$ENV_FILE"
+chmod 600 "$ENV_FILE"
+ok "$ENV_FILE (quyền 600)"
+
+# Thiếu khoá mô hình thì trợ lý vẫn bật lên và đăng nhập được, nhưng mọi câu hỏi
+# đều trả lỗi MISSING_CREDENTIAL — người dùng tưởng hỏng hệ thống. Báo ngay.
+if ! grep -qE '^(DEEPSEEK|OPENAI|ANTHROPIC)_API_KEY=.' "$ENV_FILE"; then
+  echo
+  echo "   ⚠️  CHƯA CÓ KHOÁ MÔ HÌNH trong $ENV_FILE."
+  echo "      Trợ lý sẽ đăng nhập được nhưng mọi câu hỏi đều lỗi. Thêm rồi khởi"
+  echo "      động lại (hoặc bấm Khởi động lại ở trang /admin/server):"
+  echo
+  echo "        echo 'DEEPSEEK_API_KEY=sk-...' >> $ENV_FILE"
+  echo "        systemctl restart vhd-gate"
+  echo
+fi
+
+step "5/8 Dịch vụ systemd (có giới hạn RAM/CPU cứng)"
+cat > /etc/systemd/system/vhd-gate.service <<EOF
+[Unit]
+Description=Cong vao tro ly noi bo VHD Corp
+After=network.target
+
+[Service]
+Type=simple
+User=$USER_NAME
+Group=$USER_NAME
+WorkingDirectory=$APP/gate
+EnvironmentFile=$ENV_FILE
+ExecStart=$NODE_BIN gate.mjs
+
+# Hàng rào tài nguyên tính CẢ tiến trình trợ lý con: vượt là nhân hệ thống dừng,
+# web ban hang KHONG bi anh huong.
+MemoryMax=1400M
+MemoryHigh=1100M
+TasksMax=512
+CPUQuota=200%
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=$ROOT
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable vhd-gate >/dev/null
+systemctl restart vhd-gate
+sleep 3
+systemctl is-active --quiet vhd-gate || {
+  journalctl -u vhd-gate -n 25 --no-pager
+  die "Dịch vụ không lên — xem log ở trên"
+}
+ok "vhd-gate đang chạy"
+
+step "6/8 nginx + HTTPS cho $DOMAIN"
+SITE=/etc/nginx/sites-available/vhd-assistant
+
+# TLS: chọn theo hạ tầng đang có, KHÔNG mặc định certbot.
+# Máy chủ này đứng sau Cloudflare với chứng chỉ origin sẵn — xin thêm Let's Encrypt
+# là vô ích vì khách chỉ nói chuyện với Cloudflare, không nói chuyện với origin.
+ORIGIN_CRT=/etc/nginx/ssl/origin.crt
+ORIGIN_KEY=/etc/nginx/ssl/origin.key
+
+# Tên miền đang trỏ trực tiếp về máy này, hay đi qua Cloudflare?
+SERVER_IP=$(curl -fsS --max-time 10 https://api.ipify.org 2>/dev/null || echo '')
+DOMAIN_IPS=$(getent ahostsv4 "$DOMAIN" 2>/dev/null | awk '{print $1}' | sort -u | tr '\n' ' ')
+BEHIND_CF=1
+if [ -n "$SERVER_IP" ] && echo "$DOMAIN_IPS" | grep -qw "$SERVER_IP"; then
+  BEHIND_CF=0
+  ok "$DOMAIN trỏ TRỰC TIẾP về máy này ($SERVER_IP) — sẽ dùng Let's Encrypt"
+else
+  echo "   ℹ $DOMAIN đang đi qua Cloudflare (trỏ tới $DOMAIN_IPS)"
+fi
+
+# Đứng sau Cloudflare thì ưu tiên cert origin; trỏ trực tiếp thì phải có cert
+# công cộng, vì trình duyệt nói chuyện thẳng với máy này.
+if [ "$BEHIND_CF" = 0 ]; then
+  if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+    command -v certbot >/dev/null || {
+      log_apt=$(apt-get install -y certbot python3-certbot-nginx 2>&1 | tail -2) || true
+      command -v certbot >/dev/null || die "Không cài được certbot: $log_apt"
+      ok "đã cài certbot"
+    }
+  fi
+  ORIGIN_CRT=/khong-dung-cert-origin
+fi
+
+if [ -f "$ORIGIN_CRT" ] && [ -f "$ORIGIN_KEY" ]; then
+  CRT="$ORIGIN_CRT"; KEY="$ORIGIN_KEY"; TLS_KIND="chứng chỉ origin (Cloudflare)"
+elif [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+  CRT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+  KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"; TLS_KIND="Let's Encrypt đã có"
+else
+  command -v certbot >/dev/null || die "Không có chứng chỉ origin lẫn certbot. Cài certbot hoặc đặt cert vào $ORIGIN_CRT"
+  cat > "$SITE" <<EOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+    location / { proxy_pass http://127.0.0.1:$GATE_PORT; }
+}
+EOF
+  ln -sf "$SITE" /etc/nginx/sites-enabled/vhd-assistant
+  nginx -t && systemctl reload nginx
+  certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos \
+    -m "${CERTBOT_EMAIL:-vhdcorp.contact@gmail.com}" --redirect \
+    || die "certbot thất bại — kiểm tra DNS của $DOMAIN đã trỏ TRỰC TIẾP về máy chủ chưa (tắt proxy Cloudflare)"
+  CRT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+  KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"; TLS_KIND="Let's Encrypt vừa xin"
+fi
+ok "TLS: $TLS_KIND"
+
+# `http2 on;` chỉ có từ nginx 1.25.1. Trên 1.24 nó là "unknown directive" và làm
+# nginx -t thất bại, còn `listen ... http2` mới là cú pháp đúng ở bản cũ.
+NGINX_VER=$(nginx -v 2>&1 | sed 's|.*/||' | tr -d '[:space:]')
+NGINX_MAJOR=${NGINX_VER%%.*}
+NGINX_REST=${NGINX_VER#*.}
+NGINX_MINOR=${NGINX_REST%%.*}
+if [ "$NGINX_MAJOR" -gt 1 ] || { [ "$NGINX_MAJOR" -eq 1 ] && [ "$NGINX_MINOR" -ge 25 ]; }; then
+  LISTEN_443="listen 443 ssl;"
+  HTTP2_LINE="http2 on;"
+else
+  LISTEN_443="listen 443 ssl http2;"
+  HTTP2_LINE="# http2 khai trong listen (nginx $NGINX_VER chưa có directive http2)"
+fi
+ok "nginx $NGINX_VER → dùng: $LISTEN_443"
+
+# IP thật của khách khi đứng sau Cloudflare. Không có phần này thì mọi người mang
+# CÙNG một IP của Cloudflare — một người nhập sai mật khẩu 5 lần là KHOÁ CẢ CÔNG TY.
+CF_SNIPPET=/etc/nginx/snippets/vhd-cloudflare-realip.conf
+mkdir -p /etc/nginx/snippets
+if curl -fsS --max-time 20 https://www.cloudflare.com/ips-v4 -o /tmp/cf4 \
+   && curl -fsS --max-time 20 https://www.cloudflare.com/ips-v6 -o /tmp/cf6; then
+  {
+    echo "# Sinh tự động bởi install.sh — dải IP của Cloudflare"
+    sed 's/^/set_real_ip_from /; s/$/;/' /tmp/cf4
+    sed 's/^/set_real_ip_from /; s/$/;/' /tmp/cf6
+    echo "real_ip_header CF-Connecting-IP;"
+    echo "real_ip_recursive on;"
+  } > "$CF_SNIPPET"
+  CF_INCLUDE="include $CF_SNIPPET;"
+  ok "đã lấy $(grep -c set_real_ip_from "$CF_SNIPPET") dải IP Cloudflare"
+else
+  CF_INCLUDE="# không lấy được dải IP Cloudflare — chống dò mật khẩu sẽ tính theo IP của Cloudflare"
+  echo "   ⚠ Không tải được dải IP Cloudflare. Chống dò mật khẩu vẫn chạy nhưng tính chung theo IP Cloudflare."
+fi
+
+cat > "$SITE" <<EOF
+# Trợ lý nội bộ VHD — sinh bởi deploy-vhd/install.sh
+server {
+    listen 80;
+    server_name $DOMAIN;
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    $LISTEN_443
+    $HTTP2_LINE
+    server_name $DOMAIN;
+
+    ssl_certificate     $CRT;
+    ssl_certificate_key $KEY;
+
+    $CF_INCLUDE
+
+    # Không cho công cụ tìm kiếm ghi nhận trang nội bộ
+    add_header X-Robots-Tag "noindex, nofollow" always;
+    # Tệp anh em gửi lên cho trợ lý đọc
+    client_max_body_size 25m;
+
+    location / {
+        proxy_pass http://127.0.0.1:$GATE_PORT;
+        proxy_http_version 1.1;
+
+        # Trợ lý đẩy tiến trình về bằng WebSocket — thiếu hai dòng này là mất kết nối
+        proxy_set_header Upgrade    \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_set_header Host              \$host;
+        # \$remote_addr đã là IP THẬT nhờ khối real_ip ở trên
+        proxy_set_header X-Real-IP         \$remote_addr;
+        proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+
+        # Trợ lý làm việc dài (đọc mã, chạy lệnh) — timeout ngắn cắt giữa việc.
+        # Lần đầu một người vào còn phải chờ tiến trình riêng của họ bật lên.
+        proxy_read_timeout  3600s;
+        proxy_send_timeout  3600s;
+        proxy_connect_timeout 120s;
+        proxy_buffering     off;   # tiến trình hiện dần, không dồn một cục
+    }
+}
+EOF
+ln -sf "$SITE" /etc/nginx/sites-enabled/vhd-assistant
+# nginx -t hỏng thì BỎ symlink ra: để lại là lần reload sau của người khác cũng chết
+if ! nginx -t 2>/tmp/nginx-test.log; then
+  rm -f /etc/nginx/sites-enabled/vhd-assistant
+  cat /tmp/nginx-test.log
+  die "Cấu hình nginx không hợp lệ — đã bỏ site ra, nginx đang chạy không bị ảnh hưởng"
+fi
+systemctl reload nginx
+ok "nginx đã nạp site $DOMAIN"
+
+# Trợ lý gọi mọi thứ qua /api. Cloudflare của vhdcorp.com có luật chặn /api* để
+# bảo vệ API web bán hàng, và luật đó áp cho CẢ subdomain — trợ lý sẽ không tạo
+# được thư mục làm việc, báo "transport failure ... HTTP 403". Kiểm ngay ở đây,
+# đừng để người dùng tự phát hiện.
+API_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$DOMAIN/api/host.listDirectory" 2>/dev/null || echo 000)
+if [ "$API_CODE" = "403" ]; then
+  echo
+  echo "   ⚠️  /api trả 403 — trợ lý sẽ KHÔNG tạo được thư mục làm việc."
+  echo "      Nguyên nhân thường gặp: thiếu VHD_PUBLIC_HOST trong $ENV_FILE (DSH từ"
+  echo "      chối Host không phải loopback nếu không được khai báo). Đã đặt sẵn ở"
+  echo "      bước 4; nếu vẫn 403 thì mới xét tới Cloudflare:"
+  echo "      Chọn MỘT trong hai cách (mỗi cách một lần bấm):"
+  echo
+  echo "      A) Tắt proxy Cloudflare cho subdomain này (khuyến nghị):"
+  echo "         Cloudflare → DNS → bản ghi A 'assistant' → đổi mây CAM sang mây XÁM."
+  echo "         Rồi chạy lại script này: nó sẽ tự xin chứng chỉ Let's Encrypt."
+  echo "         Cách này còn cho chống-dò-mật-khẩu tính đúng theo từng người."
+  echo
+  echo "      B) Giữ Cloudflare, thêm luật bỏ qua WAF:"
+  echo "         Security → WAF → Custom rules → Skip khi Hostname = $DOMAIN."
+  echo
+else
+  ok "Cloudflare không chặn /api (HTTP $API_CODE) — trợ lý gọi API được"
+fi
+
+step "7/8 Nối trang quản trị với trợ lý"
+# Trang quản trị cần token này để đọc được ai đang dùng. Tự ghi vào .env của
+# backend để admin không phải copy tay.
+BE_ENV=""
+for cand in /root/vhdcorp/be/.env /home/*/vhdcorp/be/.env /opt/vhdcorp/be/.env; do
+  [ -f "$cand" ] && { BE_ENV="$cand"; break; }
+done
+if [ -n "$BE_ENV" ]; then
+  if grep -q '^VHD_ADMIN_TOKEN=' "$BE_ENV"; then
+    sed -i "s|^VHD_ADMIN_TOKEN=.*|VHD_ADMIN_TOKEN=$TOKEN|" "$BE_ENV"
+  else
+    printf '\nVHD_ADMIN_TOKEN=%s\n' "$TOKEN" >> "$BE_ENV"
+  fi
+  grep -q '^VHD_GATE_URL=' "$BE_ENV" \
+    || printf 'VHD_GATE_URL=http://127.0.0.1:%s\n' "$GATE_PORT" >> "$BE_ENV"
+  ok "đã ghi token vào $BE_ENV"
+  if command -v pm2 >/dev/null && pm2 describe vhd-be >/dev/null 2>&1; then
+    pm2 restart vhd-be >/dev/null 2>&1 && ok "đã khởi động lại backend"
+  else
+    echo "   ⚠ Không thấy pm2 vhd-be — hãy khởi động lại backend để nạp token"
+  fi
+else
+  echo "   ⚠ Không tìm thấy .env của backend. Thêm tay 2 dòng này rồi restart BE:"
+  echo "       VHD_ADMIN_TOKEN=$TOKEN"
+  echo "       VHD_GATE_URL=http://127.0.0.1:$GATE_PORT"
+fi
+
+step "8/8 Dọn rác tự động hằng ngày"
+# Script dọn rác — để ở tệp riêng cho dễ đọc và sửa, thay vì nhồi vào ExecStart
+cat > "$ROOT/gc.sh" <<'GCEOF'
+#!/usr/bin/env bash
+# Dọn rác trợ lý nội bộ VHD — chạy hằng ngày qua systemd timer.
+#
+# NGUYÊN TẮC: chỉ xoá thứ CHẮC CHẮN là rác. Tệp làm việc của anh em không bao giờ
+# bị đụng tới — mất việc của người khác thì không nút hoàn tác nào cứu được.
+# Muốn xoá tệp cụ thể thì dùng nút Xóa ở trang /admin/server.
+set -u
+HOMES="${VHD_HOMES:-/opt/vhd-assistant/homes}"
+DAYS="${GC_DAYS:-14}"
+[ -d "$HOMES" ] || exit 0
+
+# 1) Toàn bộ nội dung các thư mục vốn chỉ chứa thứ tạm
+find "$HOMES" -mindepth 2 -maxdepth 5 -type d \
+  \( -name logs -o -name cache -o -name tmp -o -name .cache \) \
+  -exec find {} -type f -mtime "+$DAYS" -delete \; 2>/dev/null
+
+# 2) Tệp rác nằm rải trong thư mục làm việc — nhận theo đuôi, không theo tuổi thư mục
+find "$HOMES" -mindepth 3 -type f \
+  \( -name '*.tmp' -o -name '*.temp' -o -name '*.log' -o -name '*.bak' \
+     -o -name '*.old' -o -name '*~' -o -name '.DS_Store' -o -name 'Thumbs.db' \) \
+  -mtime "+$DAYS" -delete 2>/dev/null
+
+# 3) Thư mục rỗng còn lại sau khi xoá (không đụng thư mục gốc của người dùng)
+find "$HOMES" -mindepth 3 -type d -empty -delete 2>/dev/null
+
+exit 0
+GCEOF
+chmod +x "$ROOT/gc.sh"
+chown "$USER_NAME:$USER_NAME" "$ROOT/gc.sh"
+
+cat > /etc/systemd/system/vhd-assistant-gc.service <<EOF
+[Unit]
+Description=Don rac tro ly noi bo VHD
+
+[Service]
+Type=oneshot
+User=$USER_NAME
+Environment=VHD_HOMES=$ROOT/homes
+ExecStart=$ROOT/gc.sh
+EOF
+cat > /etc/systemd/system/vhd-assistant-gc.timer <<EOF
+[Unit]
+Description=Don rac tro ly noi bo VHD hang ngay
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+systemctl daemon-reload
+systemctl enable --now vhd-assistant-gc.timer >/dev/null
+ok "đã bật hẹn giờ dọn rác"
+
+echo
+DISK=$(df -h / | tail -1 | awk '{print $4" trống / "$2}')
+RAMNOW=$(free -m | awk 'NR==2{print $7"MB trống / "$2"MB"}')
+echo "════════════════════════════════════════════════════════"
+echo " XONG. Vào https://$DOMAIN để đăng nhập."
+echo " Đĩa: $DISK · RAM: $RAMNOW"
+echo " Dùng chính tài khoản quản trị vhdcorp.com."
+echo
+echo " Từ giờ KHÔNG cần nhớ lệnh nào: bật/tắt, xem ai đang"
+echo " dùng, xem RAM — tất cả ở trang /admin/server."
+echo "════════════════════════════════════════════════════════"

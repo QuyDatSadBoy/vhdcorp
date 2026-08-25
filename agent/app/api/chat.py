@@ -1,12 +1,15 @@
 """POST /api/chat — SSE stream các event chat."""
 
 import json
+import logging
 
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
 from app.core import rate_limit, usage
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -60,14 +63,28 @@ async def chat(
     rate_limit.record(ip)  # tính lượt vì chắc chắn sẽ chạy LLM
 
     async def event_stream():
-        async for event in chat_service.stream_chat(
+        """Sinh sự kiện, và DỪNG HẲN khi khách đóng kết nối.
+
+        Khách bấm "dừng" chỉ cắt kết nối phía trình duyệt; nếu ở đây không kiểm thì vòng
+        lặp vẫn chạy tới hết — mô hình vẫn được gọi, tiền vẫn mất, chỉ là không ai đọc.
+        Kiểm sau MỖI sự kiện (rẻ) rồi thoát sớm: các tài nguyên của LangGraph được dọn
+        bằng khối finally sẵn có trong stream_chat.
+        """
+        stream = chat_service.stream_chat(
             user_id=x_chat_user,
             message=body.message,
             conversation_id=body.conversation_id,
             image=body.image,
             page=body.page,
-        ):
-            yield _sse(event)
+        )
+        try:
+            async for event in stream:
+                if await request.is_disconnected():
+                    logger.info("Khách ngắt kết nối giữa chừng — dừng sinh câu trả lời")
+                    break
+                yield _sse(event)
+        finally:
+            await stream.aclose()
 
     return StreamingResponse(
         event_stream(), media_type="text/event-stream", headers=SSE_HEADERS
