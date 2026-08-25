@@ -248,5 +248,9 @@
 - id: tool-web
   name: '@deepseek-ai/dsh-tool-web'
   config:
-    fetch: false
+    # Bật web_fetch. Bản gốc để false, nên trợ lý tìm được trên web mà không đọc
+    # nổi một đường link người dùng dán vào — đúng thứ hay gặp nhất khi anh em
+    # gửi trang sản phẩm hay bảng giá của nhà cung cấp. Đây không phải quyền mới:
+    # `bash` đã có curl/wget, nên tool này chỉ làm việc đó gọn và đáng tin hơn.
+    fetch: true
     searchTimeoutMs: 60000
