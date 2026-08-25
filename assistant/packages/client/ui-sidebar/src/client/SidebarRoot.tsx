@@ -39,6 +39,24 @@ const SCROLLBAR_LINGER_MS = 2000
  * @param props - composed slot props (runtime share + injected callbacks, contract/slots.ts).
  * @returns the sidebar element tree.
  */
+/**
+ * Biểu tượng đăng xuất — vẽ tại chỗ vì bộ icon dùng chung không có sẵn, và giữ
+ * gói đó nguyên vẹn để lần cập nhật bản gốc sau này không xung đột.
+ */
+function SignOutIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M6.5 2.5H3.5A1 1 0 0 0 2.5 3.5v9a1 1 0 0 0 1 1h3M10.5 11l3-3-3-3M13.5 8h-7"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 export function SidebarRoot({
   collapsed,
   width,
@@ -141,14 +159,10 @@ export function SidebarRoot({
               </span>
               <span className={css.brandName}>
                 {renderSlot('sidebar.brand.name', {}, {
-                  fallback: (
-                    <>
-                      <span className={css.fallbackBrandName}>VHD Corp</span>
-                      {process.env.DSH_CLIENT_COMMIT_HASH
-                        ? <span className={css.buildRevision}>{process.env.DSH_CLIENT_COMMIT_HASH}</span>
-                        : null}
-                    </>
-                  ),
+                  // Bỏ huy hiệu mã commit của bản gốc: đó là thông tin cho người
+                  // phát triển, còn đây là công cụ cho anh em trong công ty dùng —
+                  // một dãy ký tự lạ cạnh tên công ty chỉ gây thắc mắc.
+                  fallback: <span className={css.fallbackBrandName}>VHD Corp</span>,
                 })}
               </span>
             </span>
@@ -204,6 +218,18 @@ export function SidebarRoot({
         <div className={css.settingsArea}>
           {renderSlot('sidebar.settings', { wide })}
         </div>
+        {/* Đăng xuất: dùng thẻ <a> chứ không phải nút gọi API, vì phiên do cổng
+            vào (ngoài ứng dụng này) cấp — điều hướng thẳng tới /auth/logout là
+            cách đúng và vẫn mở được ở tab mới nếu người dùng muốn. */}
+        <a
+          className={css.signOut}
+          href="/auth/logout"
+          title={t('signOut.label')}
+          aria-label={t('signOut.label')}
+        >
+          <SignOutIcon />
+          {wide && <span className={css.signOutLabel}>{t('signOut.label')}</span>}
+        </a>
       </div>
     </div>
   )

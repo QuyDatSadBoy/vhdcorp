@@ -335,6 +335,32 @@ class PromptLayer implements ScopeLayer {
 }
 
 /** Registry service for the prompt inputs assembled before each model step. */
+/**
+ * Câu giới thiệu đứng đầu system prompt.
+ *
+ * Đây là trợ lý nội bộ của VHD Corp — hỏi "bạn là ai" thì phải trả lời như vậy.
+ * CHỈ đổi phần giới thiệu so với bản gốc: không hạn chế năng lực nào, mọi công
+ * cụ của bản gốc giữ nguyên.
+ *
+ * Xuất ra để bài kiểm tham chiếu thay vì chép lại nội dung — sửa câu chữ thì
+ * không phải sửa chục chỗ khẳng định.
+ */
+export const HARNESS_IDENTITY_TEXT = [
+          'You are "Trợ lý nội bộ VHD Corp" — the internal assistant of VHD Corp,',
+          'a Vietnamese wholesale supplier of refrigeration and M&E materials that also',
+          'makes injection moulds. Your users are VHD Corp staff.',
+          '',
+          'When asked who you are, who made you, or what you are built on, answer that',
+          'you are VHD Corp\'s internal assistant. Never introduce yourself as another',
+          'product or vendor.',
+          '',
+          'Reply in Vietnamese unless the user writes in another language.',
+          '',
+          'You keep every capability you have: reading and writing files, running',
+          'commands, searching, and using all available tools. Answer questions and do',
+          'work of any kind the user asks for — you are not limited to company topics.',
+        ].join('\n')
+
 export class SystemPrompt extends Service {
   static Config: z<Config> = z.object({
     includeHarnessIdentity: z.boolean().default(true),
@@ -358,7 +384,7 @@ export class SystemPrompt extends Service {
       this.section({
         name: 'harness:identity',
         order: -100,
-        text: 'You are an AI agent powered by DeepSeek Harness.',
+        text: HARNESS_IDENTITY_TEXT,
       })
     }
     this.section({

@@ -87,6 +87,21 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
           style="display: contents;"
         />
       </div>
+      <a
+        aria-label="Đăng xuất"
+        class="signOut"
+        href="/auth/logout"
+        title="Đăng xuất"
+      >
+        <svg
+          aria-hidden="true"
+          data-content="fb5e939e"
+          fill="none"
+          height="16"
+          viewBox="0 0 16 16"
+          width="16"
+        />
+      </a>
     </div>
   </div>
 </div>
@@ -141,11 +156,6 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
                 class="fallbackBrandName"
               >
                 VHD Corp
-              </span>
-              <span
-                class="buildRevision"
-              >
-                abc1234
               </span>
             </div>
           </span>
@@ -213,6 +223,26 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
           style="display: contents;"
         />
       </div>
+      <a
+        aria-label="Đăng xuất"
+        class="signOut"
+        href="/auth/logout"
+        title="Đăng xuất"
+      >
+        <svg
+          aria-hidden="true"
+          data-content="fb5e939e"
+          fill="none"
+          height="16"
+          viewBox="0 0 16 16"
+          width="16"
+        />
+        <span
+          class="signOutLabel"
+        >
+          Đăng xuất
+        </span>
+      </a>
     </div>
   </div>
 </div>
@@ -267,11 +297,6 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
                 class="fallbackBrandName"
               >
                 VHD Corp
-              </span>
-              <span
-                class="buildRevision"
-              >
-                abc1234
               </span>
             </div>
           </span>
@@ -339,6 +364,26 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
           style="display: contents;"
         />
       </div>
+      <a
+        aria-label="Đăng xuất"
+        class="signOut"
+        href="/auth/logout"
+        title="Đăng xuất"
+      >
+        <svg
+          aria-hidden="true"
+          data-content="fb5e939e"
+          fill="none"
+          height="16"
+          viewBox="0 0 16 16"
+          width="16"
+        />
+        <span
+          class="signOutLabel"
+        >
+          Đăng xuất
+        </span>
+      </a>
     </div>
   </div>
 </div>

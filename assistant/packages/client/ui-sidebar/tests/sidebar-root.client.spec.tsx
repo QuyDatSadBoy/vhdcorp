@@ -104,7 +104,12 @@ describe('SidebarRoot shell', () => {
     />)
 
     expect(screen.getByText('VHD Corp')).toBeTruthy()
-    expect(screen.getByText('0123456')).toBeTruthy()
+    // KHÔNG hiện mã commit cạnh tên công ty: đó là thông tin cho người phát
+    // triển, còn đây là công cụ cho anh em trong công ty dùng.
+    expect(screen.queryByText('0123456')).toBeNull()
+    // Có lối đăng xuất: nhiều người dùng chung một máy chủ nên phải có lối ra
+    const signOut = screen.getByRole('link', { name: 'Đăng xuất' })
+    expect(signOut.getAttribute('href')).toBe('/auth/logout')
     expect(container.querySelector('svg')).not.toBeNull()
   })
 
