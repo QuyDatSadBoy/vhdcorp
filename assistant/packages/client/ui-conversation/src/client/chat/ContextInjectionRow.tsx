@@ -29,6 +29,18 @@ export interface ContextInjectionRowProps {
  * @param props - Durable content, its projected producer role/name and form, and the locale seat.
  * @returns A collapsed context row with a bounded, form-specific body.
  */
+/**
+ * Nhãn nguồn có đáng hiện cho người dùng không.
+ *
+ * Tên gói triển khai (`@deepseek-ai/...`) không nói lên điều gì với nhân viên
+ * dùng trợ lý, mà lại lộ nhà cung cấp nền — đã thấy hiện nguyên
+ * "@deepseek-ai/dsh-system-prompt" ngay dưới câu trả lời. Nguồn do người dùng
+ * tạo (kỹ năng, công cụ MCP) thì vẫn hiện vì nó có ý nghĩa.
+ */
+function isInternalPackage(label: string): boolean {
+  return label.startsWith('@deepseek-ai/')
+}
+
 export function ContextInjectionRow({ content, source, provenance, form, t }: ContextInjectionRowProps) {
   const [open, setOpen] = useState(false)
   // Resolved rather than declared: a form whose fields are unreadable renders
@@ -43,7 +55,7 @@ export function ContextInjectionRow({ content, source, provenance, form, t }: Co
         : <IconBrowseOutline16 size={14} />}
       chevronClassName={css.chevron}
       title={t(provenance.role === 'recall' ? 'message.contextRecall' : 'message.contextInjection')}
-      collapsedContent={provenance.label === null ? undefined : (
+      collapsedContent={provenance.label === null || isInternalPackage(provenance.label) ? undefined : (
         /* ToolRow's separator shape: an aria-hidden dot, so the accessible name
            stays the two readable parts and the two disclosure rows expose one
            name shape. A source that names no producer drops the dot with it. */

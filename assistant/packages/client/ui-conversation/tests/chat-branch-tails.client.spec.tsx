@@ -664,7 +664,10 @@ describe('MessageItem arms', () => {
       } as never}
       />,
     )
-    fireEvent.click(view.getByRole('button', { name: /^上下文注入\s*@deepseek-ai\/dsh-system-prompt$/ }))
+    // Nhãn gói triển khai (@deepseek-ai/...) bị ẩn: tên đó vô nghĩa với người
+    // dùng trợ lý mà lại lộ nhà cung cấp nền. Hàng vẫn mở ra bình thường.
+    expect(view.queryByText('@deepseek-ai/dsh-system-prompt')).toBeNull()
+    fireEvent.click(view.getByRole('button', { name: /^上下文注入$/ }))
     const rows = [...view.container.querySelectorAll('[data-context-sections] div')].map(node => node.textContent)
     expect(rows).toEqual(['sandbox:policyworkspace-write', 'workspace/repo'])
   })
