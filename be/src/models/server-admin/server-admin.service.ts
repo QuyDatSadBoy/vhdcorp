@@ -1140,8 +1140,12 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
    * đang chiếm chỗ để quyết định xoá, thay vì phải SSH vào đếm bằng tay.
    */
   async listAssistantFiles(limit = 60) {
+    // CHỈ liệt kê tệp trong workspace/ — đó là nơi tệp sinh ra khi chat, xoá được
+    // an toàn. Phần còn lại trong thư mục người dùng là dữ liệu vận hành của trợ
+    // lý: session.jsonl.zstd chính là LỊCH SỬ CHAT, bấm Xoá nhầm là mất hội thoại
+    // của người ta. Phần đó để bộ dọn rác tự động lo.
     const script =
-      `find ${this.assistantHomes} -mindepth 3 -type f -printf '%s\\t%T@\\t%p\\n' 2>/dev/null ` +
+      `find ${this.assistantHomes}/*/workspace -type f -printf '%s\\t%T@\\t%p\\n' 2>/dev/null ` +
       `| sort -rn | head -n ${Math.min(Math.max(limit, 1), 300)}`;
     let stdout = '';
     try {
@@ -1177,7 +1181,22 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
       .sort((a, b) => b.sizeMb - a.sizeMb);
 
     const totalMb = Math.round(files.reduce((n, f) => n + f.sizeMb, 0) * 100) / 100;
-    return { files, totalMb, byUser };
+
+    // Dung lượng phần dữ liệu vận hành (lịch sử chat, cấu hình, cache) — chỉ để
+    // admin thấy bức tranh đầy đủ, KHÔNG cho xoá tay ở đây.
+    let systemMb = 0;
+    try {
+      const { stdout: du } = await execFileAsync(
+        'bash',
+        ['-c', `du -sm ${this.assistantHomes} 2>/dev/null | cut -f1`],
+        { env: this.execEnv },
+      );
+      systemMb = Math.max(0, Math.round((Number(du.trim()) - totalMb) * 100) / 100);
+    } catch {
+      systemMb = 0;
+    }
+
+    return { files, totalMb, systemMb, byUser };
   }
 
   /** Xoá MỘT tệp trong thư mục làm việc của trợ lý. */
@@ -1186,6 +1205,13 @@ export class ServerAdminService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException('Thiếu đường dẫn tệp');
     }
     const real = await this.assertInsideHomes(target);
+    // Hàng rào thứ hai: chỉ tệp trong workspace/. Chặn xoá nhầm lịch sử chat
+    // (session.jsonl.zstd) và cấu hình vận hành của trợ lý.
+    if (!real.includes('/workspace/')) {
+      throw new BadRequestException(
+        'Chỉ xoá được tệp trong thư mục làm việc (workspace) của người dùng',
+      );
+    }
     const info = await fsp.stat(real).catch(() => null);
     if (info === null) throw new BadRequestException('Không tìm thấy tệp');
     if (!info.isFile()) throw new BadRequestException('Chỉ xoá được tệp thường');

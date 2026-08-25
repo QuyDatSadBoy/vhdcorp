@@ -125,6 +125,8 @@ export interface AssistantStatus {
 export interface AssistantFiles {
   files: { path: string; user: string; sizeMb: number; ageDays: number }[];
   totalMb: number;
+  /** Dung lượng dữ liệu vận hành (lịch sử chat, cấu hình) — chỉ để xem, không xóa tay */
+  systemMb: number;
   byUser: { user: string; sizeMb: number }[];
 }
 

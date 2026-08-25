@@ -743,6 +743,10 @@ export default function ServerAdminPage() {
                           {assistantFiles.data.totalMb} MB
                           {assistantFiles.data.byUser.length > 0 &&
                             ` · ${assistantFiles.data.byUser.map((u) => `${u.user} ${u.sizeMb}MB`).join(" · ")}`}
+                          {" · "}
+                          <span title="Lịch sử chat và cấu hình của trợ lý — bộ dọn rác tự động lo, không xóa tay ở đây">
+                            dữ liệu vận hành {assistantFiles.data.systemMb} MB
+                          </span>
                         </span>
                       )}
                       <Button
