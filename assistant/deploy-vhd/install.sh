@@ -46,6 +46,37 @@ FREE_MB=$(free -m | awk 'NR==2{print $7}')
 [ "$FREE_MB" -ge 900 ] || echo "⚠ RAM trống chỉ ${FREE_MB}MB — nên giảm MAX_ACTIVE"
 ok "node $(node -v) tại $NODE_BIN, nginx, git, RAM trống ${FREE_MB}MB"
 
+step "1.5/8 Công cụ cho trợ lý làm việc"
+# Thiếu những thứ này thì trợ lý phải tự viết lại bằng tay — đã xảy ra thật: nó
+# tự viết bộ mã hoá GIF bằng Python thuần vì máy chủ không có Pillow, mất mấy
+# vòng thử mà kết quả vẫn kém. Đặt SKIP_TOOLS=1 để bỏ qua bước này.
+if [ "${SKIP_TOOLS:-0}" = 1 ]; then
+  ok "bỏ qua cài công cụ (SKIP_TOOLS=1)"
+else
+  MISSING=""
+  for t in convert ffmpeg pdftotext zip unzip sqlite3 rg; do
+    command -v "$t" >/dev/null 2>&1 || MISSING="$MISSING $t"
+  done
+  for m in PIL openpyxl numpy bs4 reportlab docx; do
+    python3 -c "import $m" >/dev/null 2>&1 || MISSING="$MISSING py:$m"
+  done
+  if [ -z "$MISSING" ]; then
+    ok "công cụ đã đủ"
+  else
+    echo "   thiếu:$MISSING → đang cài"
+    DEBIAN_FRONTEND=noninteractive apt-get update -qq >/dev/null 2>&1 || true
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+      python3-pip python3-venv \
+      python3-pil python3-openpyxl python3-numpy python3-bs4 python3-lxml \
+      python3-reportlab python3-docx python3-dateutil \
+      imagemagick ffmpeg poppler-utils \
+      zip unzip p7zip-full sqlite3 ripgrep fd-find \
+      fonts-dejavu-core fonts-liberation ghostscript >/dev/null 2>&1 \
+      && ok "đã cài bộ công cụ" \
+      || echo "   ⚠ cài công cụ không trọn vẹn — trợ lý vẫn chạy nhưng ít việc làm được hơn"
+  fi
+fi
+
 step "2/8 Người dùng hệ thống riêng ($USER_NAME)"
 if id "$USER_NAME" >/dev/null 2>&1; then
   ok "đã có"

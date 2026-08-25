@@ -142,16 +142,41 @@ export function resolveLanTrust(bindHost: string, extra: readonly string[]): Web
  * Phần định hướng mà mô hình nhìn thấy cho phiên chạy qua giao diện web.
  *
  * Bản gốc mô tả đây là "DeepSeek Harness Web GUI" kèm địa chỉ loopback và một
- * loạt hướng dẫn dành cho người ĐANG PHÁT TRIỂN DSH (bật dev:web, dựng lại
- * artifact, Vite entry). Với anh em VHD thì phần đó vừa thừa vừa làm lộ tên sản
- * phẩm nền và cổng nội bộ — đã thấy trợ lý đọc nguyên cả hai ra khi được hỏi
- * "bạn chạy trên nền tảng gì".
+ * loạt hướng dẫn dành cho người ĐANG PHÁT TRIỂN DSH. Với anh em VHD thì phần đó
+ * vừa thừa vừa lộ tên sản phẩm nền.
  *
- * Giữ lại đúng những điều mô hình thật sự cần biết: đây là giao diện web, không
- * có ngữ cảnh DOM, và đừng tự dựng máy chủ thay thế.
+ * Quan trọng hơn: bản gốc mặc định người dùng NGỒI TRÊN CHÍNH MÁY NÀY. Ở đây họ
+ * ngồi trình duyệt từ xa và KHÔNG có shell trên máy chủ — đã thấy trợ lý bảo
+ * người dùng chạy `cp ... ~/Downloads/` và `scp`, tức là khuyên một việc họ
+ * không làm được. Nên phải nói rõ hoàn cảnh và đưa cách giao tệp đúng.
+ *
+ * @param publicHost - tên miền công khai người dùng truy cập (rỗng nếu chạy nội bộ)
  */
-function webSurfacePrompt(_webUrl: string): string {
-  return 'You are talking to the user through the VHD Corp internal assistant web interface. '
+function webSurfacePrompt(publicHost: string): string {
+  const base = publicHost === '' ? '' : `https://${publicHost}`
+  const remote = publicHost === ''
+    ? ''
+    : 'You run on a shared VHD Corp server. The user is in a web browser on their own '
+      + `machine at ${base} — they have NO shell, NO file manager, and NO direct access to `
+      + 'this server\'s filesystem. Never tell them to run cp, scp, rsync, or to open a path '
+      + 'on this machine: they cannot. '
+      + 'To hand a file over, give them a download link built from the file\'s absolute path, '
+      + `URL-encoded: ${base}/vhd-download?path=<absolute-path-url-encoded>. `
+      + 'That link only serves files inside that user\'s own directory, and only while they '
+      + 'are logged in — so it is safe to paste into the chat. Give the link whenever you '
+      + 'produce a file the user will want, without waiting to be asked. '
+      + 'Each person has their own directory on this server and cannot see other people\'s work. '
+      + 'The server is small and shared, so keep it tidy as you work: delete scratch files '
+      + 'the moment you no longer need them (intermediate downloads, build output, extracted '
+      + 'archives, large temporary data), and name genuinely temporary files with a .tmp '
+      + 'suffix so the nightly cleaner removes them if you forget. Never delete a file the '
+      + 'user asked for or might still want — check with them first. Write new work inside '
+      + 'the current workspace; anything you leave elsewhere in your home directory is not '
+      + 'visible to the user and cannot be downloaded. '
+      + 'Before producing large output, check free space with df -h and du -sh . so you do '
+      + 'not fill a shared disk. '
+  return remote
+    + 'You are talking to the user through the VHD Corp internal assistant web interface. '
     + 'When the user says "this page", "this GUI", or "this app" without naming another target, they mean this interface. '
     + 'The browser gives you no implicit DOM, route, or screenshot context — ask the user or use your tools instead of guessing. '
     + 'Do not start a replacement server unless the user asks; if one is genuinely needed, run it as a managed background job and verify its exact URL.'
@@ -242,7 +267,8 @@ export function apply(ctx: Context, config: Config): void {
       promptCtx.systemPrompt.section({
         name: 'app:web-surface',
         order: -98,
-        text: () => webSurfacePrompt(localWebUrl(promptCtx)),
+        // Tên miền công khai lấy từ --trusted-host (cổng vào truyền vào khi bật)
+        text: () => webSurfacePrompt(config.trustedHosts[0] ?? ''),
       })
     })
     ctx.inject(['shellEnv'], (runtimeCtx) => {

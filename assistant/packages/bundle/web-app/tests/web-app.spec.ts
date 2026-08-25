@@ -276,18 +276,48 @@ describe('web-app runtime glue', () => {
     await torn.fiber.dispose()
   })
 
-  it('fails loud when the prompt section resolves against a portless webserver', async () => {
+  it('cổng webserver mất thì phần định hướng vẫn dựng được, và không lộ URL hỏng', async () => {
     stageDist()
     const ctx = new Context()
-    // A webserver whose bound port is gone (torn down mid-request): the
-    // section must throw, never render a URL with an undefined port.
+    // Bản gốc dựng URL loopback vào phần định hướng nên phải ném lỗi khi mất
+    // cổng, kẻo render ra 'http://127.0.0.1:undefined'. Bản này không đưa URL
+    // loopback vào prompt nữa (nó vô nghĩa với người dùng từ xa), nên mất cổng
+    // không còn là lỗi — nhưng vẫn phải KHÔNG có 'undefined' trong prompt.
     const { server } = fakeHttpServer()
     Object.defineProperty(server, 'port', { get: () => undefined })
     ctx.provide('webServer', server)
     apply(ctx, new Config({ openBrowser: false, printUrl: false, surfaceContext: true, trustedHosts: [] }))
     await ctx.plugin(SystemPrompt, { persona: '' })
     await new Promise(resolve => setTimeout(resolve, 0))
-    await expect(ctx.systemPrompt.assemble()).rejects.toThrow('webServer service missing')
+    const assembly = await ctx.systemPrompt.assemble()
+    const section = assembly.sections.find(entry => entry.name === 'app:web-surface')
+    expect(section?.text).toBeTruthy()
+    expect(section?.text).not.toMatch(/undefined/)
+    await ctx.fiber.dispose()
+  })
+
+  it('có tên miền công khai: nói rõ người dùng KHÔNG có shell và đưa cách tải tệp', async () => {
+    // Đã thấy trợ lý bảo người dùng chạy `cp ... ~/Downloads/` và `scp` — họ ngồi
+    // trình duyệt từ xa nên không làm được. Phần định hướng phải nói rõ hoàn cảnh.
+    stageDist()
+    const ctx = new Context()
+    ctx.provide('webServer', fakeHttpServer().server)
+    apply(ctx, new Config({
+      openBrowser: false, printUrl: false, surfaceContext: true,
+      trustedHosts: ['assistant.vhdcorp.com'],
+    }))
+    await ctx.plugin(SystemPrompt, { persona: '' })
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const assembly = await ctx.systemPrompt.assemble()
+    const text = assembly.sections.find(entry => entry.name === 'app:web-surface')?.text ?? ''
+    expect(text).toMatch(/NO shell/)
+    expect(text).toMatch(/Never tell them to run cp, scp/)
+    expect(text).toContain('https://assistant.vhdcorp.com/vhd-download?path=')
+    // Máy chủ nhỏ và dùng chung nên trợ lý phải tự dọn, và đặt đuôi .tmp cho tệp
+    // tạm để bộ dọn rác hằng đêm bắt được nếu nó quên.
+    expect(text).toMatch(/delete scratch files the moment you no longer need them/)
+    expect(text).toMatch(/\.tmp suffix so the nightly cleaner removes them/)
+    expect(text).toMatch(/Never delete a file the user asked for/)
     await ctx.fiber.dispose()
   })
 
