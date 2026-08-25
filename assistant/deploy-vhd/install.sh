@@ -130,14 +130,21 @@ else
   # bán hàng giữ ~1.1GB, nên 2400M vẫn còn dư cho web. Trợ lý được tắt ngay dưới
   # đây nên phần RAM của nó cũng được trả về cho build.
   BUILD_MEM="${BUILD_MEM:-2400M}"
+  # Node tự tính trần heap của V8 từ hạn mức cgroup, ra khoảng một nửa: trong
+  # khung 2400M thì V8 bỏ cuộc ở ~1.2GB với "Ineffective mark-compacts near heap
+  # limit" (mã 134) dù cgroup còn dư hơn 1GB chưa ai dùng. Đã xảy ra thật ở bước
+  # `tsc -b tsconfig.host.json`. Nói thẳng trần heap để V8 dùng hết phần được
+  # cấp; khung cgroup vẫn là 2400M nên web bán hàng vẫn được bảo vệ y như cũ.
+  BUILD_HEAP_MB="${BUILD_HEAP_MB:-1700}"
   run_build() {
     if command -v systemd-run >/dev/null 2>&1; then
       systemd-run --scope -q --uid="$USER_NAME" \
         -p MemoryMax="$BUILD_MEM" -p MemorySwapMax=0 \
         --setenv=HOME="$ROOT" --working-directory="$APP" \
+        --setenv=NODE_OPTIONS="--max-old-space-size=$BUILD_HEAP_MB" \
         pnpm "$@"
     else
-      sudo -u "$USER_NAME" -H pnpm "$@"
+      sudo -u "$USER_NAME" -H env NODE_OPTIONS="--max-old-space-size=$BUILD_HEAP_MB" pnpm "$@"
     fi
   }
   if command -v systemd-run >/dev/null 2>&1; then
