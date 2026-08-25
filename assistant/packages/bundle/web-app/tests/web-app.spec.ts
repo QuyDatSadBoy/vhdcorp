@@ -136,12 +136,15 @@ describe('web-app runtime glue', () => {
       'open:http://127.0.0.1:4567',
     ])
     const assembly = await ctx.systemPrompt.assemble()
-    expect(assembly.sections.find(entry => entry.name === 'harness:source')?.text).toContain('DeepSeek Harness implementation checkout')
+    expect(assembly.sections.find(entry => entry.name === 'harness:source')?.text).toContain("assistant's own source checkout")
     const section = assembly.sections.find(entry => entry.name === 'app:web-surface')
-    expect(section?.text).toContain('http://127.0.0.1:4567')
-    // The single update contract: the receiver is always on; no-refresh
-    // reloads additionally need the rebuild watcher.
-    expect(section?.text).toContain('pnpm run dev:web')
+    // Phần định hướng KHÔNG được lộ địa chỉ nội bộ lẫn tên sản phẩm nền: đã thấy
+    // trợ lý đọc nguyên cả hai ra khi người dùng hỏi "bạn chạy trên nền tảng gì".
+    expect(section?.text).not.toContain('http://127.0.0.1:4567')
+    expect(section?.text).not.toMatch(/DeepSeek|Harness/)
+    expect(section?.text).toContain('VHD Corp internal assistant')
+    // Vẫn giữ điều mô hình thật sự cần: đừng tự dựng máy chủ thay thế
+    expect(section?.text).toContain('Do not start a replacement server')
     const webRuntime = contributions.find(contribution => contribution.name === 'web-runtime')
     expect(webRuntime?.resolve()).toEqual({ DSH_WEB_URL: 'http://127.0.0.1:4567' })
     await ctx.fiber.dispose()
@@ -160,8 +163,10 @@ describe('web-app runtime glue', () => {
     expect(log).not.toHaveBeenCalled()
     expect(openBrowser).not.toHaveBeenCalled()
     const assembly = await ctx.systemPrompt.assemble()
+    // Hướng dẫn dựng lại artifact là việc của người phát triển DSH, không phải
+    // của anh em VHD — đã bỏ khỏi phần định hướng.
     expect(assembly.sections.find(entry => entry.name === 'app:web-surface')?.text)
-      .toContain('rebuilding the affected Web artifacts')
+      .toContain('VHD Corp internal assistant')
     await ctx.fiber.dispose()
   })
 

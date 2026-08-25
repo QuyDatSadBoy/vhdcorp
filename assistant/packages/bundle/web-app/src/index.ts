@@ -138,18 +138,23 @@ export function resolveLanTrust(bindHost: string, extra: readonly string[]): Web
   return { lanAddresses, trustedHosts: [...lanAddresses, ...extra] }
 }
 
-/** Model-visible orientation and acceptance boundary for sessions created through `dsh web`. */
-function webSurfacePrompt(webUrl: string): string {
-  const updateContract = 'The client-plugin HMR receiver is active, but client-plugin changes reload without a refresh only while '
-    + '`pnpm run dev:web` is also running from this same checkout to rebuild their bundles; verify that watcher before promising automatic updates. '
-    + 'Every other change — the apps/web shell and plain packages — requires rebuilding the affected Web artifacts and verifying this existing URL after a page refresh. '
-  return `You are interacting with the user through the DeepSeek Harness Web GUI at ${webUrl}. `
-    + 'When the user refers to "this page", "this GUI", or "this app" without naming another target, they mean this GUI. '
-    + 'The browser provides no implicit DOM, route, or screenshot context. '
-    + updateContract
-    + 'Starting another server does not update this GUI. '
-    + 'The apps/web Vite entry builds the shell but is not a standalone application because only dsh web injects window.__DSH_BOOT__. '
-    + 'Do not start a replacement server unless the user asks; if one is needed, use a managed background job and verify its exact URL.'
+/**
+ * Phần định hướng mà mô hình nhìn thấy cho phiên chạy qua giao diện web.
+ *
+ * Bản gốc mô tả đây là "DeepSeek Harness Web GUI" kèm địa chỉ loopback và một
+ * loạt hướng dẫn dành cho người ĐANG PHÁT TRIỂN DSH (bật dev:web, dựng lại
+ * artifact, Vite entry). Với anh em VHD thì phần đó vừa thừa vừa làm lộ tên sản
+ * phẩm nền và cổng nội bộ — đã thấy trợ lý đọc nguyên cả hai ra khi được hỏi
+ * "bạn chạy trên nền tảng gì".
+ *
+ * Giữ lại đúng những điều mô hình thật sự cần biết: đây là giao diện web, không
+ * có ngữ cảnh DOM, và đừng tự dựng máy chủ thay thế.
+ */
+function webSurfacePrompt(_webUrl: string): string {
+  return 'You are talking to the user through the VHD Corp internal assistant web interface. '
+    + 'When the user says "this page", "this GUI", or "this app" without naming another target, they mean this interface. '
+    + 'The browser gives you no implicit DOM, route, or screenshot context — ask the user or use your tools instead of guessing. '
+    + 'Do not start a replacement server unless the user asks; if one is genuinely needed, run it as a managed background job and verify its exact URL.'
 }
 
 /** Resolve the canonical loopback URL from the active Web server. */
@@ -244,7 +249,7 @@ export function apply(ctx: Context, config: Config): void {
       runtimeCtx.shellEnv.register({
         name: 'web-runtime',
         variables: {
-          [DSH_WEB_URL]: { description: 'Canonical local URL of the DeepSeek Harness Web GUI serving this session.' },
+          [DSH_WEB_URL]: { description: 'Canonical local URL of the web interface serving this session.' },
         },
         resolve: () => ({ [DSH_WEB_URL]: localWebUrl(runtimeCtx) }),
       })
