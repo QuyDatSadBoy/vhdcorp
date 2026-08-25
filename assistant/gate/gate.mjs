@@ -27,6 +27,7 @@ import { resolve } from 'node:path'
 import { createSessions, clientIp, safeNext, verifyWithAdminApi } from './auth.mjs'
 import { createInstances, slugFor } from './instances.mjs'
 import { serveDownload, userRootFor } from './download.mjs'
+import { serveFavicon } from './favicon.mjs'
 import { busyPage, loginPage, startingPage } from './login-page.mjs'
 
 const MAX_LOGIN_BODY = 4096
@@ -131,6 +132,10 @@ async function handle(req, res) {
   sessions.sweep()
   const url = new URL(req.url ?? '/', 'http://x')
   const path = url.pathname
+
+  // Biểu tượng tab: phục vụ TRƯỚC khi xác thực. Chặn cả favicon thì trình duyệt
+  // không tải được và hiện icon mặc định — nhìn khác hẳn tab của web bán hàng.
+  if (serveFavicon(req, res, path)) return
 
   // Trạng thái cho trang quản trị. Đứng TRƯỚC phần đăng nhập vì trang admin gọi
   // bằng token máy-với-máy, không có phiên người dùng.

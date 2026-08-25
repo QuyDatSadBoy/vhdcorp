@@ -126,6 +126,9 @@ function shell(title, bodyHtml) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <meta name="color-scheme" content="light dark">
+<!-- Cùng biểu tượng với web bán hàng; cổng vào phục vụ nó trước bước xác thực -->
+<link rel="icon" href="/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>${escapeHtml(title)}</title>
 <style>${SHARED_CSS}</style></head>
 <body>${bodyHtml}</body></html>`

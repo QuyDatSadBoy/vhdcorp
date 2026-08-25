@@ -144,6 +144,29 @@ describe('chặn người chưa đăng nhập', () => {
   })
 })
 
+describe('biểu tượng tab', () => {
+  it('tải được KHI CHƯA đăng nhập — nếu không trình duyệt hiện icon mặc định', async () => {
+    const { base } = await startGate()
+    for (const p of ['/favicon.ico', '/favicon.png', '/favicon.svg', '/apple-touch-icon.png']) {
+      const res = await fetch(base + p)
+      assert.equal(res.status, 200, `${p} phải mở được khi chưa đăng nhập`)
+      assert.equal(res.headers.get('content-type'), 'image/png')
+      assert.ok(Number(res.headers.get('content-length')) > 500, `${p} phải có nội dung thật`)
+    }
+  })
+
+  it('trang đăng nhập có khai báo biểu tượng', async () => {
+    const { base } = await startGate()
+    const html = await (await fetch(`${base}/login`)).text()
+    assert.match(html, /<link rel="icon" href="\/favicon\.png"/)
+  })
+
+  it('phương thức khác GET/HEAD trả 405', async () => {
+    const { base } = await startGate()
+    assert.equal((await fetch(`${base}/favicon.ico`, { method: 'POST' })).status, 405)
+  })
+})
+
 describe('đăng nhập bằng tài khoản quản trị', () => {
   it('sai mật khẩu → 401, không cấp phiên', async () => {
     const { base } = await startGate()
