@@ -87,10 +87,35 @@ STAMP="$ROOT/.built-sha"
 if [ -f "$APP/apps/cli/lib/bin.js" ] && [ "$(cat "$STAMP" 2>/dev/null)" = "$HEAD_SHA" ]; then
   ok "mã không đổi → bỏ qua cài lại và build (tiết kiệm ~5 phút)"
 else
-  # -H để HOME trỏ về $ROOT: thiếu nó thì HOME vẫn là /root, corepack ghi cache
-  # vào /root/.cache và bị từ chối quyền.
-  sudo -u "$USER_NAME" -H pnpm install --frozen-lockfile
-  sudo -u "$USER_NAME" -H pnpm build
+  # Build trong một khung giới hạn bộ nhớ. Máy chủ có 3.8GB và đang chạy web bán
+  # hàng (~1.1GB); build này ăn khoảng 1-2GB. Không đóng khung thì khi thiếu RAM,
+  # nhân hệ thống chọn nạn nhân theo điểm số của nó — đã từng giết `nest build`
+  # giữa chừng, và lần khác có thể là vhd-be, tức web bán hàng sập chỉ vì đi cài
+  # trợ lý. Có khung thì vượt hạn mức là build chết với lỗi rõ, web không hề hấn.
+  #
+  # -H / --setenv=HOME để HOME trỏ về $ROOT: thiếu nó thì HOME vẫn là /root,
+  # corepack ghi cache vào /root/.cache và bị từ chối quyền.
+  BUILD_MEM="${BUILD_MEM:-1600M}"
+  run_build() {
+    if command -v systemd-run >/dev/null 2>&1; then
+      systemd-run --scope -q --uid="$USER_NAME" \
+        -p MemoryMax="$BUILD_MEM" -p MemorySwapMax=0 \
+        --setenv=HOME="$ROOT" --working-directory="$APP" \
+        pnpm "$@"
+    else
+      sudo -u "$USER_NAME" -H pnpm "$@"
+    fi
+  }
+  if command -v systemd-run >/dev/null 2>&1; then
+    ok "build trong khung giới hạn $BUILD_MEM — web bán hàng không bị ảnh hưởng"
+  else
+    echo "   ⚠ không có systemd-run — build chạy không có khung giới hạn"
+  fi
+
+  run_build install --frozen-lockfile \
+    || die "cài thư viện thất bại (nếu do vượt $BUILD_MEM thì đặt BUILD_MEM cao hơn)"
+  run_build build \
+    || die "build thất bại (nếu do vượt $BUILD_MEM thì đặt BUILD_MEM cao hơn)"
   echo "$HEAD_SHA" > "$STAMP"
   chown "$USER_NAME:$USER_NAME" "$STAMP"
 fi
