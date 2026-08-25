@@ -130,16 +130,22 @@ else
   # bán hàng giữ ~1.1GB, nên 2400M vẫn còn dư cho web. Trợ lý được tắt ngay dưới
   # đây nên phần RAM của nó cũng được trả về cho build.
   BUILD_MEM="${BUILD_MEM:-2400M}"
-  # Node tự tính trần heap của V8 từ hạn mức cgroup, ra khoảng một nửa: trong
-  # khung 2400M thì V8 bỏ cuộc ở ~1.2GB với "Ineffective mark-compacts near heap
-  # limit" (mã 134) dù cgroup còn dư hơn 1GB chưa ai dùng. Đã xảy ra thật ở bước
-  # `tsc -b tsconfig.host.json`. Nói thẳng trần heap để V8 dùng hết phần được
-  # cấp; khung cgroup vẫn là 2400M nên web bán hàng vẫn được bảo vệ y như cũ.
-  BUILD_HEAP_MB="${BUILD_HEAP_MB:-1700}"
+  # `tsc -b tsconfig.host.json` cần khoảng 2GB heap cho 246 project của repo này.
+  # Đo được từ hai lần chết thật: đặt trần bao nhiêu thì nó chết đúng ở đó (1196
+  # /1223MB rồi 1694/1731MB), kèm "average mu = 0.098" — 90% thời gian dành cho
+  # gom rác, dấu hiệu của một tiến trình đang bị bó quá chặt chứ không phải rò rỉ.
+  #
+  # RAM thật vẫn khoá ở $BUILD_MEM để web bán hàng không bị ảnh hưởng — phần vượt
+  # cho tràn sang swap (máy chủ có sẵn 4GB, gần như chưa dùng). Build chậm hơn
+  # một chút khi phải tràn, nhưng nó chạy một lần lúc deploy, còn web thì phục vụ
+  # khách suốt ngày. Đây là lý do KHÔNG nâng $BUILD_MEM: nâng RAM là lấy RAM của
+  # web, còn cho tràn swap thì không.
+  BUILD_HEAP_MB="${BUILD_HEAP_MB:-3000}"
+  BUILD_SWAP="${BUILD_SWAP:-2G}"
   run_build() {
     if command -v systemd-run >/dev/null 2>&1; then
       systemd-run --scope -q --uid="$USER_NAME" \
-        -p MemoryMax="$BUILD_MEM" -p MemorySwapMax=0 \
+        -p MemoryMax="$BUILD_MEM" -p MemorySwapMax="$BUILD_SWAP" \
         --setenv=HOME="$ROOT" --working-directory="$APP" \
         --setenv=NODE_OPTIONS="--max-old-space-size=$BUILD_HEAP_MB" \
         pnpm "$@"
@@ -156,15 +162,27 @@ else
   # Tắt trợ lý trong lúc build: nó sắp được khởi động lại ở bước 5 nên gián đoạn
   # là không tránh khỏi, mà tắt thì trả lại RAM của nó (cổng vào + tiến trình của
   # từng người) cho build — đúng thứ vừa thiếu khi build chết vì OOM.
+  GATE_WAS_UP=0
   if systemctl is-active --quiet vhd-gate 2>/dev/null; then
+    GATE_WAS_UP=1
     systemctl stop vhd-gate || true
     ok "tạm tắt trợ lý để nhường RAM cho build"
   fi
 
+  # Build chết là bước tắt ở trên đã chạy rồi: không bật lại thì trợ lý nằm im
+  # cho tới khi có người để ý. Đã xảy ra thật. Bật lại bản build cũ — nó vẫn còn
+  # nguyên trên đĩa vì build mới chết trước khi ghi được gì.
+  die_but_keep_assistant_up() {
+    if [ "$GATE_WAS_UP" = 1 ]; then
+      systemctl start vhd-gate 2>/dev/null && echo "   ℹ đã bật lại trợ lý bản cũ — dịch vụ không nằm im chờ" >&2
+    fi
+    die "$@"
+  }
+
   run_build install --frozen-lockfile \
-    || die "cài thư viện thất bại (nếu do vượt $BUILD_MEM thì đặt BUILD_MEM cao hơn)"
+    || die_but_keep_assistant_up "cài thư viện thất bại (nếu do vượt $BUILD_MEM thì đặt BUILD_MEM cao hơn)"
   run_build build \
-    || die "build thất bại (nếu do vượt $BUILD_MEM thì đặt BUILD_MEM cao hơn)"
+    || die_but_keep_assistant_up "build thất bại — xem log ở trên; hết heap thì nâng BUILD_HEAP_MB, hết RAM thì nâng BUILD_SWAP"
   # Trình khoá thư mục (Landlock). Thiếu nó thì DSH từ chối chạy lệnh ở chế độ
   # workspace-write với lỗi "no sandbox backend is usable on this host", và mọi
   # lệnh bash đều phải người dùng bấm duyệt tay — trợ lý gần như không dùng được.
