@@ -95,7 +95,10 @@ else
   #
   # -H / --setenv=HOME để HOME trỏ về $ROOT: thiếu nó thì HOME vẫn là /root,
   # corepack ghi cache vào /root/.cache và bị từ chối quyền.
-  BUILD_MEM="${BUILD_MEM:-1600M}"
+  # 1600M quá thấp — build thật chết với mã 134 (OOM của V8). Máy chủ 3868MB, web
+  # bán hàng giữ ~1.1GB, nên 2400M vẫn còn dư cho web. Trợ lý được tắt ngay dưới
+  # đây nên phần RAM của nó cũng được trả về cho build.
+  BUILD_MEM="${BUILD_MEM:-2400M}"
   run_build() {
     if command -v systemd-run >/dev/null 2>&1; then
       systemd-run --scope -q --uid="$USER_NAME" \
@@ -110,6 +113,14 @@ else
     ok "build trong khung giới hạn $BUILD_MEM — web bán hàng không bị ảnh hưởng"
   else
     echo "   ⚠ không có systemd-run — build chạy không có khung giới hạn"
+  fi
+
+  # Tắt trợ lý trong lúc build: nó sắp được khởi động lại ở bước 5 nên gián đoạn
+  # là không tránh khỏi, mà tắt thì trả lại RAM của nó (cổng vào + tiến trình của
+  # từng người) cho build — đúng thứ vừa thiếu khi build chết vì OOM.
+  if systemctl is-active --quiet vhd-gate 2>/dev/null; then
+    systemctl stop vhd-gate || true
+    ok "tạm tắt trợ lý để nhường RAM cho build"
   fi
 
   run_build install --frozen-lockfile \
