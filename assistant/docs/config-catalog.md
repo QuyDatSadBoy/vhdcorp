@@ -3127,6 +3127,14 @@ export interface Config {
   maxRedirects?: number
   /** `User-Agent` header sent on every request. */
   userAgent?: string
+  /**
+   * Fetch loopback, private, link-local, and carrier-NAT targets as well.
+   * Default `false`: the model chooses the request target, so on a host that
+   * also runs an admin API, a database, or another tenant's process, leaving
+   * this off is what keeps the tool from becoming a probe for them. Turn it on
+   * only where nothing on the reachable private networks is sensitive.
+   */
+  allowPrivateTargets?: boolean
 }
 ```
 

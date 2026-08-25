@@ -396,11 +396,9 @@
     # Every mode enables the stable model-facing web_search tool. DeepSeek search
     # resolves the same DEEPSEEK_API_KEY credential the Models page manages for
     # chat, at each search; its Messages endpoint is separate from the
-    # chat-completions endpoint, so it takes its own base-URL override. Fetch stays
-    # disabled and no fetch provider is mounted: that provider defers SSRF
-    # protection and the model would choose the request target. Search is a full
-    # auxiliary model request with server-side retrieval, so this shipped DeepSeek
-    # route gets 60s while the provider-neutral tool default remains 30s.
+    # chat-completions endpoint, so it takes its own base-URL override. Search is a
+    # full auxiliary model request with server-side retrieval, so this shipped
+    # DeepSeek route gets 60s while the provider-neutral tool default remains 30s.
     - id: web
       name: '@deepseek-ai/dsh-web'
       config:
@@ -410,6 +408,20 @@
       name: '@deepseek-ai/dsh-web-search-deepseek'
       config:
         apiKeyEnv: DEEPSEEK_API_KEY
+
+    # Bản gốc KHÔNG mount provider đọc URL, và ghi lý do: nó chưa chặn địa chỉ nội
+    # bộ, mà đích request thì do mô hình chọn. Thiếu nó thì `fetch: true` ở preset
+    # chỉ hiện ra một cái tool luôn trả lỗi "no usable web provider is registered"
+    # — đo được trên máy chủ thật.
+    #
+    # Máy chủ này có đúng những đích nhạy cảm mà cảnh báo kia nói tới: backend ở
+    # 127.0.0.1:8080, cổng vào, Postgres, tiến trình của người khác. Nên phần chặn
+    # đã được cài vào provider (`isPrivateFetchTarget`): loopback, private,
+    # link-local, carrier-NAT, cả dạng IPv6 và IPv4-mapped, cộng localhost và các
+    # tên .local/.internal. Chuyển hướng không mở thêm đường nào vì provider chỉ
+    # theo redirect cùng origin.
+    - id: web-fetch-http
+      name: '@deepseek-ai/dsh-web-fetch-http'
 
     - id: tool-web
       name: '@deepseek-ai/dsh-tool-web'

@@ -15,6 +15,10 @@ const limits: HttpFetchLimits = {
   timeoutMs: 5_000,
   maxRedirects: 5,
   userAgent: 'test-agent/1.0',
+  // Every transport case below is served by a loopback test server, which the
+  // default private-target refusal exists to block. The refusal itself is
+  // asserted in the policy suite, against the default.
+  allowPrivateTargets: true,
 }
 
 type Handler = (req: IncomingMessage, res: ServerResponse) => void
@@ -47,6 +51,29 @@ describe('policy helpers', () => {
     expect(() => validateFetchUrl('not a url', 2048)).toThrow(expect.objectContaining({ code: 'WEB_INVALID_URL' }))
     expect(() => validateFetchUrl('https://user:pass@example.com', 2048)).toThrow(expect.objectContaining({ code: 'WEB_BLOCKED_URL' }))
     expect(() => validateFetchUrl(`https://example.com/${'a'.repeat(3000)}`, 2048)).toThrow(expect.objectContaining({ code: 'WEB_INVALID_URL' }))
+  })
+
+  it('refuses this machine and the networks only it can reach', () => {
+    // A deployment sharing a host with a database, an admin API, or another
+    // user's process would otherwise hand the model a probe for all of them.
+    for (const host of [
+      'localhost', 'app.localhost', 'db.internal', 'printer.local',
+      '127.0.0.1', '127.1.2.3', '0.0.0.0', '10.0.0.5', '172.16.0.1', '172.31.255.254',
+      '192.168.1.1', '169.254.169.254', '100.64.0.1',
+      '[::1]', '[::]', '[fc00::1]', '[fd12:3456::1]', '[fe80::1]', '[::ffff:127.0.0.1]',
+    ]) {
+      expect(() => validateFetchUrl(`http://${host}/x`, 2048), host)
+        .toThrow(expect.objectContaining({ code: 'WEB_BLOCKED_URL' }))
+    }
+    // Public targets, including literals that only look adjacent to a private range.
+    for (const host of [
+      'example.com', 'vhdcorp.com', '8.8.8.8', '172.32.0.1', '172.15.0.1',
+      '192.167.1.1', '100.63.255.255', '100.128.0.1', '[2001:db8::1]', '[fe00::1]',
+    ]) {
+      expect(validateFetchUrl(`https://${host}/x`, 2048).protocol).toBe('https:')
+    }
+    // A deployment with nothing sensitive on its own networks opts back in.
+    expect(validateFetchUrl('http://127.0.0.1:8080/x', 2048, true).port).toBe('8080')
   })
 
   it('classifies content types', () => {
@@ -371,7 +398,7 @@ describe('web-fetch-http plugin registration', () => {
   it('registers the provider into ctx.web (HMR-safe)', async () => {
     const ctx = new Context()
     await ctx.plugin(WebRuntime, { fetchProvider: LOCAL_FETCH_PROVIDER_ID })
-    const fiber = await ctx.plugin(fetchPlugin, {})
+    const fiber = await ctx.plugin(fetchPlugin, { allowPrivateTargets: true })
     await expect(ctx.web.fetch({ url: `${base}/` }))
       .resolves.toMatchObject({ statusCode: 200 })
     await fiber.dispose()
@@ -421,7 +448,7 @@ describe('web-fetch-http plugin registration', () => {
   it('accepts maxRedirects: 0 (follow no redirects) as valid config', async () => {
     const ctx = new Context()
     await ctx.plugin(WebRuntime, { fetchProvider: LOCAL_FETCH_PROVIDER_ID })
-    const fiber = await ctx.plugin(fetchPlugin, { maxRedirects: 0 })
+    const fiber = await ctx.plugin(fetchPlugin, { maxRedirects: 0, allowPrivateTargets: true })
     await expect(ctx.web.fetch({ url: `${base}/` }))
       .resolves.toMatchObject({ statusCode: 200 })
     await fiber.dispose()

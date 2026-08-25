@@ -3,8 +3,10 @@
  * enforces time and size limits, classifies and decodes text, and leaves presentation to
  * `@deepseek-ai/dsh-tool-web`. Requests carry no browser cookies or ambient credentials.
  *
- * Private-network and SSRF protection is not implemented; do not enable this provider where
- * it can reach sensitive internal targets.
+ * Private, loopback, and link-local targets are refused by hostname
+ * (`isPrivateFetchTarget`), and redirects never cross origins. A public name
+ * whose DNS answer points at a private address is the remaining gap: closing it
+ * needs the resolved address, which `fetch` does not expose.
  * @module @deepseek-ai/dsh-web-fetch-http/provider
  */
 
@@ -27,6 +29,13 @@ export interface HttpFetchLimits {
   maxRedirects: number
   /** `User-Agent` header sent on every request. */
   userAgent: string
+  /**
+   * Fetch loopback, private, and link-local targets too. Only a deployment
+   * that runs nothing sensitive on its own networks — no local admin API,
+   * database, or other tenant's process — sets this; see
+   * `isPrivateFetchTarget`.
+   */
+  allowPrivateTargets: boolean
 }
 
 /** Stable id this provider registers under. */
@@ -54,7 +63,7 @@ export class HttpFetchProvider implements WebFetchProvider {
 
   /** Follow same-origin redirects up to the hop cap, then read the final response. */
   private async followAndRead(initialUrl: string, signal: AbortSignal): Promise<WebFetchResult> {
-    let currentUrl = validateFetchUrl(initialUrl, this.limits.maxUrlLength)
+    let currentUrl = validateFetchUrl(initialUrl, this.limits.maxUrlLength, this.limits.allowPrivateTargets)
     let redirectsFollowed = 0
 
     for (;;) {
@@ -79,7 +88,7 @@ export class HttpFetchProvider implements WebFetchProvider {
         // that validateFetchUrl would reject.
         let validatedTarget: URL
         try {
-          validatedTarget = validateFetchUrl(target.toString(), this.limits.maxUrlLength)
+          validatedTarget = validateFetchUrl(target.toString(), this.limits.maxUrlLength, this.limits.allowPrivateTargets)
           if (!isSameOrigin(validatedTarget, currentUrl)) {
             throw new WebError(
               `cross-origin redirect to ${validatedTarget.origin} is not followed automatically; retry against that URL directly`,
